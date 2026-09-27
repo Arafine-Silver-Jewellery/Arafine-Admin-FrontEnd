@@ -267,21 +267,28 @@
   justify-content: center;
 }
 
-.btn-view {
-  color: #3b82f6;
+.btn-action svg {
+  width: 16px;
+  height: 16px;
 }
 
-.btn-view:hover {
-  background: #eff6ff;
-  border-color: #3b82f6;
+.btn-icon-view {
+  background: #e0e7ff;
+  color: #4f46e5;
 }
 
-.btn-download {
+.btn-icon-view:hover {
+  background: #c7d2fe;
+  border-color: #4f46e5;
+}
+
+.btn-icon-download {
+  background: #dcfce7;
   color: #22c55e;
 }
 
-.btn-download:hover {
-  background: #f0fdf4;
+.btn-icon-download:hover {
+  background: #bbf7d0;
   border-color: #22c55e;
 }
 
