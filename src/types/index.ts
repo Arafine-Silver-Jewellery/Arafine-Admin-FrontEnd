@@ -1,0 +1,180 @@
+export interface Product {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  shortDescription: string | null;
+  sku: string;
+  pricePaise: number;
+  compareAtPricePaise: number | null;
+  costPricePaise: number | null;
+  categoryId: string;
+  category?: Category;
+  images?: ProductImage[];
+  stockQuantity: number;
+  reservedQuantity: number;
+  lowStockThreshold: number;
+  trackInventory: boolean;
+  attributes: Record<string, any> | null;
+  color: string | null;
+  material: string | null;
+  weightGrams: number | null;
+  metaTitle: string | null;
+  metaDescription: string | null;
+  searchTags: string[];
+  status: "active" | "inactive" | "out_of_stock" | "discontinued";
+  isVisible: boolean;
+  averageRating: number;
+  reviewCount: number;
+  sortOrder: number;
+  isFeatured: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductImage {
+  id: string;
+  productId: string;
+  url: string;
+  altText: string | null;
+  sortOrder: number;
+  isPrimary: boolean;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  imageUrl: string | null;
+  parentId: string | null;
+  parent?: Category | null;
+  children?: Category[];
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Order {
+  id: string;
+  orderNumber: string;
+  userId: string;
+  items: OrderItem[];
+  status: OrderStatus;
+  paymentStatus: PaymentStatus;
+  subtotalPaise: number;
+  discountPaise: number;
+  shippingPaise: number;
+  taxPaise: number;
+  totalPaise: number;
+  couponCode: string | null;
+  paymentMethod: string | null;
+  shippingAddress: ShippingAddress;
+  shippingProvider: string | null;
+  trackingNumber: string | null;
+  trackingUrl: string | null;
+  shippedAt: string | null;
+  deliveredAt: string | null;
+  adminNote: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrderItem {
+  id: string;
+  orderId: string;
+  productId: string;
+  productName: string;
+  productSku: string;
+  productImageUrl: string | null;
+  quantity: number;
+  unitPricePaise: number;
+  totalPricePaise: number;
+}
+
+export interface ShippingAddress {
+  fullName: string;
+  phone: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state: string;
+  country: string;
+  postalCode: string;
+  landmark?: string;
+}
+
+export type OrderStatus =
+  | "pending"
+  | "confirmed"
+  | "processing"
+  | "shipped"
+  | "out_for_delivery"
+  | "delivered"
+  | "cancelled"
+  | "return_requested"
+  | "return_approved"
+  | "returned"
+  | "refund_initiated"
+  | "refunded";
+
+export type PaymentStatus = "pending" | "paid" | "failed" | "refunded" | "partially_refunded";
+
+export interface User {
+  id: string;
+  mobileNumber: string;
+  firstName: string;
+  lastName: string;
+  status: "active" | "suspended" | "deleted";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DashboardStats {
+  products: {
+    total: number;
+    active: number;
+    lowStock: number;
+  };
+  categories: {
+    total: number;
+  };
+  orders: {
+    total: number;
+    pending: number;
+    processing: number;
+    shipped: number;
+    delivered: number;
+    today: number;
+  };
+  users: {
+    total: number;
+  };
+  revenue: {
+    totalPaise: number;
+    todayPaise: number;
+  };
+}
+
+export interface Promotion {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  type: "percentage" | "fixed_amount" | "buy_x_get_y" | "free_shipping";
+  scope: "all" | "category" | "product" | "cart";
+  value: number;
+  minQuantity: number | null;
+  minCartValuePaise: number | null;
+  maxDiscountPaise: number | null;
+  categoryIds: string[];
+  productIds: string[];
+  startsAt: string;
+  endsAt: string;
+  isActive: boolean;
+  maxUses: number | null;
+  currentUses: number;
+  createdAt: string;
+  updatedAt: string;
+}
