@@ -541,6 +541,33 @@
   border-color: #dc2626;
 }
 
+.btn-action.btn-icon-view {
+  background: #e0e7ff;
+}
+
+.btn-action.btn-icon-view:hover {
+  background: #c7d2fe;
+  border-color: #4f46e5;
+}
+
+.btn-action.btn-icon-edit {
+  background: #fef3c7;
+}
+
+.btn-action.btn-icon-edit:hover {
+  background: #fde68a;
+  border-color: #f59e0b;
+}
+
+.btn-action.btn-icon-delete {
+  background: #fee2e2;
+}
+
+.btn-action.btn-icon-delete:hover {
+  background: #fecaca;
+  border-color: #ef4444;
+}
+
 .btn-add-product {
   padding: 6px 12px;
   border: 1px solid #2563eb;
