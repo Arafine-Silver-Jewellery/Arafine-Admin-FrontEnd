@@ -142,27 +142,12 @@ export default function RefundRequests({ statusFilter = "pending" }: RefundReque
                     </td>
                     <td>
                       <div className="action-buttons">
-                        <button className="btn-action btn-view" title="View">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                            <circle cx="12" cy="12" r="3" />
+                        <button className="btn-action btn-icon-view" title="View">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#4f46e5" strokeWidth="2"/>
+                            <circle cx="12" cy="12" r="3" stroke="#4f46e5" strokeWidth="2"/>
                           </svg>
                         </button>
-                        {statusFilter === "pending" && (
-                          <>
-                            <button className="btn-action btn-approve" title="Approve">
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-                                <polyline points="20,6 9,17 4,12" />
-                              </svg>
-                            </button>
-                            <button className="btn-action btn-reject" title="Reject">
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-                                <line x1="18" y1="6" x2="6" y2="18" />
-                                <line x1="6" y1="6" x2="18" y2="18" />
-                              </svg>
-                            </button>
-                          </>
-                        )}
                       </div>
                     </td>
                   </tr>
