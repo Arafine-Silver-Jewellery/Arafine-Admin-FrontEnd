@@ -61,14 +61,6 @@ export default function SupportTicket() {
 
   return (
     <div className="help-support-container">
-      <div className="help-header">
-        <h1>
-          <span className="header-icon">🎫</span>
-          Support Ticket
-          <span className="count-badge">{tickets.length}</span>
-        </h1>
-      </div>
-
       <div className="ticket-filters">
         <div className="search-box wide">
           <input
