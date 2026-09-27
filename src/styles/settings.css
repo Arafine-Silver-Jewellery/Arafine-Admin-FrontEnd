@@ -1,0 +1,118 @@
+/* Settings Module Styles (SMTP, Storage) */
+
+.settings-container {
+  padding: 1.5rem;
+}
+
+.settings-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1.5rem;
+}
+
+.settings-container .card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  padding: 1.5rem;
+}
+
+.settings-container .table-container {
+  overflow-x: auto;
+}
+
+.settings-container table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.settings-container th,
+.settings-container td {
+  padding: 14px 12px;
+  text-align: left;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.settings-container th {
+  background: #f9fafb;
+  color: #6b7280;
+  font-weight: 500;
+  font-size: 13px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.settings-container tbody tr:hover {
+  background: #f9fafb;
+}
+
+.settings-container .badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.settings-container .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.settings-container .btn-primary {
+  background: #2563eb;
+  color: white;
+}
+
+.settings-container .btn-primary:hover {
+  background: #1d4ed8;
+}
+
+.settings-container .btn-secondary {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.settings-container .btn-secondary:hover {
+  background: #e5e7eb;
+}
+
+.settings-container .btn-success {
+  background: #22c55e;
+  color: white;
+}
+
+.settings-container .btn-success:hover {
+  background: #16a34a;
+}
+
+.settings-container .btn-danger {
+  background: #dc2626;
+  color: white;
+}
+
+.settings-container .btn-danger:hover {
+  background: #b91c1c;
+}
+
+.settings-container .btn-sm {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.settings-container .loading,
+.settings-container .empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #6b7280;
+}

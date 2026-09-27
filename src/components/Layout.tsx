@@ -120,7 +120,7 @@ const pageTitleMap: Record<string, { title: string; icon: string; count?: number
   "/messages": { title: "Messages", icon: "messages" },
   "/support-ticket": { title: "Support Ticket", icon: "support" },
   "/employees": { title: "Employees", icon: "employee" },
-  "/smtp-config": { title: "SMTP Configuration", icon: "settings" },
+  "/smtp": { title: "SMTP Configuration", icon: "settings" },
   "/storage-providers": { title: "Storage Providers", icon: "storage" },
 };
 

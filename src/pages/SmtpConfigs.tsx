@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
+import "../styles/settings.css";
 
 interface SmtpConfig {
   id: string;
@@ -154,9 +155,8 @@ export default function SmtpConfigs() {
   }
 
   return (
-    <>
-      <header className="page-header">
-        <h1>SMTP Configurations</h1>
+    <div className="settings-container">
+      <div className="settings-toolbar">
         <button className="btn btn-primary" onClick={() => openModal()}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
             <line x1="12" y1="5" x2="12" y2="19" />
@@ -164,11 +164,10 @@ export default function SmtpConfigs() {
           </svg>
           Add SMTP
         </button>
-      </header>
-      <div className="page-content">
-        <div className="card">
-          <div className="table-container">
-            <table>
+      </div>
+      <div className="card">
+        <div className="table-container">
+          <table>
               <thead>
                 <tr>
                   <th>Name</th>
@@ -244,9 +243,8 @@ export default function SmtpConfigs() {
             </table>
           </div>
         </div>
-      </div>
 
-      {showModal && (
+        {showModal && (
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
@@ -365,6 +363,6 @@ export default function SmtpConfigs() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
