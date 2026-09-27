@@ -1,9 +1,7 @@
 /* Reports Module Styles */
 
 .reports-container {
-  padding: 24px;
-  background: #f4f6f8;
-  min-height: 100vh;
+  padding: 1.5rem;
 }
 
 .reports-header {
@@ -26,29 +24,32 @@
 /* Tabs */
 .report-tabs {
   display: flex;
-  gap: 8px;
+  gap: 12px;
   margin-bottom: 24px;
 }
 
 .report-tabs button {
-  padding: 10px 24px;
+  padding: 12px 24px;
   border: none;
-  background: white;
+  background: #fff;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
-  color: #666;
+  color: #64748b;
   cursor: pointer;
   transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .report-tabs button.active {
-  background: #0d6efd;
+  background: #2563eb;
   color: white;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
 }
 
 .report-tabs button:hover:not(.active) {
-  background: #f0f0f0;
+  background: #f8fafc;
+  color: #1e293b;
 }
 
 /* Filter Card */

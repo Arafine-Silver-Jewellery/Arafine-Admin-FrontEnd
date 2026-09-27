@@ -42,13 +42,6 @@ export default function InhouseSales() {
 
   return (
     <div className="reports-container">
-      <div className="reports-header">
-        <h1>
-          <span className="header-icon">🏠</span>
-          Inhouse Sale
-        </h1>
-      </div>
-
       <div className="filter-card">
         <h3>Filter Data</h3>
         <div className="filter-row">

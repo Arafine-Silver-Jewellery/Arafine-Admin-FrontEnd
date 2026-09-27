@@ -81,13 +81,6 @@ export default function ProductReport() {
 
   return (
     <div className="reports-container">
-      <div className="reports-header">
-        <h1>
-          <span className="header-icon">🏠</span>
-          Product Report
-        </h1>
-      </div>
-
       <div className="report-tabs">
         <button
           className={activeTab === "all" ? "active" : ""}

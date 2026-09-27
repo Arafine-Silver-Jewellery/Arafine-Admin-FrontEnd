@@ -56,13 +56,6 @@ export default function OrderReport() {
 
   return (
     <div className="reports-container">
-      <div className="reports-header">
-        <h1>
-          <span className="header-icon">📋</span>
-          Order Report
-        </h1>
-      </div>
-
       <div className="filter-card">
         <h3>Filter Data</h3>
         <div className="filter-row">
