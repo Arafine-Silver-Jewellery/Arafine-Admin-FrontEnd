@@ -57,13 +57,6 @@ export default function Coupon() {
 
   return (
     <div className="offers-deals-container">
-      <div className="offers-header">
-        <h1>
-          <span className="header-icon">🎟️</span>
-          Coupon Setup
-        </h1>
-      </div>
-
       <div className="coupon-form-card">
         <div className="form-grid">
           <div className="form-group">

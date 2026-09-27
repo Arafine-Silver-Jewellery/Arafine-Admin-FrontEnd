@@ -14,13 +14,6 @@ export default function ClearanceSale() {
 
   return (
     <div className="offers-deals-container">
-      <div className="offers-header">
-        <h1>
-          <span className="header-icon orange">🔥</span>
-          Clearance Sale
-        </h1>
-      </div>
-
       <div className="clearance-tabs">
         <button
           className={activeTab === "inhouse" ? "active" : ""}

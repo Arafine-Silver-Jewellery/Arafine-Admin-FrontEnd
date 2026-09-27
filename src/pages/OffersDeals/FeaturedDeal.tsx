@@ -30,33 +30,23 @@ export default function FeaturedDeal() {
 
   return (
     <div className="offers-deals-container">
-      <div className="offers-header">
-        <h1>
-          <span className="header-icon gold">⭐</span>
-          Feature Deal
-        </h1>
-        <div className="header-actions">
-          <button className="btn-secondary">Product priority Setup</button>
-          <button className="btn-primary">+ Create Featured Deal</button>
-        </div>
-      </div>
-
       <div className="offers-card">
         <div className="offers-toolbar">
-          <h3>Feature Deal Table <span className="count">{filteredDeals.length}</span></h3>
-          <div className="toolbar-right">
+          <div className="toolbar-left">
             <div className="search-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8" />
+                <path d="M21 21l-4.35-4.35" />
+              </svg>
               <input
                 type="text"
                 placeholder="Search by title"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8" />
-                <path d="M21 21l-4.35-4.35" />
-              </svg>
             </div>
+          </div>
+          <div className="toolbar-right">
           </div>
         </div>
 

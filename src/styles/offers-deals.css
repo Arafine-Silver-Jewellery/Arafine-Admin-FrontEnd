@@ -1,7 +1,7 @@
 /* Offers & Deals Styles */
 
 .offers-deals-container {
-  padding: 0;
+  padding: 1.5rem;
 }
 
 .offers-header {
@@ -87,9 +87,9 @@
 .coupon-form-card {
   background: white;
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  padding: 24px;
-  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
 }
 
 .form-grid {
@@ -233,8 +233,9 @@
 .offers-card {
   background: white;
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
 }
 
 .offers-toolbar {
@@ -244,6 +245,12 @@
   margin-bottom: 20px;
   flex-wrap: wrap;
   gap: 16px;
+}
+
+.offers-toolbar .toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .offers-toolbar h3 {
@@ -263,6 +270,35 @@
   display: flex;
   gap: 12px;
   align-items: center;
+}
+
+.offers-toolbar .search-box {
+  position: relative;
+  width: 280px;
+}
+
+.offers-toolbar .search-box input {
+  width: 100%;
+  padding: 10px 16px 10px 40px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.offers-toolbar .search-box input:focus {
+  border-color: #2563eb;
+}
+
+.offers-toolbar .search-box svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: #9ca3af;
 }
 
 .search-box {
@@ -524,9 +560,9 @@
 .deal-form-card {
   background: white;
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   overflow: hidden;
-  margin-bottom: 24px;
+  margin-bottom: 1.5rem;
 }
 
 .language-tabs {
@@ -581,33 +617,42 @@
 /* Clearance Sale Styles */
 .clearance-tabs {
   display: flex;
-  gap: 0;
-  margin-bottom: 24px;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  background: #f1f5f9;
+  padding: 0.375rem;
+  border-radius: 10px;
+  width: fit-content;
 }
 
 .clearance-tabs button {
-  padding: 12px 24px;
+  padding: 0.625rem 1.25rem;
   border: none;
-  background: white;
-  color: #6b7280;
+  background: transparent;
+  color: #64748b;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
-  border-radius: 8px 8px 0 0;
+  border-radius: 8px;
+}
+
+.clearance-tabs button:hover {
+  color: #1e293b;
 }
 
 .clearance-tabs button.active {
   background: #2563eb;
   color: white;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
 }
 
 .clearance-card {
   background: white;
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  padding: 24px;
-  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
 }
 
 .active-offer-row {

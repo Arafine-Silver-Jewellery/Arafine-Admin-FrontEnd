@@ -30,34 +30,23 @@ export default function FlashDeals() {
 
   return (
     <div className="offers-deals-container">
-      <div className="offers-header">
-        <h1>
-          <span className="header-icon yellow">⚡</span>
-          Flash Deals
-        </h1>
-        <div className="header-actions">
-          <button className="btn-secondary">Product Priority Setup</button>
-          <button className="btn-primary">+ Create Flash Deals</button>
-        </div>
-      </div>
-
       <div className="offers-card">
         <div className="offers-toolbar">
-          <h3>Flash Deal Table <span className="count">{filteredDeals.length}</span></h3>
-          <div className="toolbar-right">
+          <div className="toolbar-left">
             <div className="search-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8" />
+                <path d="M21 21l-4.35-4.35" />
+              </svg>
               <input
                 type="text"
                 placeholder="Search by Title"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
-              <button className="search-clear">×</button>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8" />
-                <path d="M21 21l-4.35-4.35" />
-              </svg>
             </div>
+          </div>
+          <div className="toolbar-right">
           </div>
         </div>
 
