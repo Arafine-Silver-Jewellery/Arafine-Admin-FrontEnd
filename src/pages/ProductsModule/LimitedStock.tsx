@@ -37,15 +37,6 @@ export default function LimitedStock() {
 
   return (
     <div className="products-module-container">
-      <div className="products-header">
-        <h1>
-          <span className="header-icon orange">🛒</span>
-          Limited Stocked Products List
-          <span className="count-badge">{filteredProducts.length}</span>
-        </h1>
-        <p className="header-subtitle">The products are shown in this list which quantity is below 1</p>
-      </div>
-
       <div className="products-card">
         <div className="products-toolbar">
           <div className="search-box">

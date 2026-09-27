@@ -37,14 +37,6 @@ export default function ProductList() {
 
   return (
     <div className="products-module-container">
-      <div className="products-header">
-        <h1>
-          <span className="header-icon orange">🏠</span>
-          In House Product List
-          <span className="count-badge">{filteredProducts.length}</span>
-        </h1>
-      </div>
-
       <div className="products-card">
         <div className="products-toolbar">
           <div className="search-box">

@@ -6,13 +6,6 @@ export default function BulkImport() {
 
   return (
     <div className="products-module-container">
-      <div className="products-header">
-        <h1>
-          <span className="header-icon yellow">📥</span>
-          Bulk Import
-        </h1>
-      </div>
-
       <div className="bulk-import-steps">
         <div className="step-card">
           <div className="step-header">

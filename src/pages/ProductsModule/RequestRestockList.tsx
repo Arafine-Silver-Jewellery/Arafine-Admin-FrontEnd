@@ -30,14 +30,6 @@ export default function RequestRestockList() {
 
   return (
     <div className="products-module-container">
-      <div className="products-header">
-        <h1>
-          <span className="header-icon orange">🛒</span>
-          Request Restock List
-          <span className="count-badge">{filteredRequests.length}</span>
-        </h1>
-      </div>
-
       <div className="filter-section">
         <h3>Filter Products</h3>
         <div className="filter-grid">
