@@ -261,10 +261,10 @@ export default function TransactionReport() {
                         </span>
                       </td>
                       <td>
-                        <button className="btn-action btn-view" title="View Details">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                            <circle cx="12" cy="12" r="3" />
+                        <button className="btn-action btn-icon-view" title="View Details">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#4f46e5" strokeWidth="2"/>
+                            <circle cx="12" cy="12" r="3" stroke="#4f46e5" strokeWidth="2"/>
                           </svg>
                         </button>
                       </td>
@@ -344,10 +344,10 @@ export default function TransactionReport() {
                       <td>{txn.date}</td>
                       <td className="amount-negative">-₹{txn.amount.toLocaleString()}</td>
                       <td>
-                        <button className="btn-action btn-view" title="View Details">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                            <circle cx="12" cy="12" r="3" />
+                        <button className="btn-action btn-icon-view" title="View Details">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#4f46e5" strokeWidth="2"/>
+                            <circle cx="12" cy="12" r="3" stroke="#4f46e5" strokeWidth="2"/>
                           </svg>
                         </button>
                       </td>
@@ -443,10 +443,10 @@ export default function TransactionReport() {
                         </span>
                       </td>
                       <td>
-                        <button className="btn-action btn-view" title="View Details">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                            <circle cx="12" cy="12" r="3" />
+                        <button className="btn-action btn-icon-view" title="View Details">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#4f46e5" strokeWidth="2"/>
+                            <circle cx="12" cy="12" r="3" stroke="#4f46e5" strokeWidth="2"/>
                           </svg>
                         </button>
                       </td>

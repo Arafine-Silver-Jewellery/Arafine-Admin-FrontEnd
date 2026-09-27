@@ -211,17 +211,17 @@ export default function VendorSales() {
                   </td>
                   <td>
                     <div className="actions-cell">
-                      <button className="btn-action btn-view" title="View Details">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                          <circle cx="12" cy="12" r="3" />
+                      <button className="btn-action btn-icon-view" title="View Details">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#4f46e5" strokeWidth="2"/>
+                          <circle cx="12" cy="12" r="3" stroke="#4f46e5" strokeWidth="2"/>
                         </svg>
                       </button>
-                      <button className="btn-action btn-download" title="Download Report">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                          <polyline points="7,10 12,15 17,10" />
-                          <line x1="12" y1="15" x2="12" y2="3" />
+                      <button className="btn-action btn-icon-download" title="Download Report">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="#22c55e" strokeWidth="2"/>
+                          <polyline points="7,10 12,15 17,10" stroke="#22c55e" strokeWidth="2"/>
+                          <line x1="12" y1="15" x2="12" y2="3" stroke="#22c55e" strokeWidth="2"/>
                         </svg>
                       </button>
                     </div>

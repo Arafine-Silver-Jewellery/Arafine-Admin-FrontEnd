@@ -489,6 +489,15 @@
 .btn-view { background: #e8f5e9; color: #4caf50; }
 .btn-view:hover { background: #c8e6c9; }
 
+.btn-icon-view { background: #e0e7ff; }
+.btn-icon-view:hover { background: #c7d2fe; }
+.btn-icon-download { background: #dcfce7; }
+.btn-icon-download:hover { background: #bbf7d0; }
+.btn-icon-edit { background: #fef3c7; }
+.btn-icon-edit:hover { background: #fde68a; }
+.btn-icon-delete { background: #fee2e2; }
+.btn-icon-delete:hover { background: #fecaca; }
+
 /* Search Box */
 .search-box {
   position: relative;
