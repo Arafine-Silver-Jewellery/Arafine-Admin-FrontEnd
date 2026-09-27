@@ -116,6 +116,12 @@ const pageTitleMap: Record<string, { title: string; icon: string; count?: number
   "/customers/wallet": { title: "Wallet", icon: "wallet" },
   "/customers/wallet-bonus": { title: "Wallet Bonus Setup", icon: "wallet" },
   "/customers/loyalty-points": { title: "Loyalty Points", icon: "loyalty" },
+  "/inbox": { title: "Inbox", icon: "inbox" },
+  "/messages": { title: "Messages", icon: "messages" },
+  "/support-ticket": { title: "Support Ticket", icon: "support" },
+  "/employees": { title: "Employees", icon: "employee" },
+  "/smtp-config": { title: "SMTP Configuration", icon: "settings" },
+  "/storage-providers": { title: "Storage Providers", icon: "storage" },
 };
 
 function getPageTitle(pathname: string): { title: string; icon: string; count?: number } {
@@ -625,6 +631,31 @@ export default function Layout() {
                 {currentPage.icon === "refund" && (
                   <svg viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12.5 6.9c1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-.53.12-1.03.3-1.48.54l1.47 1.47c.41-.17.91-.27 1.51-.27zm-2.6.98l7.14 7.14c.23-.55.36-1.13.36-1.72 0-2.09-1.53-3.53-4.04-3.93l-3.46-3.46zm10.31 9.25l-9.31-9.31-1.42-1.42-6.69-6.69L2.1 2.1l4.07 4.07C4.79 7.46 4 9.06 4 11.22c0 1.56.53 2.77 1.36 3.65l5.14-5.14.01.01-5.14 5.14c1.01.95 2.39 1.61 4.13 1.85V19h3v-2.27c1.04-.25 1.91-.7 2.57-1.32l4.13 4.13 1.37-1.37-6.7-6.7z"/>
+                  </svg>
+                )}
+                {currentPage.icon === "inbox" && (
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 3H4.99c-1.11 0-1.98.89-1.98 2L3 19c0 1.1.88 2 1.99 2H19c1.1 0 2-.9 2-2V5c0-1.11-.9-2-2-2zm0 12h-4c0 1.66-1.35 3-3 3s-3-1.34-3-3H4.99V5H19v10z"/>
+                  </svg>
+                )}
+                {currentPage.icon === "messages" && (
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
+                  </svg>
+                )}
+                {currentPage.icon === "employee" && (
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                  </svg>
+                )}
+                {currentPage.icon === "settings" && (
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+                  </svg>
+                )}
+                {currentPage.icon === "storage" && (
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M2 20h20v-4H2v4zm2-3h2v2H4v-2zM2 4v4h20V4H2zm4 3H4V5h2v2zm-4 7h20v-4H2v4zm2-3h2v2H4v-2z"/>
                   </svg>
                 )}
                 {(currentPage.icon === "brand" || currentPage.icon === "banner" || currentPage.icon === "gallery" || currentPage.icon === "attribute" || currentPage.icon === "pos") && (

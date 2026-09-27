@@ -1,7 +1,7 @@
 /* Help & Support Styles */
 
 .help-support-container {
-  padding: 0;
+  padding: 1.5rem;
 }
 
 .help-header {
@@ -94,24 +94,32 @@
 .chat-tabs {
   display: flex;
   padding: 0 16px;
-  gap: 8px;
+  gap: 12px;
   margin-bottom: 16px;
 }
 
 .chat-tabs button {
-  padding: 8px 20px;
+  padding: 10px 20px;
   border: none;
-  border-radius: 20px;
+  border-radius: 8px;
   font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
-  background: #f3f4f6;
-  color: #6b7280;
+  background: #fff;
+  color: #64748b;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.chat-tabs button:hover {
+  background: #f8fafc;
+  color: #1e293b;
 }
 
 .chat-tabs button.active {
   background: #2563eb;
   color: white;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
 }
 
 .contact-list {

@@ -43,13 +43,6 @@ export default function Inbox() {
 
   return (
     <div className="help-support-container">
-      <div className="help-header">
-        <h1>
-          <span className="header-icon">💬</span>
-          Chatting List
-        </h1>
-      </div>
-
       <div className="chat-container">
         <div className="chat-sidebar">
           <div className="chat-search">
