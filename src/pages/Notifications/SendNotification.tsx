@@ -28,13 +28,6 @@ export default function SendNotification() {
 
   return (
     <div className="notifications-container">
-      <div className="notifications-header">
-        <h1>
-          <span className="header-icon">🔔</span>
-          Send Notification
-        </h1>
-      </div>
-
       <div className="notification-form-card">
         <div className="form-layout">
           <div className="form-left">
@@ -84,20 +77,21 @@ export default function SendNotification() {
 
       <div className="notifications-card">
         <div className="notifications-toolbar">
-          <h3>Push notification table <span className="count">{filteredNotifications.length}</span></h3>
-          <div className="toolbar-right">
+          <div className="toolbar-left">
             <div className="search-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8" />
+                <path d="M21 21l-4.35-4.35" />
+              </svg>
               <input
                 type="text"
                 placeholder="Search by title"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8" />
-                <path d="M21 21l-4.35-4.35" />
-              </svg>
             </div>
+          </div>
+          <div className="toolbar-right">
           </div>
         </div>
 
