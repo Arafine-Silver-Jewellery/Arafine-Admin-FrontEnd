@@ -105,6 +105,19 @@
   display: flex;
   gap: 0.75rem;
   align-items: center;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.orders-actions-left {
+  display: flex;
+  align-items: center;
+}
+
+.orders-actions-right {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
 }
 
 .search-box {

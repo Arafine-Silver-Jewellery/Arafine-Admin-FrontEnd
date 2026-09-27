@@ -181,7 +181,7 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
       <div className="orders-list-section">
         <div className="orders-list-header">
           <h2>Order list <span>{filteredOrders.length}</span></h2>
-          <div className="orders-actions">
+          <div className="orders-actions" style={{ width: 'auto' }}>
             <div className="search-box">
               <input
                 type="text"
