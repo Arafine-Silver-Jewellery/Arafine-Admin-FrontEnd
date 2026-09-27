@@ -418,6 +418,15 @@
   background: #bfdbfe;
 }
 
+.btn-action.btn-icon-barcode {
+  background: #f3f4f6;
+}
+
+.btn-action.btn-icon-barcode:hover {
+  background: #e5e7eb;
+  border-color: #6b7280;
+}
+
 .btn-action.btn-view {
   background: #e0e7ff;
   color: #4f46e5;
@@ -425,6 +434,15 @@
 
 .btn-action.btn-view:hover {
   background: #c7d2fe;
+}
+
+.btn-action.btn-icon-view {
+  background: #e0e7ff;
+}
+
+.btn-action.btn-icon-view:hover {
+  background: #c7d2fe;
+  border-color: #4f46e5;
 }
 
 .btn-action.btn-edit {
@@ -436,6 +454,15 @@
   background: #fde68a;
 }
 
+.btn-action.btn-icon-edit {
+  background: #fef3c7;
+}
+
+.btn-action.btn-icon-edit:hover {
+  background: #fde68a;
+  border-color: #f59e0b;
+}
+
 .btn-action.btn-delete {
   background: #fee2e2;
   color: #dc2626;
@@ -443,6 +470,24 @@
 
 .btn-action.btn-delete:hover {
   background: #fecaca;
+}
+
+.btn-action.btn-icon-delete {
+  background: #fee2e2;
+}
+
+.btn-action.btn-icon-delete:hover {
+  background: #fecaca;
+  border-color: #ef4444;
+}
+
+.btn-action.btn-icon-share {
+  background: #dbeafe;
+}
+
+.btn-action.btn-icon-share:hover {
+  background: #bfdbfe;
+  border-color: #3b82f6;
 }
 
 .btn-action.btn-share {
