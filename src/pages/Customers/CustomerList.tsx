@@ -170,16 +170,16 @@ export default function CustomerList() {
                   </td>
                   <td>
                     <div className="action-buttons">
-                      <button className="btn-action btn-view" title="View">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                          <circle cx="12" cy="12" r="3" />
+                      <button className="btn-action btn-icon-view" title="View">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#4f46e5" strokeWidth="2"/>
+                          <circle cx="12" cy="12" r="3" stroke="#4f46e5" strokeWidth="2"/>
                         </svg>
                       </button>
-                      <button className="btn-action btn-delete" title="Delete">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <polyline points="3,6 5,6 21,6" />
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      <button className="btn-action btn-icon-delete" title="Delete">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                          <polyline points="3,6 5,6 21,6" stroke="#ef4444" strokeWidth="2"/>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="#ef4444" strokeWidth="2"/>
                         </svg>
                       </button>
                     </div>

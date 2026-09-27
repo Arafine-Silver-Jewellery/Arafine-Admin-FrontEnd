@@ -635,6 +635,38 @@
   background: #ffcdd2;
 }
 
+.btn-icon-view {
+  background: #e0e7ff;
+}
+
+.btn-icon-view:hover {
+  background: #c7d2fe;
+}
+
+.btn-icon-edit {
+  background: #fef3c7;
+}
+
+.btn-icon-edit:hover {
+  background: #fde68a;
+}
+
+.btn-icon-delete {
+  background: #fee2e2;
+}
+
+.btn-icon-delete:hover {
+  background: #fecaca;
+}
+
+.btn-icon-reply {
+  background: #dcfce7;
+}
+
+.btn-icon-reply:hover {
+  background: #bbf7d0;
+}
+
 .btn-reply {
   background: #e8f5e9;
   color: #4caf50;
