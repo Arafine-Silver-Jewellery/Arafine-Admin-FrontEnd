@@ -6,8 +6,42 @@
 
 .settings-toolbar {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 1.5rem;
+}
+
+.settings-toolbar .search-box {
+  position: relative;
+  width: 250px;
+}
+
+.settings-toolbar .search-box input {
+  width: 100%;
+  padding: 10px 40px 10px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  background: white;
+}
+
+.settings-toolbar .search-box input:focus {
+  border-color: #2563eb;
+}
+
+.settings-toolbar .search-box input::placeholder {
+  color: #9ca3af;
+}
+
+.settings-toolbar .search-box svg {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  stroke: #9ca3af;
 }
 
 .settings-container .card {

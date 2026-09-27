@@ -154,9 +154,32 @@ export default function SmtpConfigs() {
     }
   }
 
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredConfigs = configs.filter(config => {
+    const search = searchTerm.toLowerCase();
+    return (
+      config.name.toLowerCase().includes(search) ||
+      config.host.toLowerCase().includes(search) ||
+      config.fromEmail.toLowerCase().includes(search)
+    );
+  });
+
   return (
     <div className="settings-container">
       <div className="settings-toolbar">
+        <div className="search-box">
+          <input
+            type="text"
+            placeholder="Search SMTP..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8" />
+            <path d="M21 21l-4.35-4.35" />
+          </svg>
+        </div>
         <button className="btn btn-primary" onClick={() => openModal()}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
             <line x1="12" y1="5" x2="12" y2="19" />
@@ -183,12 +206,12 @@ export default function SmtpConfigs() {
                   <tr>
                     <td colSpan={6} className="loading">Loading...</td>
                   </tr>
-                ) : configs.length === 0 ? (
+                ) : filteredConfigs.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="empty-state">No SMTP configurations found</td>
+                    <td colSpan={6} className="empty-state">{searchTerm ? "No SMTP configs match your search" : "No SMTP configurations found"}</td>
                   </tr>
                 ) : (
-                  configs.map(config => (
+                  filteredConfigs.map(config => (
                     <tr key={config.id}>
                       <td>{config.name}</td>
                       <td>{config.host}</td>
