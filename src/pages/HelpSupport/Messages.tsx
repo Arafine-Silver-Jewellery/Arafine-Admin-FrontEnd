@@ -24,13 +24,6 @@ export default function Messages() {
 
   return (
     <div className="help-support-container">
-      <div className="help-header">
-        <h1>
-          <span className="header-icon orange">📧</span>
-          Customer Message
-        </h1>
-      </div>
-
       <div className="support-card">
         <div className="support-toolbar">
           <h3>Customer Message Table <span className="count">{filteredMessages.length}</span></h3>
