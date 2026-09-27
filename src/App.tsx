@@ -5,8 +5,6 @@ import Layout from "./components/Layout";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import ProductForm from "./pages/ProductForm";
-import Orders from "./pages/Orders";
-import OrderDetail from "./pages/OrderDetail";
 import Users from "./pages/Users";
 import Promotions from "./pages/Promotions";
 import SmtpConfigs from "./pages/SmtpConfigs";
@@ -63,7 +61,6 @@ function App() {
             <Route path="products-module/limited-stock" element={<LimitedStock />} />
             <Route path="products-module/bulk-import" element={<BulkImport />} />
             <Route path="products-module/restock-requests" element={<RequestRestockList />} />
-            <Route path="products" element={<ProductList />} />
             <Route path="banners" element={<BannerSetup />} />
             <Route path="offers-deals" element={<Coupon />} />
             <Route path="offers-deals/coupon" element={<Coupon />} />
@@ -91,8 +88,6 @@ function App() {
             <Route path="customers/loyalty-points" element={<LoyaltyPoints />} />
             <Route path="products/new" element={<ProductForm />} />
             <Route path="products/:id" element={<ProductForm />} />
-            <Route path="orders" element={<Orders />} />
-            <Route path="orders/:id" element={<OrderDetail />} />
             <Route path="users" element={<Users />} />
             <Route path="promotions" element={<Promotions />} />
             <Route path="smtp" element={<SmtpConfigs />} />

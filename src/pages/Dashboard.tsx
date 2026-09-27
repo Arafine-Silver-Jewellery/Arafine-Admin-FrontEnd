@@ -41,9 +41,6 @@ export default function Dashboard() {
 
   return (
     <>
-      <header className="page-header">
-        <h1>Dashboard</h1>
-      </header>
       <div className="page-content">
         {/* Stats Grid */}
         <div className="stats-grid">

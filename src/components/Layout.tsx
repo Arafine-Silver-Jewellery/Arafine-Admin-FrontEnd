@@ -68,6 +68,65 @@ const customersSubmenus = [
   { path: "/customers/loyalty-points", label: "Loyalty Points" },
 ];
 
+// Page title mapping based on route
+const pageTitleMap: Record<string, { title: string; icon: string; count?: number }> = {
+  "/": { title: "Dashboard", icon: "dashboard" },
+  "/pos": { title: "POS", icon: "pos" },
+  "/orders-management": { title: "All Orders", icon: "orders", count: 87 },
+  "/orders-management/pending": { title: "Pending Orders", icon: "orders" },
+  "/orders-management/confirmed": { title: "Confirmed Orders", icon: "orders", count: 50 },
+  "/orders-management/packaging": { title: "Packaging Orders", icon: "orders" },
+  "/orders-management/out-for-delivery": { title: "Out for Delivery", icon: "orders" },
+  "/orders-management/delivered": { title: "Delivered Orders", icon: "orders", count: 17 },
+  "/orders-management/returned": { title: "Returned Orders", icon: "orders" },
+  "/orders-management/failed-to-deliver": { title: "Failed to Deliver", icon: "orders" },
+  "/orders-management/canceled": { title: "Canceled Orders", icon: "orders", count: 20 },
+  "/refund-requests": { title: "Pending Refunds", icon: "refund" },
+  "/refund-requests/approved": { title: "Approved Refunds", icon: "refund" },
+  "/refund-requests/refunded": { title: "Refunded", icon: "refund" },
+  "/refund-requests/rejected": { title: "Rejected Refunds", icon: "refund" },
+  "/category-setup": { title: "Categories", icon: "category" },
+  "/category-setup/sub-categories": { title: "Sub Categories", icon: "category" },
+  "/category-setup/sub-sub-categories": { title: "Sub Sub Categories", icon: "category" },
+  "/brand-setup": { title: "Brand Setup", icon: "brand" },
+  "/products-module": { title: "In House Product List", icon: "product", count: 6 },
+  "/products-module/add-new": { title: "Add New Product", icon: "product" },
+  "/products-module/limited-stock": { title: "Limited Stock Products", icon: "product" },
+  "/products-module/bulk-import": { title: "Bulk Import", icon: "product" },
+  "/products-module/restock-requests": { title: "Restock Requests", icon: "product" },
+  "/product-gallery": { title: "Product Gallery", icon: "gallery" },
+  "/attribute-setup": { title: "Attribute Setup", icon: "attribute" },
+  "/banner-setup": { title: "Banner Setup", icon: "banner" },
+  "/offers-deals/coupon": { title: "Coupon", icon: "offer" },
+  "/offers-deals/flash-deals": { title: "Flash Deals", icon: "offer" },
+  "/offers-deals/deal-of-the-day": { title: "Deal of the Day", icon: "offer" },
+  "/offers-deals/featured-deal": { title: "Featured Deal", icon: "offer" },
+  "/offers-deals/clearance-sale": { title: "Clearance Sale", icon: "offer" },
+  "/notifications/send": { title: "Send Notification", icon: "notification" },
+  "/notifications/push-setup": { title: "Push Notification Setup", icon: "notification" },
+  "/help-support": { title: "Help & Support", icon: "support" },
+  "/reports/earning": { title: "Earning Reports", icon: "report" },
+  "/reports/inhouse-sales": { title: "Inhouse Sales", icon: "report" },
+  "/reports/vendor-sales": { title: "Vendor Sales", icon: "report" },
+  "/reports/transactions": { title: "Transaction Report", icon: "report" },
+  "/reports/product": { title: "Product Report", icon: "report" },
+  "/reports/order": { title: "Order Report", icon: "report" },
+  "/customers/list": { title: "Customer List", icon: "customer" },
+  "/customers/reviews": { title: "Customer Reviews", icon: "customer" },
+  "/customers/wallet": { title: "Wallet", icon: "wallet" },
+  "/customers/wallet-bonus": { title: "Wallet Bonus Setup", icon: "wallet" },
+  "/customers/loyalty-points": { title: "Loyalty Points", icon: "loyalty" },
+};
+
+function getPageTitle(pathname: string): { title: string; icon: string; count?: number } {
+  // Direct match
+  if (pageTitleMap[pathname]) {
+    return pageTitleMap[pathname];
+  }
+  // Default
+  return { title: "Dashboard", icon: "dashboard" };
+}
+
 export default function Layout() {
   const { employee, logout } = useAuth();
   const navigate = useNavigate();
@@ -95,6 +154,8 @@ export default function Layout() {
   const isNotificationsActive = location.pathname.startsWith("/notifications");
   const isReportsActive = location.pathname.startsWith("/reports");
   const isCustomersActive = location.pathname.startsWith("/customers");
+
+  const currentPage = getPageTitle(location.pathname);
 
   return (
     <div className="admin-layout">
@@ -519,6 +580,79 @@ export default function Layout() {
       <main className="main-content">
         <header className="top-header">
           <div className="header-left">
+            <div className="page-title">
+              <span className="page-title-icon">
+                {currentPage.icon === "dashboard" && (
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/>
+                  </svg>
+                )}
+                {currentPage.icon === "product" && (
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                  </svg>
+                )}
+                {currentPage.icon === "orders" && (
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                  </svg>
+                )}
+                {currentPage.icon === "category" && (
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2l-5.5 9h11L12 2zm0 3.84L13.93 9h-3.87L12 5.84zM17.5 13c-2.49 0-4.5 2.01-4.5 4.5s2.01 4.5 4.5 4.5 4.5-2.01 4.5-4.5-2.01-4.5-4.5-4.5zM3 21.5h8v-8H3v8z"/>
+                  </svg>
+                )}
+                {currentPage.icon === "customer" && (
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+                  </svg>
+                )}
+                {currentPage.icon === "report" && (
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
+                  </svg>
+                )}
+                {currentPage.icon === "offer" && (
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7z"/>
+                  </svg>
+                )}
+                {currentPage.icon === "notification" && (
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+                  </svg>
+                )}
+                {currentPage.icon === "support" && (
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/>
+                  </svg>
+                )}
+                {currentPage.icon === "wallet" && (
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+                  </svg>
+                )}
+                {currentPage.icon === "loyalty" && (
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                  </svg>
+                )}
+                {currentPage.icon === "refund" && (
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12.5 6.9c1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-.53.12-1.03.3-1.48.54l1.47 1.47c.41-.17.91-.27 1.51-.27zm-2.6.98l7.14 7.14c.23-.55.36-1.13.36-1.72 0-2.09-1.53-3.53-4.04-3.93l-3.46-3.46zm10.31 9.25l-9.31-9.31-1.42-1.42-6.69-6.69L2.1 2.1l4.07 4.07C4.79 7.46 4 9.06 4 11.22c0 1.56.53 2.77 1.36 3.65l5.14-5.14.01.01-5.14 5.14c1.01.95 2.39 1.61 4.13 1.85V19h3v-2.27c1.04-.25 1.91-.7 2.57-1.32l4.13 4.13 1.37-1.37-6.7-6.7z"/>
+                  </svg>
+                )}
+                {(currentPage.icon === "brand" || currentPage.icon === "banner" || currentPage.icon === "gallery" || currentPage.icon === "attribute" || currentPage.icon === "pos") && (
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/>
+                  </svg>
+                )}
+              </span>
+              <span className="page-title-text">{currentPage.title}</span>
+              {currentPage.count !== undefined && (
+                <span className="page-title-count">{currentPage.count}</span>
+              )}
+            </div>
           </div>
           <div className="header-right">
             <div className="header-search">

@@ -375,6 +375,48 @@
   gap: 1rem;
 }
 
+.page-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.page-title-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 100%);
+  border-radius: 6px;
+  color: #5c6bc0;
+}
+
+.page-title-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.page-title-text {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.page-title-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 11px;
+}
+
 .menu-toggle {
   width: 40px;
   height: 40px;
