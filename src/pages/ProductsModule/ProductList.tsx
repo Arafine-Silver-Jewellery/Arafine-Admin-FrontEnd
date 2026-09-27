@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "../../styles/products-module.css";
 
 interface Product {
@@ -22,6 +23,7 @@ const mockProducts: Product[] = [
 ];
 
 export default function ProductList() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [products, setProducts] = useState(mockProducts);
 
@@ -71,7 +73,7 @@ export default function ProductList() {
               </svg>
               Filter
             </button>
-            <button className="btn-add">
+            <button className="btn-add" onClick={() => navigate("/products-module/add-new")}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="10" />
                 <line x1="12" y1="8" x2="12" y2="16" />

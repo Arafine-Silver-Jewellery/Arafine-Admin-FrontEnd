@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "../../styles/products-module.css";
 
 export default function AddNewProduct() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -10,6 +12,14 @@ export default function AddNewProduct() {
 
   return (
     <div className="products-module-container">
+      <div className="page-back-header">
+        <button className="btn-back" onClick={() => navigate("/products-module")}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+          Back to Product List
+        </button>
+      </div>
       <div className="add-product-form">
         <div className="form-section">
           <div className="section-header">

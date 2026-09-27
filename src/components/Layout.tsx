@@ -30,7 +30,6 @@ const categorySubmenus = [
 
 const productsSubmenus = [
   { path: "/products-module", label: "Product List", count: 242 },
-  { path: "/products-module/add-new", label: "Add New Product" },
   { path: "/products-module/limited-stock", label: "Limited Stock" },
   { path: "/products-module/bulk-import", label: "Bulk Import" },
   { path: "/products-module/restock-requests", label: "Request Restock List" },
