@@ -27,13 +27,6 @@ export default function LoyaltyPoints() {
 
   return (
     <div className="customers-container">
-      <div className="customers-header">
-        <h1>
-          <span className="header-icon">🏆</span>
-          Customer Loyalty Point Report
-        </h1>
-      </div>
-
       <div className="filter-card">
         <h3>Filter Options</h3>
         <div className="filter-grid wallet-filter">

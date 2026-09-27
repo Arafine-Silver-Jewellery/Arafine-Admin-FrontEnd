@@ -44,14 +44,6 @@ export default function CustomerList() {
 
   return (
     <div className="customers-container">
-      <div className="customers-header">
-        <h1>
-          <span className="header-icon">👥</span>
-          Customer List
-          <span className="count-badge">{filteredCustomers.length}</span>
-        </h1>
-      </div>
-
       <div className="filter-card">
         <div className="filter-grid">
           <div className="filter-group">

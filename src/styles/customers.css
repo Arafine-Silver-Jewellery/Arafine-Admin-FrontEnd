@@ -1,9 +1,7 @@
 /* Customers Module Styles */
 
 .customers-container {
-  padding: 24px;
-  background: #f4f6f8;
-  min-height: 100vh;
+  padding: 1.5rem;
 }
 
 .customers-header {

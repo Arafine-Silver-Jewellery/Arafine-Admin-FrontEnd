@@ -70,14 +70,6 @@ export default function CustomerReviews() {
 
   return (
     <div className="customers-container">
-      <div className="customers-header">
-        <h1>
-          <span className="header-icon">⭐</span>
-          Customer Reviews
-          <span className="count-badge">{filteredReviews.length}</span>
-        </h1>
-      </div>
-
       <div className="table-card">
         <div className="table-header">
           <h3>Customer Reviews List</h3>

@@ -49,16 +49,6 @@ export default function WalletBonusSetup() {
 
   return (
     <div className="customers-container">
-      <div className="customers-header">
-        <h1>
-          <span className="header-icon">👛</span>
-          Wallet Bonus Setup
-        </h1>
-        <a href="#" className="how-it-works">
-          How it works <span className="info-icon">ⓘ</span>
-        </a>
-      </div>
-
       <div className="form-card">
         <form onSubmit={handleSubmit}>
           <div className="form-grid">

@@ -27,13 +27,6 @@ export default function Wallet() {
 
   return (
     <div className="customers-container">
-      <div className="customers-header">
-        <h1>
-          <span className="header-icon">👛</span>
-          Wallet
-        </h1>
-      </div>
-
       <div className="filter-card">
         <h3>Filter Options</h3>
         <div className="filter-grid wallet-filter">
