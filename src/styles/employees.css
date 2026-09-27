@@ -1,0 +1,251 @@
+/* Employees Module Styles */
+
+.employees-container {
+  padding: 1.5rem;
+}
+
+.employees-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.employees-toolbar .search-box {
+  position: relative;
+  width: 250px;
+}
+
+.employees-toolbar .search-box input {
+  width: 100%;
+  padding: 10px 40px 10px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  background: white;
+}
+
+.employees-toolbar .search-box input:focus {
+  border-color: #2563eb;
+}
+
+.employees-toolbar .search-box input::placeholder {
+  color: #9ca3af;
+}
+
+.employees-toolbar .search-box svg {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  stroke: #9ca3af;
+}
+
+.employees-container .card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  padding: 1.5rem;
+}
+
+.employees-container .table-container {
+  overflow-x: auto;
+}
+
+.employees-container table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.employees-container th,
+.employees-container td {
+  padding: 14px 12px;
+  text-align: left;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.employees-container th {
+  background: #f9fafb;
+  color: #6b7280;
+  font-weight: 500;
+  font-size: 13px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.employees-container tbody tr:hover {
+  background: #f9fafb;
+}
+
+.employees-container .badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.employees-container .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.employees-container .btn-primary {
+  background: #2563eb;
+  color: white;
+}
+
+.employees-container .btn-primary:hover {
+  background: #1d4ed8;
+}
+
+.employees-container .btn-secondary {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.employees-container .btn-secondary:hover {
+  background: #e5e7eb;
+}
+
+.employees-container .btn-success {
+  background: #22c55e;
+  color: white;
+}
+
+.employees-container .btn-success:hover {
+  background: #16a34a;
+}
+
+.employees-container .btn-danger {
+  background: #dc2626;
+  color: white;
+}
+
+.employees-container .btn-danger:hover {
+  background: #b91c1c;
+}
+
+.employees-container .btn-sm {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.employees-container .loading,
+.employees-container .empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #6b7280;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-header h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.modal-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+
+.modal-close:hover {
+  background: #f3f4f6;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.modal-body .form-group {
+  margin-bottom: 1rem;
+}
+
+.modal-body .form-group label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.modal-body .form-group input,
+.modal-body .form-group select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+}
+
+.modal-body .form-group input:focus,
+.modal-body .form-group select:focus {
+  border-color: #2563eb;
+}
+
+.modal-body .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}

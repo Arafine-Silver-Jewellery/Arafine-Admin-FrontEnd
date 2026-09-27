@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { api } from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import "../styles/employees.css";
 
 interface Employee {
   id: string;
@@ -142,10 +143,33 @@ export default function Employees() {
     }
   }
 
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredEmployees = employees.filter(employee => {
+    const search = searchTerm.toLowerCase();
+    return (
+      employee.firstName.toLowerCase().includes(search) ||
+      employee.lastName.toLowerCase().includes(search) ||
+      employee.email.toLowerCase().includes(search) ||
+      employee.role.toLowerCase().includes(search)
+    );
+  });
+
   return (
-    <>
-      <header className="page-header">
-        <h1>Employees</h1>
+    <div className="employees-container">
+      <div className="employees-toolbar">
+        <div className="search-box">
+          <input
+            type="text"
+            placeholder="Search employees..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8" />
+            <path d="M21 21l-4.35-4.35" />
+          </svg>
+        </div>
         <button className="btn btn-primary" onClick={() => openModal()}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
             <line x1="12" y1="5" x2="12" y2="19" />
@@ -153,10 +177,9 @@ export default function Employees() {
           </svg>
           Add Employee
         </button>
-      </header>
-      <div className="page-content">
-        <div className="card">
-          <div className="table-container">
+      </div>
+      <div className="card">
+        <div className="table-container">
             <table>
               <thead>
                 <tr>
@@ -173,12 +196,12 @@ export default function Employees() {
                   <tr>
                     <td colSpan={6} className="loading">Loading...</td>
                   </tr>
-                ) : employees.length === 0 ? (
+                ) : filteredEmployees.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="empty-state">No employees found</td>
+                    <td colSpan={6} className="empty-state">{searchTerm ? "No employees match your search" : "No employees found"}</td>
                   </tr>
                 ) : (
-                  employees.map(employee => (
+                  filteredEmployees.map(employee => (
                     <tr key={employee.id}>
                       <td><strong>{employee.firstName} {employee.lastName}</strong></td>
                       <td>{employee.email}</td>
@@ -243,9 +266,8 @@ export default function Employees() {
             </table>
           </div>
         </div>
-      </div>
 
-      {showModal && (
+        {showModal && (
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
@@ -326,6 +348,6 @@ export default function Employees() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
