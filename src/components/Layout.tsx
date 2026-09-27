@@ -121,7 +121,7 @@ const pageTitleMap: Record<string, { title: string; icon: string; count?: number
   "/support-ticket": { title: "Support Ticket", icon: "support" },
   "/employees": { title: "Employees", icon: "employee" },
   "/smtp": { title: "SMTP Configuration", icon: "settings" },
-  "/storage-providers": { title: "Storage Providers", icon: "storage" },
+  "/storage": { title: "Storage Providers", icon: "storage" },
 };
 
 function getPageTitle(pathname: string): { title: string; icon: string; count?: number } {

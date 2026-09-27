@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
+import "../styles/settings.css";
 
 type StorageType = "s3" | "r2" | "gcs" | "azure" | "minio";
 
@@ -160,10 +161,32 @@ export default function StorageProviders() {
     return storageTypes.find(t => t.value === type)?.label || type;
   }
 
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredProviders = providers.filter(provider => {
+    const search = searchTerm.toLowerCase();
+    return (
+      provider.name.toLowerCase().includes(search) ||
+      provider.type.toLowerCase().includes(search) ||
+      provider.bucket.toLowerCase().includes(search)
+    );
+  });
+
   return (
-    <>
-      <header className="page-header">
-        <h1>Storage Providers</h1>
+    <div className="settings-container">
+      <div className="settings-toolbar">
+        <div className="search-box">
+          <input
+            type="text"
+            placeholder="Search storage..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8" />
+            <path d="M21 21l-4.35-4.35" />
+          </svg>
+        </div>
         <button className="btn btn-primary" onClick={() => openModal()}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
             <line x1="12" y1="5" x2="12" y2="19" />
@@ -171,11 +194,10 @@ export default function StorageProviders() {
           </svg>
           Add Storage
         </button>
-      </header>
-      <div className="page-content">
-        <div className="card">
-          <div className="table-container">
-            <table>
+      </div>
+      <div className="card">
+        <div className="table-container">
+          <table>
               <thead>
                 <tr>
                   <th>Name</th>
@@ -191,12 +213,12 @@ export default function StorageProviders() {
                   <tr>
                     <td colSpan={6} className="loading">Loading...</td>
                   </tr>
-                ) : providers.length === 0 ? (
+                ) : filteredProviders.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="empty-state">No storage providers found</td>
+                    <td colSpan={6} className="empty-state">{searchTerm ? "No storage providers match your search" : "No storage providers found"}</td>
                   </tr>
                 ) : (
-                  providers.map(provider => (
+                  filteredProviders.map(provider => (
                     <tr key={provider.id}>
                       <td>{provider.name}</td>
                       <td>
@@ -255,9 +277,8 @@ export default function StorageProviders() {
             </table>
           </div>
         </div>
-      </div>
 
-      {showModal && (
+        {showModal && (
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
@@ -363,6 +384,6 @@ export default function StorageProviders() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
