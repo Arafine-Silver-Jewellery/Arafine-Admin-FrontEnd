@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/orders-new.css";
 
@@ -42,15 +42,73 @@ const statusCounts = {
   canceled: mockOrders.filter(o => o.orderStatus === "canceled").length,
 };
 
+const SummaryIcon = ({ type, color }: { type: string; color: string }) => {
+  const icons: Record<string, React.ReactNode> = {
+    pending: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="12 6 12 12 16 14"/>
+      </svg>
+    ),
+    confirmed: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+        <polyline points="22 4 12 14.01 9 11.01"/>
+      </svg>
+    ),
+    packaging: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+        <line x1="12" y1="22.08" x2="12" y2="12"/>
+      </svg>
+    ),
+    out_for_delivery: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+        <rect x="1" y="3" width="15" height="13"/>
+        <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
+        <circle cx="5.5" cy="18.5" r="2.5"/>
+        <circle cx="18.5" cy="18.5" r="2.5"/>
+      </svg>
+    ),
+    delivered: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    ),
+    canceled: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="15" y1="9" x2="9" y2="15"/>
+        <line x1="9" y1="9" x2="15" y2="15"/>
+      </svg>
+    ),
+    returned: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+        <polyline points="1 4 1 10 7 10"/>
+        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+      </svg>
+    ),
+    failed_to_deliver: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+    ),
+  };
+  return icons[type] || null;
+};
+
 const summaryItems = [
-  { key: "pending", label: "Pending", color: "#f59e0b", icon: "📋" },
-  { key: "confirmed", label: "Confirmed", color: "#22c55e", icon: "✓" },
-  { key: "packaging", label: "Packaging", color: "#8b5cf6", icon: "📦" },
-  { key: "out_for_delivery", label: "Out for Delivery", color: "#3b82f6", icon: "🚚" },
-  { key: "delivered", label: "Delivered", color: "#10b981", icon: "✓" },
-  { key: "canceled", label: "Canceled", color: "#ef4444", icon: "✕" },
-  { key: "returned", label: "Returned", color: "#6b7280", icon: "↩" },
-  { key: "failed_to_deliver", label: "Failed to Deliver", color: "#dc2626", icon: "✕" },
+  { key: "pending", label: "Pending", color: "#f59e0b" },
+  { key: "confirmed", label: "Confirmed", color: "#22c55e" },
+  { key: "packaging", label: "Packaging", color: "#8b5cf6" },
+  { key: "out_for_delivery", label: "Out for Delivery", color: "#3b82f6" },
+  { key: "delivered", label: "Delivered", color: "#10b981" },
+  { key: "canceled", label: "Canceled", color: "#ef4444" },
+  { key: "returned", label: "Returned", color: "#6b7280" },
+  { key: "failed_to_deliver", label: "Failed to Deliver", color: "#dc2626" },
 ];
 
 interface OrdersNewProps {
@@ -107,7 +165,9 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
           <div className="summary-grid">
             {summaryItems.map(item => (
               <div key={item.key} className="summary-card">
-                <span className="summary-icon" style={{ color: item.color }}>{item.icon}</span>
+                <span className="summary-icon">
+                  <SummaryIcon type={item.key} color={item.color} />
+                </span>
                 <span className="summary-label">{item.label}</span>
                 <span className="summary-count" style={{ color: item.color }}>
                   {statusCounts[item.key as keyof typeof statusCounts]}

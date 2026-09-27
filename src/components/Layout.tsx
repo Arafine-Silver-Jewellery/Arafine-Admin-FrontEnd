@@ -48,6 +48,7 @@ const notificationsSubmenus = [
   { path: "/notifications/push-setup", label: "Push Notifications Setup" },
 ];
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const reportsSubmenus = [
   { path: "/reports/earning", label: "Earning Reports" },
   { path: "/reports/inhouse-sales", label: "Inhouse Sales" },

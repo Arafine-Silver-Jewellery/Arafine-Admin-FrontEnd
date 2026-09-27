@@ -126,7 +126,7 @@ export default function VendorSales() {
           </div>
           <div className="chart-placeholder">
             <div className="chart-bars">
-              {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].map((month, i) => (
+              {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].map((month) => (
                 <div key={month} className="chart-bar-group">
                   <div
                     className="chart-bar"
