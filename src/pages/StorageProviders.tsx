@@ -240,33 +240,50 @@ export default function StorageProviders() {
                         </span>
                       </td>
                       <td>
-                        <div style={{ display: "flex", gap: "0.5rem" }}>
+                        <div className="action-buttons">
                           {provider.isActive ? (
                             <button
-                              className="btn btn-secondary btn-sm"
+                              className="btn-action btn-icon-suspend"
                               onClick={() => handleDeactivate(provider.id)}
+                              title="Deactivate"
                             >
-                              Deactivate
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="10" stroke="#f59e0b" strokeWidth="2"/>
+                                <line x1="15" y1="9" x2="9" y2="15" stroke="#f59e0b" strokeWidth="2"/>
+                                <line x1="9" y1="9" x2="15" y2="15" stroke="#f59e0b" strokeWidth="2"/>
+                              </svg>
                             </button>
                           ) : (
                             <button
-                              className="btn btn-success btn-sm"
+                              className="btn-action btn-icon-activate"
                               onClick={() => handleActivate(provider.id)}
+                              title="Activate"
                             >
-                              Activate
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="#22c55e" strokeWidth="2"/>
+                                <polyline points="22 4 12 14.01 9 11.01" stroke="#22c55e" strokeWidth="2"/>
+                              </svg>
                             </button>
                           )}
                           <button
-                            className="btn btn-secondary btn-sm"
+                            className="btn-action btn-icon-edit"
                             onClick={() => openModal(provider)}
+                            title="Edit"
                           >
-                            Edit
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="#f59e0b" strokeWidth="2"/>
+                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#f59e0b" strokeWidth="2"/>
+                            </svg>
                           </button>
                           <button
-                            className="btn btn-danger btn-sm"
+                            className="btn-action btn-icon-delete"
                             onClick={() => handleDelete(provider.id, provider.name)}
+                            title="Delete"
                           >
-                            Delete
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                              <polyline points="3,6 5,6 21,6" stroke="#ef4444" strokeWidth="2"/>
+                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="#ef4444" strokeWidth="2"/>
+                            </svg>
                           </button>
                         </div>
                       </td>

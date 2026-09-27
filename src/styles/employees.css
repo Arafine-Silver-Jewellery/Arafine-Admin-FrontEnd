@@ -249,3 +249,63 @@
   padding: 1rem 1.5rem;
   border-top: 1px solid #e5e7eb;
 }
+
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-action {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.btn-icon-view {
+  background: #eef2ff;
+}
+
+.btn-icon-view:hover {
+  background: #e0e7ff;
+}
+
+.btn-icon-edit {
+  background: #fef3c7;
+}
+
+.btn-icon-edit:hover {
+  background: #fde68a;
+}
+
+.btn-icon-delete {
+  background: #fee2e2;
+}
+
+.btn-icon-delete:hover {
+  background: #fecaca;
+}
+
+.btn-icon-suspend {
+  background: #fef3c7;
+}
+
+.btn-icon-suspend:hover {
+  background: #fde68a;
+}
+
+.btn-icon-activate {
+  background: #dcfce7;
+}
+
+.btn-icon-activate:hover {
+  background: #bbf7d0;
+}
