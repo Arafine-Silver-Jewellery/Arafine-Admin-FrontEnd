@@ -96,6 +96,7 @@ const pageTitleMap: Record<string, { title: string; icon: string; count?: number
   "/product-gallery": { title: "Product Gallery", icon: "gallery" },
   "/attribute-setup": { title: "Attribute Setup", icon: "attribute" },
   "/banner-setup": { title: "Banner Setup", icon: "banner" },
+  "/banners": { title: "Banner Setup", icon: "banner" },
   "/offers-deals/coupon": { title: "Coupon", icon: "offer" },
   "/offers-deals/flash-deals": { title: "Flash Deals", icon: "offer" },
   "/offers-deals/deal-of-the-day": { title: "Deal of the Day", icon: "offer" },

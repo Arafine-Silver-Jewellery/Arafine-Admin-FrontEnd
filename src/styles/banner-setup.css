@@ -1,7 +1,7 @@
 /* Banner Setup Styles */
 
 .banner-setup-container {
-  padding: 0;
+  padding: 1.5rem;
 }
 
 .banner-header {
@@ -57,8 +57,8 @@
 .banner-card {
   background: white;
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  padding: 1.5rem;
 }
 
 /* Toolbar */
@@ -69,6 +69,41 @@
   margin-bottom: 20px;
   flex-wrap: wrap;
   gap: 16px;
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.toolbar-left .search-box {
+  position: relative;
+  width: 280px;
+}
+
+.toolbar-left .search-box input {
+  width: 100%;
+  padding: 10px 16px 10px 40px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.toolbar-left .search-box input:focus {
+  border-color: #2563eb;
+}
+
+.toolbar-left .search-box svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: #9ca3af;
 }
 
 .toolbar-left h3 {
