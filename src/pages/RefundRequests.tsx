@@ -58,20 +58,8 @@ export default function RefundRequests({ statusFilter = "pending" }: RefundReque
 
   return (
     <div className="orders-new-container">
-      <div className="orders-header">
-        <h1>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
-            <polyline points="23,4 23,10 17,10" />
-            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-          </svg>
-          {getStatusLabel(statusFilter)} Refund Requests
-          <span className="order-count">{filteredRefunds.length}</span>
-        </h1>
-      </div>
-
       <div className="orders-list-section">
         <div className="orders-list-header">
-          <h2>Refund Requests <span>{filteredRefunds.length}</span></h2>
           <div className="orders-actions">
             <div className="search-box">
               <input

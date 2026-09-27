@@ -30,21 +30,8 @@ export default function SubCategories() {
 
   return (
     <div className="category-setup-container">
-      <div className="category-header">
-        <h1>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
-            <rect x="3" y="3" width="7" height="7" />
-            <rect x="14" y="3" width="7" height="7" />
-            <rect x="14" y="14" width="7" height="7" />
-            <rect x="3" y="14" width="7" height="7" />
-          </svg>
-          Sub Category Setup
-        </h1>
-      </div>
-
       <div className="category-card">
         <div className="category-card-header">
-          <h2>Sub Category List <span className="count">{filteredSubCategories.length}</span></h2>
           <div className="category-actions">
             <div className="search-box">
               <input
