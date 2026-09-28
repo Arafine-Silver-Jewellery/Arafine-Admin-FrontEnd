@@ -1,4 +1,6 @@
-/* Welcome Page Styles */
+/*
+ * Welcome Page Styles - AURÉLIE Inspired Theme
+ */
 
 .welcome-container {
   display: flex;
@@ -14,30 +16,35 @@
 }
 
 .welcome-icon {
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 .welcome-icon svg {
-  color: #3b82f6;
+  color: var(--color-champagne);
 }
 
 .welcome-content h1 {
-  font-size: 1.75rem;
-  font-weight: 600;
-  color: #1e293b;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 500;
+  color: var(--color-charcoal);
   margin: 0 0 0.75rem 0;
+  letter-spacing: var(--tracking-tight);
 }
 
 .welcome-content p {
-  color: #64748b;
+  font-family: var(--font-sans);
+  color: var(--color-charcoal-muted);
   margin: 0 0 0.5rem 0;
   font-size: 1rem;
+  line-height: 1.6;
 }
 
 .welcome-hint {
-  margin-top: 1.5rem !important;
-  padding: 1rem;
-  background: #f1f5f9;
-  border-radius: 8px;
+  margin-top: 2rem !important;
+  padding: 1rem 1.5rem;
+  background: var(--color-pearl);
+  border-radius: var(--radius-md);
   font-size: 0.9rem !important;
+  border-left: 3px solid var(--color-champagne);
 }

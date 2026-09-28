@@ -143,3 +143,190 @@
     border-bottom: none;
   }
 }
+
+
+/* Dashboard Cards */
+.dashboard-grid .card {
+  background: var(--color-white, #fff);
+  border: 1px solid var(--border-color-light, #f0ede8);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border-color-light, #f0ede8);
+  background: var(--color-pearl, #f0ede8);
+}
+
+.card-header h2 {
+  font-family: var(--font-display, 'Playfair Display', serif);
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: var(--color-charcoal, #1a1a1a);
+  margin: 0;
+}
+
+.card-header .btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--color-charcoal, #1a1a1a);
+  color: var(--color-white, #fff);
+  border: none;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.card-header .btn:hover {
+  background: var(--color-charcoal-light, #2d2d2d);
+}
+
+/* Table styling in cards */
+.dashboard-grid .table-container {
+  padding: 0;
+}
+
+.dashboard-grid table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dashboard-grid th {
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-charcoal-muted, #6b6b6b);
+  text-align: left;
+  padding: 0.875rem 1.5rem;
+  background: var(--color-ivory, #f5f3ef);
+  border-bottom: 1px solid var(--border-color-light, #f0ede8);
+}
+
+.dashboard-grid td {
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  font-size: 0.875rem;
+  color: var(--color-charcoal, #1a1a1a);
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border-color-light, #f0ede8);
+}
+
+.dashboard-grid tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.dashboard-grid tbody tr:hover {
+  background: var(--color-ivory, #f5f3ef);
+}
+
+.dashboard-grid td a {
+  color: var(--color-champagne-dark, #b8944d);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.dashboard-grid td a:hover {
+  text-decoration: underline;
+}
+
+/* Empty state box - centered in card */
+.empty-state-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 3rem 2rem;
+  min-height: 200px;
+  background: var(--color-cream, #faf9f7);
+}
+
+.empty-state-box svg {
+  color: var(--color-champagne, #c9a96e);
+  opacity: 0.5;
+  margin-bottom: 1rem;
+}
+
+.empty-state-box p {
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-charcoal, #1a1a1a);
+  margin: 0 0 0.5rem 0;
+}
+
+.empty-state-box span {
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  font-size: 0.875rem;
+  color: var(--color-charcoal-muted, #6b6b6b);
+}
+
+/* Empty state styling */
+.dashboard-grid .empty-state {
+  text-align: center;
+  padding: 3rem 1.5rem !important;
+  color: var(--color-charcoal-muted, #6b6b6b);
+  font-size: 0.875rem;
+  background: var(--color-cream, #faf9f7);
+}
+
+/* Badge in tables */
+.dashboard-grid .badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 20px;
+}
+
+/* Loading state */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  font-size: 0.9375rem;
+  color: var(--color-charcoal-muted, #6b6b6b);
+}
+
+
+/* Empty state with icon */
+.empty-state-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 0;
+}
+
+.empty-state-content svg {
+  color: var(--color-champagne, #c9a96e);
+  opacity: 0.6;
+}
+
+.empty-state-content p {
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-charcoal, #1a1a1a);
+  margin: 0;
+}
+
+.empty-state-content span {
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  font-size: 0.8125rem;
+  color: var(--color-charcoal-muted, #6b6b6b);
+}

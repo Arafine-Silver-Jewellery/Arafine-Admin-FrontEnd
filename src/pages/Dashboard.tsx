@@ -137,6 +137,17 @@ export default function Dashboard() {
               <h2>Recent Orders</h2>
               <Link to="/orders" className="btn btn-secondary btn-sm">View All</Link>
             </div>
+            {recentOrders.length === 0 ? (
+              <div className="empty-state-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="48" height="48">
+                  <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <path d="M16 10a4 4 0 0 1-8 0" />
+                </svg>
+                <p>No orders yet</p>
+                <span>Orders will appear here once customers start purchasing</span>
+              </div>
+            ) : (
             <div className="table-container">
               <table>
                 <thead>
@@ -148,12 +159,7 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {recentOrders.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="empty-state">No orders yet</td>
-                    </tr>
-                  ) : (
-                    recentOrders.map(order => (
+                    {recentOrders.map(order => (
                       <tr key={order.id}>
                         <td>
                           <Link to={`/orders/${order.id}`}>{order.orderNumber}</Link>
@@ -172,11 +178,11 @@ export default function Dashboard() {
                         </td>
                         <td>{formatDateTime(order.createdAt)}</td>
                       </tr>
-                    ))
-                  )}
+                    ))}
                 </tbody>
               </table>
             </div>
+            )}
           </div>
 
           {/* Low Stock */}
@@ -185,6 +191,16 @@ export default function Dashboard() {
               <h2>Low Stock Alert</h2>
               <Link to="/products?status=low_stock" className="btn btn-secondary btn-sm">View All</Link>
             </div>
+            {lowStockProducts.length === 0 ? (
+              <div className="empty-state-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="48" height="48">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+                <p>All products are well stocked</p>
+                <span>No low stock alerts at the moment</span>
+              </div>
+            ) : (
             <div className="table-container">
               <table>
                 <thead>
@@ -195,12 +211,7 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {lowStockProducts.length === 0 ? (
-                    <tr>
-                      <td colSpan={3} className="empty-state">All products are well stocked</td>
-                    </tr>
-                  ) : (
-                    lowStockProducts.map(product => (
+                    {lowStockProducts.map(product => (
                       <tr key={product.id}>
                         <td>
                           <Link to={`/products/${product.id}`}>{product.name}</Link>
@@ -212,11 +223,11 @@ export default function Dashboard() {
                           </span>
                         </td>
                       </tr>
-                    ))
-                  )}
+                    ))}
                 </tbody>
               </table>
             </div>
+            )}
           </div>
         </div>
       </div>

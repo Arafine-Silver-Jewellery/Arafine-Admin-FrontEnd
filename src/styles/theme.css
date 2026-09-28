@@ -1,0 +1,359 @@
+/*
+ * Arafine Admin Theme
+ * Inspired by AURÉLIE luxury jewelry aesthetic
+ * 
+ * Design principles:
+ * - Elegant serif fonts for headings (Playfair Display)
+ * - Clean sans-serif for UI (Inter)
+ * - Champagne/gold accent colors
+ * - Soft cream backgrounds
+ * - Generous whitespace
+ * - Subtle transitions and hover effects
+ */
+
+:root {
+  /* Typography */
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-serif: 'Cormorant Garamond', Georgia, serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  
+  /* Primary Colors - Champagne/Gold palette */
+  --color-champagne: #c9a96e;
+  --color-champagne-light: #d4b985;
+  --color-champagne-dark: #b8944d;
+  --color-champagne-muted: #e8dcc4;
+  
+  /* Neutral Colors - Charcoal palette */
+  --color-charcoal: #1a1a1a;
+  --color-charcoal-light: #2d2d2d;
+  --color-charcoal-muted: #6b6b6b;
+  
+  /* Background Colors - Cream/Ivory */
+  --color-cream: #faf9f7;
+  --color-ivory: #f5f3ef;
+  --color-white: #ffffff;
+  --color-pearl: #f0ede8;
+  
+  /* Accent Colors */
+  --color-success: #4a7c59;
+  --color-success-light: #e8f0ea;
+  --color-warning: #c9a96e;
+  --color-warning-light: #faf5eb;
+  --color-error: #9e4a4a;
+  --color-error-light: #f5eaea;
+  --color-info: #4a6a9e;
+  --color-info-light: #eaf0f5;
+  
+  /* Borders */
+  --border-color: #e8e4dc;
+  --border-color-light: #f0ede8;
+  
+  /* Shadows - Softer, more elegant */
+  --shadow-sm: 0 1px 2px rgba(26, 26, 26, 0.04);
+  --shadow-md: 0 4px 12px rgba(26, 26, 26, 0.06);
+  --shadow-lg: 0 8px 24px rgba(26, 26, 26, 0.08);
+  
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 300ms ease;
+  --transition-slow: 500ms ease;
+  
+  /* Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+  
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  
+  /* Letter Spacing */
+  --tracking-tight: -0.025em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.05em;
+  --tracking-wider: 0.1em;
+  --tracking-widest: 0.2em;
+}
+
+/* Base Styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--color-charcoal);
+  background-color: var(--color-cream);
+}
+
+/* Typography Classes */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--color-charcoal);
+  letter-spacing: var(--tracking-tight);
+}
+
+h1 { font-size: 2.5rem; }
+h2 { font-size: 2rem; }
+h3 { font-size: 1.5rem; }
+h4 { font-size: 1.25rem; }
+h5 { font-size: 1.125rem; }
+h6 { font-size: 1rem; }
+
+.font-display { font-family: var(--font-display); }
+.font-serif { font-family: var(--font-serif); }
+.font-sans { font-family: var(--font-sans); }
+
+/* Uppercase labels - AURÉLIE style */
+.label-uppercase {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  color: var(--color-charcoal-muted);
+}
+
+/* Links */
+a {
+  color: var(--color-champagne-dark);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--color-champagne);
+}
+
+/* Buttons - Elegant style */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.btn-primary {
+  background: var(--color-charcoal);
+  color: var(--color-white);
+  border-color: var(--color-charcoal);
+}
+
+.btn-primary:hover {
+  background: var(--color-charcoal-light);
+  border-color: var(--color-charcoal-light);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--color-charcoal);
+  border-color: var(--color-border);
+}
+
+.btn-secondary:hover {
+  background: var(--color-pearl);
+  border-color: var(--color-charcoal-muted);
+}
+
+.btn-champagne {
+  background: var(--color-champagne);
+  color: var(--color-white);
+  border-color: var(--color-champagne);
+}
+
+.btn-champagne:hover {
+  background: var(--color-champagne-dark);
+  border-color: var(--color-champagne-dark);
+}
+
+/* Form Elements */
+input, select, textarea {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--color-charcoal);
+  background: var(--color-white);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--color-champagne);
+  box-shadow: 0 0 0 3px rgba(201, 169, 110, 0.1);
+}
+
+input::placeholder {
+  color: var(--color-charcoal-muted);
+}
+
+/* Labels */
+label {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-charcoal-muted);
+  margin-bottom: 6px;
+}
+
+/* Cards */
+.card {
+  background: var(--color-white);
+  border: 1px solid var(--border-color-light);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  color: var(--color-charcoal-muted);
+  text-align: left;
+  padding: 14px 16px;
+  background: var(--color-pearl);
+  border-bottom: 1px solid var(--border-color);
+}
+
+td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-color-light);
+  font-size: 14px;
+}
+
+tbody tr {
+  transition: background var(--transition-fast);
+}
+
+tbody tr:hover {
+  background: var(--color-ivory);
+}
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  border-radius: 20px;
+}
+
+.badge-success {
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.badge-warning {
+  background: var(--color-warning-light);
+  color: var(--color-champagne-dark);
+}
+
+.badge-error {
+  background: var(--color-error-light);
+  color: var(--color-error);
+}
+
+.badge-info {
+  background: var(--color-info-light);
+  color: var(--color-info);
+}
+
+/* Scrollbar - Elegant thin style */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-pearl);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-champagne-muted);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-champagne);
+}
+
+/* Selection */
+::selection {
+  background: var(--color-champagne-muted);
+  color: var(--color-charcoal);
+}
+
+/* Dividers */
+hr {
+  border: none;
+  border-top: 1px solid var(--border-color-light);
+  margin: var(--spacing-lg) 0;
+}
+
+/* Loading Spinner */
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--color-pearl);
+  border-top-color: var(--color-champagne);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Utility Classes */
+.text-muted { color: var(--color-charcoal-muted); }
+.text-champagne { color: var(--color-champagne); }
+.text-success { color: var(--color-success); }
+.text-error { color: var(--color-error); }
+
+.bg-cream { background: var(--color-cream); }
+.bg-ivory { background: var(--color-ivory); }
+.bg-white { background: var(--color-white); }
+.bg-pearl { background: var(--color-pearl); }
