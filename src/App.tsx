@@ -1,9 +1,9 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
-import ProtectedRoute from "./components/ProtectedRoute";
+import ProtectedRoute, { RequirePermission } from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
 import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
+import Home from "./pages/Home";
 import ProductForm from "./pages/ProductForm";
 import Users from "./pages/Users";
 import Promotions from "./pages/Promotions";
@@ -37,62 +37,93 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<Dashboard />} />
-            <Route path="pos" element={<POS />} />
-            <Route path="orders-management" element={<OrdersNew statusFilter="all" />} />
-            <Route path="orders-management/pending" element={<OrdersNew statusFilter="pending" />} />
-            <Route path="orders-management/confirmed" element={<OrdersNew statusFilter="confirmed" />} />
-            <Route path="orders-management/packaging" element={<OrdersNew statusFilter="packaging" />} />
-            <Route path="orders-management/out-for-delivery" element={<OrdersNew statusFilter="out_for_delivery" />} />
-            <Route path="orders-management/delivered" element={<OrdersNew statusFilter="delivered" />} />
-            <Route path="orders-management/returned" element={<OrdersNew statusFilter="returned" />} />
-            <Route path="orders-management/failed-to-deliver" element={<OrdersNew statusFilter="failed_to_deliver" />} />
-            <Route path="orders-management/canceled" element={<OrdersNew statusFilter="canceled" />} />
-            <Route path="refund-requests" element={<RefundRequests statusFilter="pending" />} />
-            <Route path="refund-requests/approved" element={<RefundRequests statusFilter="approved" />} />
-            <Route path="refund-requests/refunded" element={<RefundRequests statusFilter="refunded" />} />
-            <Route path="refund-requests/rejected" element={<RefundRequests statusFilter="rejected" />} />
-            <Route path="category-setup" element={<Categories />} />
-            <Route path="category-setup/sub-categories" element={<SubCategories />} />
-            <Route path="category-setup/sub-sub-categories" element={<SubSubCategories />} />
-            <Route path="categories" element={<Categories />} />
-            <Route path="products-module" element={<ProductList />} />
-            <Route path="products-module/add-new" element={<AddNewProduct />} />
-            <Route path="products-module/limited-stock" element={<LimitedStock />} />
-            <Route path="products-module/bulk-import" element={<BulkImport />} />
-            <Route path="products-module/restock-requests" element={<RequestRestockList />} />
-            <Route path="banners" element={<BannerSetup />} />
-            <Route path="offers-deals" element={<Coupon />} />
-            <Route path="offers-deals/coupon" element={<Coupon />} />
-            <Route path="offers-deals/flash-deals" element={<FlashDeals />} />
-            <Route path="offers-deals/deal-of-the-day" element={<DealOfTheDay />} />
-            <Route path="offers-deals/featured-deal" element={<FeaturedDeal />} />
-            <Route path="offers-deals/clearance-sale" element={<ClearanceSale />} />
-            <Route path="notifications" element={<SendNotification />} />
-            <Route path="notifications/send" element={<SendNotification />} />
-            <Route path="notifications/push-setup" element={<PushNotificationsSetup />} />
-            <Route path="inbox" element={<Inbox />} />
-            <Route path="messages" element={<Messages />} />
-            <Route path="support-ticket" element={<SupportTicket />} />
-            <Route path="reports/earning" element={<EarningReports />} />
-            <Route path="reports/inhouse-sales" element={<InhouseSales />} />
-            <Route path="reports/vendor-sales" element={<VendorSales />} />
-            <Route path="reports/transactions" element={<TransactionReport />} />
-            <Route path="reports/product" element={<ProductReport />} />
-            <Route path="reports/order" element={<OrderReport />} />
-            <Route path="customers" element={<CustomerList />} />
-            <Route path="customers/list" element={<CustomerList />} />
-            <Route path="customers/reviews" element={<CustomerReviews />} />
-            <Route path="customers/wallet" element={<Wallet />} />
-            <Route path="customers/wallet-bonus" element={<WalletBonusSetup />} />
-            <Route path="customers/loyalty-points" element={<LoyaltyPoints />} />
-            <Route path="products/new" element={<ProductForm />} />
-            <Route path="products/:id" element={<ProductForm />} />
-            <Route path="users" element={<Users />} />
-            <Route path="promotions" element={<Promotions />} />
-            <Route path="smtp" element={<SmtpConfigs />} />
-            <Route path="storage" element={<StorageProviders />} />
-            <Route path="employees" element={<Employees />} />
+            {/* Home - shows Dashboard or Welcome based on permission */}
+            <Route index element={<Home />} />
+            
+            {/* POS */}
+            <Route path="pos" element={<RequirePermission permission="pos"><POS /></RequirePermission>} />
+            
+            {/* Orders Management */}
+            <Route path="orders-management" element={<RequirePermission permission="orders"><OrdersNew statusFilter="all" /></RequirePermission>} />
+            <Route path="orders-management/pending" element={<RequirePermission permission="orders"><OrdersNew statusFilter="pending" /></RequirePermission>} />
+            <Route path="orders-management/confirmed" element={<RequirePermission permission="orders"><OrdersNew statusFilter="confirmed" /></RequirePermission>} />
+            <Route path="orders-management/packaging" element={<RequirePermission permission="orders"><OrdersNew statusFilter="packaging" /></RequirePermission>} />
+            <Route path="orders-management/out-for-delivery" element={<RequirePermission permission="orders"><OrdersNew statusFilter="out_for_delivery" /></RequirePermission>} />
+            <Route path="orders-management/delivered" element={<RequirePermission permission="orders"><OrdersNew statusFilter="delivered" /></RequirePermission>} />
+            <Route path="orders-management/returned" element={<RequirePermission permission="orders"><OrdersNew statusFilter="returned" /></RequirePermission>} />
+            <Route path="orders-management/failed-to-deliver" element={<RequirePermission permission="orders"><OrdersNew statusFilter="failed_to_deliver" /></RequirePermission>} />
+            <Route path="orders-management/canceled" element={<RequirePermission permission="orders"><OrdersNew statusFilter="canceled" /></RequirePermission>} />
+            
+            {/* Refund Requests */}
+            <Route path="refund-requests" element={<RequirePermission permission="refund-requests"><RefundRequests statusFilter="pending" /></RequirePermission>} />
+            <Route path="refund-requests/approved" element={<RequirePermission permission="refund-requests"><RefundRequests statusFilter="approved" /></RequirePermission>} />
+            <Route path="refund-requests/refunded" element={<RequirePermission permission="refund-requests"><RefundRequests statusFilter="refunded" /></RequirePermission>} />
+            <Route path="refund-requests/rejected" element={<RequirePermission permission="refund-requests"><RefundRequests statusFilter="rejected" /></RequirePermission>} />
+            
+            {/* Category Setup */}
+            <Route path="category-setup" element={<RequirePermission permission="category-setup"><Categories /></RequirePermission>} />
+            <Route path="category-setup/sub-categories" element={<RequirePermission permission="category-setup"><SubCategories /></RequirePermission>} />
+            <Route path="category-setup/sub-sub-categories" element={<RequirePermission permission="category-setup"><SubSubCategories /></RequirePermission>} />
+            <Route path="categories" element={<RequirePermission permission="category-setup"><Categories /></RequirePermission>} />
+            
+            {/* Products Module */}
+            <Route path="products-module" element={<RequirePermission permission="products-module"><ProductList /></RequirePermission>} />
+            <Route path="products-module/add-new" element={<RequirePermission permission="products-module"><AddNewProduct /></RequirePermission>} />
+            <Route path="products-module/limited-stock" element={<RequirePermission permission="products-module"><LimitedStock /></RequirePermission>} />
+            <Route path="products-module/bulk-import" element={<RequirePermission permission="products-module"><BulkImport /></RequirePermission>} />
+            <Route path="products-module/restock-requests" element={<RequirePermission permission="products-module"><RequestRestockList /></RequirePermission>} />
+            
+            {/* Banners */}
+            <Route path="banners" element={<RequirePermission permission="banners"><BannerSetup /></RequirePermission>} />
+            
+            {/* Offers & Deals */}
+            <Route path="offers-deals" element={<RequirePermission permission="offers-deals"><Coupon /></RequirePermission>} />
+            <Route path="offers-deals/coupon" element={<RequirePermission permission="offers-deals"><Coupon /></RequirePermission>} />
+            <Route path="offers-deals/flash-deals" element={<RequirePermission permission="offers-deals"><FlashDeals /></RequirePermission>} />
+            <Route path="offers-deals/deal-of-the-day" element={<RequirePermission permission="offers-deals"><DealOfTheDay /></RequirePermission>} />
+            <Route path="offers-deals/featured-deal" element={<RequirePermission permission="offers-deals"><FeaturedDeal /></RequirePermission>} />
+            <Route path="offers-deals/clearance-sale" element={<RequirePermission permission="offers-deals"><ClearanceSale /></RequirePermission>} />
+            
+            {/* Notifications */}
+            <Route path="notifications" element={<RequirePermission permission="notifications"><SendNotification /></RequirePermission>} />
+            <Route path="notifications/send" element={<RequirePermission permission="notifications"><SendNotification /></RequirePermission>} />
+            <Route path="notifications/push-setup" element={<RequirePermission permission="notifications"><PushNotificationsSetup /></RequirePermission>} />
+            
+            {/* Help & Support */}
+            <Route path="inbox" element={<RequirePermission permission="inbox"><Inbox /></RequirePermission>} />
+            <Route path="messages" element={<RequirePermission permission="messages"><Messages /></RequirePermission>} />
+            <Route path="support-ticket" element={<RequirePermission permission="support-ticket"><SupportTicket /></RequirePermission>} />
+            
+            {/* Reports */}
+            <Route path="reports/earning" element={<RequirePermission permission="reports"><EarningReports /></RequirePermission>} />
+            <Route path="reports/inhouse-sales" element={<RequirePermission permission="reports"><InhouseSales /></RequirePermission>} />
+            <Route path="reports/vendor-sales" element={<RequirePermission permission="reports"><VendorSales /></RequirePermission>} />
+            <Route path="reports/transactions" element={<RequirePermission permission="reports"><TransactionReport /></RequirePermission>} />
+            <Route path="reports/product" element={<RequirePermission permission="product-report"><ProductReport /></RequirePermission>} />
+            <Route path="reports/order" element={<RequirePermission permission="order-report"><OrderReport /></RequirePermission>} />
+            
+            {/* Customers */}
+            <Route path="customers" element={<RequirePermission permission="customers"><CustomerList /></RequirePermission>} />
+            <Route path="customers/list" element={<RequirePermission permission="customers"><CustomerList /></RequirePermission>} />
+            <Route path="customers/reviews" element={<RequirePermission permission="customers"><CustomerReviews /></RequirePermission>} />
+            <Route path="customers/wallet" element={<RequirePermission permission="customers"><Wallet /></RequirePermission>} />
+            <Route path="customers/wallet-bonus" element={<RequirePermission permission="customers"><WalletBonusSetup /></RequirePermission>} />
+            <Route path="customers/loyalty-points" element={<RequirePermission permission="customers"><LoyaltyPoints /></RequirePermission>} />
+            
+            {/* Legacy routes */}
+            <Route path="products/new" element={<RequirePermission permission="products-module"><ProductForm /></RequirePermission>} />
+            <Route path="products/:id" element={<RequirePermission permission="products-module"><ProductForm /></RequirePermission>} />
+            <Route path="users" element={<RequirePermission permission="customers"><Users /></RequirePermission>} />
+            <Route path="promotions" element={<RequirePermission permission="offers-deals"><Promotions /></RequirePermission>} />
+            
+            {/* Settings */}
+            <Route path="smtp" element={<RequirePermission permission="smtp"><SmtpConfigs /></RequirePermission>} />
+            <Route path="storage" element={<RequirePermission permission="storage"><StorageProviders /></RequirePermission>} />
+            
+            {/* Employee Management - requires employees permission */}
+            <Route path="employees" element={<RequirePermission permission="employees"><Employees /></RequirePermission>} />
+            
+            {/* 404 */}
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>

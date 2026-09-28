@@ -18,11 +18,13 @@ export interface LoginResponse {
 export interface VerifyOtpResponse {
   success: boolean;
   employee: Employee;
+  permissions: string[];
 }
 
 export interface MeResponse {
   success: boolean;
   employee: Employee;
+  permissions: string[];
 }
 
 export interface AuthErrorResponse {

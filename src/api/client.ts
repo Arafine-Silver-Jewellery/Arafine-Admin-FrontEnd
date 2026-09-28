@@ -223,4 +223,14 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ status }),
     }),
+
+  // Permissions
+  getPermissions: () => request<{ data: any[] }>("/permissions"),
+  getEmployeePermissions: (employeeId: string) =>
+    request<{ data: string[] }>(`/employees/${employeeId}/permissions`),
+  assignEmployeePermissions: (employeeId: string, permissionKeys: string[]) =>
+    request<any>(`/employees/${employeeId}/permissions`, {
+      method: "PUT",
+      body: JSON.stringify({ permissions: permissionKeys }),
+    }),
 };

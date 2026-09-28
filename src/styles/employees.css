@@ -309,3 +309,116 @@
 .btn-icon-activate:hover {
   background: #bbf7d0;
 }
+
+
+/* Permission Button */
+.btn-icon-permission {
+  background: #f3e8ff;
+}
+
+.btn-icon-permission:hover {
+  background: #e9d5ff;
+}
+
+/* Large Modal for Permissions */
+.modal.modal-large {
+  max-width: 700px;
+}
+
+/* Permission Modal Styles */
+.permission-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.permission-count {
+  margin-left: auto;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.permission-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.permission-category {
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.category-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 0.75rem 0;
+  text-transform: capitalize;
+}
+
+.permission-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem;
+}
+
+.permission-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.permission-item:hover {
+  border-color: #8b5cf6;
+  background: #faf5ff;
+}
+
+.permission-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  accent-color: #8b5cf6;
+  cursor: pointer;
+}
+
+.permission-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.permission-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.permission-desc {
+  font-size: 11px;
+  color: #6b7280;
+  line-height: 1.3;
+}
+
+.loading-state {
+  text-align: center;
+  padding: 2rem;
+  color: #6b7280;
+}
+
+.form-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #6b7280;
+}

@@ -14,6 +14,15 @@ interface Employee {
   updatedAt: string;
 }
 
+interface Permission {
+  id: string;
+  key: string;
+  name: string;
+  description: string;
+  category: string;
+  sortOrder: number;
+}
+
 interface EmployeeForm {
   email: string;
   password: string;
@@ -36,8 +45,17 @@ export default function Employees() {
     role: "employee",
   });
 
+  // Permission management state
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
+  const [permissionEmployee, setPermissionEmployee] = useState<Employee | null>(null);
+  const [allPermissions, setAllPermissions] = useState<Permission[]>([]);
+  const [employeePermissions, setEmployeePermissions] = useState<string[]>([]);
+  const [permissionLoading, setPermissionLoading] = useState(false);
+  const [savingPermissions, setSavingPermissions] = useState(false);
+
   useEffect(() => {
     loadEmployees();
+    loadAllPermissions();
   }, []);
 
   async function loadEmployees() {
@@ -51,6 +69,15 @@ export default function Employees() {
       console.error("Failed to load employees:", error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadAllPermissions() {
+    try {
+      const response = await api.getPermissions();
+      setAllPermissions(response.data || []);
+    } catch (error) {
+      console.error("Failed to load permissions:", error);
     }
   }
 
@@ -143,6 +170,71 @@ export default function Employees() {
     }
   }
 
+  // Permission modal functions
+  async function openPermissionModal(employee: Employee) {
+    setPermissionEmployee(employee);
+    setPermissionLoading(true);
+    setShowPermissionModal(true);
+
+    try {
+      const response = await api.getEmployeePermissions(employee.id);
+      setEmployeePermissions(response.data || []);
+    } catch (error) {
+      console.error("Failed to load employee permissions:", error);
+      setEmployeePermissions([]);
+    } finally {
+      setPermissionLoading(false);
+    }
+  }
+
+  function closePermissionModal() {
+    setShowPermissionModal(false);
+    setPermissionEmployee(null);
+    setEmployeePermissions([]);
+  }
+
+  function handlePermissionToggle(permissionKey: string) {
+    setEmployeePermissions(prev => {
+      if (prev.includes(permissionKey)) {
+        return prev.filter(k => k !== permissionKey);
+      } else {
+        return [...prev, permissionKey];
+      }
+    });
+  }
+
+  function handleSelectAll() {
+    setEmployeePermissions(allPermissions.map(p => p.key));
+  }
+
+  function handleDeselectAll() {
+    setEmployeePermissions([]);
+  }
+
+  async function handleSavePermissions() {
+    if (!permissionEmployee) return;
+
+    setSavingPermissions(true);
+    try {
+      await api.assignEmployeePermissions(permissionEmployee.id, employeePermissions);
+      closePermissionModal();
+    } catch (error: any) {
+      console.error("Failed to save permissions:", error);
+      alert(error.message || "Failed to save permissions");
+    } finally {
+      setSavingPermissions(false);
+    }
+  }
+
+  // Group permissions by category
+  const permissionsByCategory = allPermissions.reduce((acc, perm) => {
+    if (!acc[perm.category]) {
+      acc[perm.category] = [];
+    }
+    acc[perm.category].push(perm);
+    return acc;
+  }, {} as Record<string, Permission[]>);
+
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredEmployees = employees.filter(employee => {
@@ -230,6 +322,19 @@ export default function Employees() {
                       <td>{new Date(employee.createdAt).toLocaleDateString()}</td>
                       <td>
                         <div className="action-buttons">
+                          {/* Permission button - only for non-admin employees */}
+                          {employee.role !== "admin" && (
+                            <button
+                              className="btn-action btn-icon-permission"
+                              onClick={() => openPermissionModal(employee)}
+                              title="Manage Permissions"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M9 12l2 2 4-4" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            </button>
+                          )}
                           {employee.status === "active" ? (
                             <button
                               className="btn-action btn-icon-suspend"
@@ -284,6 +389,7 @@ export default function Employees() {
           </div>
         </div>
 
+        {/* Employee Create/Edit Modal */}
         {showModal && (
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal" onClick={e => e.stopPropagation()}>
@@ -351,6 +457,7 @@ export default function Employees() {
                     <option value="employee">Employee</option>
                     <option value="admin">Admin</option>
                   </select>
+                  <small className="form-hint">Admin role has access to all features. Employee role requires specific permissions.</small>
                 </div>
               </div>
               <div className="modal-footer">
@@ -362,6 +469,79 @@ export default function Employees() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Permission Management Modal */}
+      {showPermissionModal && permissionEmployee && (
+        <div className="modal-overlay" onClick={closePermissionModal}>
+          <div className="modal modal-large" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Manage Permissions - {permissionEmployee.firstName} {permissionEmployee.lastName}</h2>
+              <button className="modal-close" onClick={closePermissionModal}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+            <div className="modal-body">
+              {permissionLoading ? (
+                <div className="loading-state">Loading permissions...</div>
+              ) : (
+                <>
+                  <div className="permission-actions">
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={handleSelectAll}>
+                      Select All
+                    </button>
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={handleDeselectAll}>
+                      Deselect All
+                    </button>
+                    <span className="permission-count">
+                      {employeePermissions.length} of {allPermissions.length} selected
+                    </span>
+                  </div>
+                  <div className="permission-grid">
+                    {Object.entries(permissionsByCategory).map(([category, permissions]) => (
+                      <div key={category} className="permission-category">
+                        <h4 className="category-title">{category}</h4>
+                        <div className="permission-list">
+                          {permissions.map(permission => (
+                            <label key={permission.key} className="permission-item">
+                              <input
+                                type="checkbox"
+                                checked={employeePermissions.includes(permission.key)}
+                                onChange={() => handlePermissionToggle(permission.key)}
+                              />
+                              <div className="permission-info">
+                                <span className="permission-name">{permission.name}</span>
+                                {permission.description && (
+                                  <span className="permission-desc">{permission.description}</span>
+                                )}
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-secondary" onClick={closePermissionModal}>
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-primary" 
+                onClick={handleSavePermissions}
+                disabled={savingPermissions}
+              >
+                {savingPermissions ? "Saving..." : "Save Permissions"}
+              </button>
+            </div>
           </div>
         </div>
       )}

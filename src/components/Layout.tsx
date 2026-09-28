@@ -125,7 +125,7 @@ function getPageTitle(pathname: string): { title: string; icon: string; count?: 
 }
 
 export default function Layout() {
-  const { employee, logout } = useAuth();
+  const { employee, logout, hasPermission } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [ordersExpanded, setOrdersExpanded] = useState(location.pathname.startsWith("/orders-management"));
@@ -180,6 +180,7 @@ export default function Layout() {
         </div>
 
         <nav className="sidebar-nav">
+          {hasPermission("dashboard") && (
           <NavLink to="/" end className={({ isActive }) => isActive ? "active" : ""}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
@@ -187,6 +188,8 @@ export default function Layout() {
             </svg>
             Dashboard
           </NavLink>
+          )}
+          {hasPermission("pos") && (
           <NavLink to="/pos" className={({ isActive }) => isActive ? "active" : ""}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
@@ -195,10 +198,16 @@ export default function Layout() {
             </svg>
             POS
           </NavLink>
+          )}
           
+          {(hasPermission("orders") || hasPermission("refund-requests")) && (
+          <>
           <div className="sidebar-divider" />
           <span className="sidebar-label">Order Management</span>
+          </>
+          )}
           
+          {hasPermission("orders") && (
           <div className={`nav-item-with-submenu ${isOrdersActive ? "expanded" : ""}`}>
             <button 
               className={`nav-toggle ${isOrdersActive ? "active" : ""}`}
@@ -231,7 +240,9 @@ export default function Layout() {
               </div>
             )}
           </div>
+          )}
 
+          {hasPermission("refund-requests") && (
           <div className={`nav-item-with-submenu ${isRefundsActive ? "expanded" : ""}`}>
             <button 
               className={`nav-toggle ${isRefundsActive ? "active" : ""}`}
@@ -262,10 +273,16 @@ export default function Layout() {
               </div>
             )}
           </div>
+          )}
           
+          {(hasPermission("category-setup") || hasPermission("products-module")) && (
+          <>
           <div className="sidebar-divider" />
           <span className="sidebar-label">Product Management</span>
+          </>
+          )}
           
+          {hasPermission("category-setup") && (
           <div className={`nav-item-with-submenu ${isCategoryActive ? "expanded" : ""}`}>
             <button 
               className={`nav-toggle ${isCategoryActive ? "active" : ""}`}
@@ -297,7 +314,9 @@ export default function Layout() {
               </div>
             )}
           </div>
+          )}
           
+          {hasPermission("products-module") && (
           <div className={`nav-item-with-submenu ${isProductsActive ? "expanded" : ""}`}>
             <button 
               className={`nav-toggle ${isProductsActive ? "active" : ""}`}
@@ -329,10 +348,16 @@ export default function Layout() {
               </div>
             )}
           </div>
+          )}
           
+          {(hasPermission("banners") || hasPermission("offers-deals") || hasPermission("notifications")) && (
+          <>
           <div className="sidebar-divider" />
           <span className="sidebar-label">Promotion Management</span>
+          </>
+          )}
           
+          {hasPermission("banners") && (
           <NavLink to="/banners" className={({ isActive }) => isActive ? "active" : ""}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
@@ -341,7 +366,9 @@ export default function Layout() {
             </svg>
             Banner Setup
           </NavLink>
+          )}
           
+          {hasPermission("offers-deals") && (
           <div className={`nav-item-with-submenu ${isOffersDealsActive ? "expanded" : ""}`}>
             <button 
               className={`nav-toggle ${isOffersDealsActive ? "active" : ""}`}
@@ -370,7 +397,9 @@ export default function Layout() {
               </div>
             )}
           </div>
+          )}
 
+          {hasPermission("notifications") && (
           <div className={`nav-item-with-submenu ${isNotificationsActive ? "expanded" : ""}`}>
             <button 
               className={`nav-toggle ${isNotificationsActive ? "active" : ""}`}
@@ -399,10 +428,16 @@ export default function Layout() {
               </div>
             )}
           </div>
+          )}
 
+          {(hasPermission("reports") || hasPermission("product-report") || hasPermission("order-report")) && (
+          <>
           <div className="sidebar-divider" />
           <span className="sidebar-label">Sales & Transaction Report</span>
+          </>
+          )}
 
+          {hasPermission("reports") && (
           <div className={`nav-item-with-submenu ${isReportsActive && location.pathname.includes("/reports/earning") || location.pathname.includes("/reports/inhouse") || location.pathname.includes("/reports/vendor-sales") || location.pathname.includes("/reports/transactions") ? "expanded" : ""}`}>
             <button 
               className={`nav-toggle ${location.pathname.includes("/reports/earning") || location.pathname.includes("/reports/inhouse") || location.pathname.includes("/reports/vendor-sales") || location.pathname.includes("/reports/transactions") ? "active" : ""}`}
@@ -435,7 +470,9 @@ export default function Layout() {
               </div>
             )}
           </div>
+          )}
 
+          {hasPermission("product-report") && (
           <NavLink to="/reports/product" className={({ isActive }) => isActive ? "active" : ""}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
@@ -443,7 +480,9 @@ export default function Layout() {
             </svg>
             Product Report
           </NavLink>
+          )}
 
+          {hasPermission("order-report") && (
           <NavLink to="/reports/order" className={({ isActive }) => isActive ? "active" : ""}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -454,10 +493,16 @@ export default function Layout() {
             </svg>
             Order Report
           </NavLink>
+          )}
 
+          {(hasPermission("inbox") || hasPermission("messages") || hasPermission("support-ticket")) && (
+          <>
           <div className="sidebar-divider" />
           <span className="sidebar-label">Help & Support</span>
+          </>
+          )}
 
+          {hasPermission("inbox") && (
           <NavLink to="/inbox" className={({ isActive }) => isActive ? "active" : ""}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
@@ -465,22 +510,32 @@ export default function Layout() {
             </svg>
             Inbox
           </NavLink>
+          )}
+          {hasPermission("messages") && (
           <NavLink to="/messages" className={({ isActive }) => isActive ? "active" : ""}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
             Messages
           </NavLink>
+          )}
+          {hasPermission("support-ticket") && (
           <NavLink to="/support-ticket" className={({ isActive }) => isActive ? "active" : ""}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
             </svg>
             Support Ticket
           </NavLink>
+          )}
 
+          {(hasPermission("customers") || hasPermission("employees")) && (
+          <>
           <div className="sidebar-divider" />
           <span className="sidebar-label">User Management</span>
+          </>
+          )}
           
+          {hasPermission("customers") && (
           <div className={`nav-item-with-submenu ${isCustomersActive ? "expanded" : ""}`}>
             <button 
               className={`nav-toggle ${isCustomersActive ? "active" : ""}`}
@@ -511,7 +566,9 @@ export default function Layout() {
               </div>
             )}
           </div>
+          )}
 
+          {hasPermission("employees") && (
           <NavLink to="/employees" className={({ isActive }) => isActive ? "active" : ""}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -519,10 +576,16 @@ export default function Layout() {
             </svg>
             Employees
           </NavLink>
+          )}
           
+          {(hasPermission("smtp") || hasPermission("storage")) && (
+          <>
           <div className="sidebar-divider" />
           <span className="sidebar-label">Settings</span>
+          </>
+          )}
           
+          {hasPermission("smtp") && (
           <NavLink to="/smtp" className={({ isActive }) => isActive ? "active" : ""}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
@@ -530,6 +593,8 @@ export default function Layout() {
             </svg>
             SMTP
           </NavLink>
+          )}
+          {hasPermission("storage") && (
           <NavLink to="/storage" className={({ isActive }) => isActive ? "active" : ""}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
@@ -538,6 +603,7 @@ export default function Layout() {
             </svg>
             Storage
           </NavLink>
+          )}
         </nav>
       </aside>
       
