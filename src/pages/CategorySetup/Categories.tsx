@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { api } from "../../api/client";
+import * as XLSX from "xlsx";
 import "../../styles/category-setup.css";
 
 interface Category {
@@ -266,6 +267,48 @@ export default function Categories() {
     }
   }
 
+  function handleExport() {
+    // Prepare data for export (without image URLs)
+    const exportData = categories.map((cat, index) => ({
+      "SL": index + 1,
+      "Category Name": cat.name,
+      "Slug": cat.slug,
+      "Description": cat.description || "",
+      "Priority": cat.sortOrder,
+      "Status": cat.isActive ? "Active" : "Inactive",
+      "Meta Title": cat.metaTitle || "",
+      "Created At": new Date(cat.createdAt).toLocaleDateString(),
+      "Updated At": new Date(cat.updatedAt).toLocaleDateString(),
+    }));
+
+    // Create worksheet
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+    // Set column widths
+    worksheet["!cols"] = [
+      { wch: 5 },   // SL
+      { wch: 25 },  // Category Name
+      { wch: 25 },  // Slug
+      { wch: 40 },  // Description
+      { wch: 10 },  // Priority
+      { wch: 10 },  // Status
+      { wch: 30 },  // Meta Title
+      { wch: 15 },  // Created At
+      { wch: 15 },  // Updated At
+    ];
+
+    // Create workbook
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Categories");
+
+    // Generate filename with date
+    const date = new Date().toISOString().split("T")[0];
+    const filename = `categories-export-${date}.xlsx`;
+
+    // Download file
+    XLSX.writeFile(workbook, filename);
+  }
+
   return (
     <div className="category-setup-container">
       <div className="category-card">
@@ -286,7 +329,7 @@ export default function Categories() {
               </div>
             </div>
             <div className="category-actions-right">
-              <button className="btn-export">
+              <button className="btn-export" onClick={handleExport}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                   <polyline points="7,10 12,15 17,10" />
