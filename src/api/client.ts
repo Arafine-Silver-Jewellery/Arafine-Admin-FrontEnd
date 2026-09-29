@@ -79,7 +79,18 @@ export const api = {
     }),
 
   // Categories
-  getCategories: () => request<any[]>("/categories"),
+  getCategories: (params?: { page?: number; limit?: number; search?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set("page", params.page.toString());
+    if (params?.limit) query.set("limit", params.limit.toString());
+    if (params?.search) query.set("search", params.search);
+    const queryString = query.toString();
+    return request<{
+      data: any[];
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+    }>(`/categories${queryString ? `?${queryString}` : ""}`);
+  },
+  getAllCategories: () => request<any[]>("/categories/all"),
   getCategory: (id: string) => request<any>(`/categories/${id}`),
   createCategory: (data: any) =>
     request<any>("/categories", {

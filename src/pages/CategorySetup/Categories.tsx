@@ -67,21 +67,60 @@ export default function Categories() {
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
   const [deleting, setDeleting] = useState(false);
   
+  // Export dropdown state
+  const [showExportDropdown, setShowExportDropdown] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  
+  // Pagination state (server-side)
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  
+  // Debounced search
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  
   // File input refs
   const logo1InputRef = useRef<HTMLInputElement>(null);
   const logo2InputRef = useRef<HTMLInputElement>(null);
   const metaImageInputRef = useRef<HTMLInputElement>(null);
 
-  // Load categories from API
+  // Close export dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (showExportDropdown) {
+        setShowExportDropdown(false);
+      }
+    }
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [showExportDropdown]);
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1); // Reset to page 1 on search
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Load categories from API with pagination
   useEffect(() => {
     loadCategories();
-  }, []);
+  }, [currentPage, itemsPerPage, debouncedSearch]);
 
   async function loadCategories() {
     setLoading(true);
     try {
-      const data = await api.getCategories();
-      setCategories(data || []);
+      const response = await api.getCategories({
+        page: currentPage,
+        limit: itemsPerPage,
+        search: debouncedSearch || undefined,
+      });
+      setCategories(response.data || []);
+      setTotalItems(response.pagination.total);
+      setTotalPages(response.pagination.totalPages);
     } catch (error) {
       console.error("Failed to load categories:", error);
     } finally {
@@ -89,9 +128,9 @@ export default function Categories() {
     }
   }
 
-  const filteredCategories = categories.filter(cat =>
-    cat.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Calculate start/end index for display
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
 
   async function toggleHomeStatus(id: string) {
     const category = categories.find(c => c.id === id);
@@ -267,10 +306,20 @@ export default function Categories() {
     }
   }
 
-  function handleExport() {
-    // Prepare data for export (without image URLs)
+  function handleExport(exportAll: boolean) {
+    setShowExportDropdown(false);
+    
+    if (exportAll) {
+      handleExportAll();
+    } else {
+      handleExportCurrentPage();
+    }
+  }
+
+  function handleExportCurrentPage() {
+    // Export only current page data (what's visible on screen)
     const exportData = categories.map((cat, index) => ({
-      "SL": index + 1,
+      "SL": startIndex + index + 1,
       "Category Name": cat.name,
       "Slug": cat.slug,
       "Description": cat.description || "",
@@ -281,8 +330,38 @@ export default function Categories() {
       "Updated At": new Date(cat.updatedAt).toLocaleDateString(),
     }));
 
+    downloadExcel(exportData, "categories-page");
+  }
+
+  async function handleExportAll() {
+    setExporting(true);
+    try {
+      const allCategories = await api.getAllCategories();
+      
+      const exportData = allCategories.map((cat: Category, index: number) => ({
+        "SL": index + 1,
+        "Category Name": cat.name,
+        "Slug": cat.slug,
+        "Description": cat.description || "",
+        "Priority": cat.sortOrder,
+        "Status": cat.isActive ? "Active" : "Inactive",
+        "Meta Title": cat.metaTitle || "",
+        "Created At": new Date(cat.createdAt).toLocaleDateString(),
+        "Updated At": new Date(cat.updatedAt).toLocaleDateString(),
+      }));
+
+      downloadExcel(exportData, "categories-all");
+    } catch (error) {
+      console.error("Failed to export categories:", error);
+      alert("Failed to export categories");
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  function downloadExcel(data: any[], filenamePrefix: string) {
     // Create worksheet
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const worksheet = XLSX.utils.json_to_sheet(data);
 
     // Set column widths
     worksheet["!cols"] = [
@@ -303,7 +382,7 @@ export default function Categories() {
 
     // Generate filename with date
     const date = new Date().toISOString().split("T")[0];
-    const filename = `categories-export-${date}.xlsx`;
+    const filename = `${filenamePrefix}-${date}.xlsx`;
 
     // Download file
     XLSX.writeFile(workbook, filename);
@@ -329,14 +408,89 @@ export default function Categories() {
               </div>
             </div>
             <div className="category-actions-right">
-              <button className="btn-export" onClick={handleExport}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7,10 12,15 17,10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-                Export
-              </button>
+              <div style={{ position: "relative" }} onClick={(e) => e.stopPropagation()}>
+                <button 
+                  className="btn-export" 
+                  onClick={() => setShowExportDropdown(!showExportDropdown)}
+                  disabled={exporting}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7,10 12,15 17,10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  {exporting ? "Exporting..." : "Export"}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14, marginLeft: 4 }}>
+                    <polyline points="6,9 12,15 18,9" />
+                  </svg>
+                </button>
+                {showExportDropdown && (
+                  <div style={{
+                    position: "absolute",
+                    top: "100%",
+                    right: 0,
+                    marginTop: 4,
+                    background: "#fff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 8,
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                    zIndex: 100,
+                    minWidth: 180,
+                    overflow: "hidden",
+                  }}>
+                    <button
+                      onClick={() => handleExport(false)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        width: "100%",
+                        padding: "10px 14px",
+                        border: "none",
+                        background: "transparent",
+                        cursor: "pointer",
+                        fontSize: "0.875rem",
+                        color: "#374151",
+                        textAlign: "left",
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = "#f1f5f9"}
+                      onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
+                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                        <path d="M3 9h18" />
+                      </svg>
+                      Current Page ({categories.length})
+                    </button>
+                    <button
+                      onClick={() => handleExport(true)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        width: "100%",
+                        padding: "10px 14px",
+                        border: "none",
+                        background: "transparent",
+                        cursor: "pointer",
+                        fontSize: "0.875rem",
+                        color: "#374151",
+                        textAlign: "left",
+                        borderTop: "1px solid #e2e8f0",
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = "#f1f5f9"}
+                      onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17,8 12,3 7,8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                      All Data ({totalItems})
+                    </button>
+                  </div>
+                )}
+              </div>
               <button className="btn-add" onClick={() => openAddModal()}>
                 + Add Category
               </button>
@@ -359,9 +513,9 @@ export default function Categories() {
               </tr>
             </thead>
             <tbody>
-              {filteredCategories.map((category, index) => (
+              {categories.map((category, index) => (
                 <tr key={category.id}>
-                  <td>{index + 1}</td>
+                  <td>{startIndex + index + 1}</td>
                   <td>
                     <div className="category-name-cell">
                       <div className="category-images">
@@ -404,10 +558,10 @@ export default function Categories() {
                   </td>
                 </tr>
               ))}
-              {filteredCategories.length === 0 && (
+              {categories.length === 0 && (
                 <tr>
                   <td colSpan={5} style={{ textAlign: "center", padding: "2rem" }}>
-                    {searchQuery ? "No categories found matching your search" : "No categories yet. Click 'Add Category' to create one."}
+                    {debouncedSearch ? "No categories found matching your search" : "No categories yet. Click 'Add Category' to create one."}
                   </td>
                 </tr>
               )}
@@ -415,6 +569,151 @@ export default function Categories() {
           </table>
           )}
         </div>
+
+        {/* Pagination */}
+        {totalItems > 0 && (
+          <div className="pagination-container" style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "1rem 1.5rem",
+            borderTop: "1px solid #e2e8f0",
+            background: "#f8fafc",
+          }}>
+            <div className="pagination-info" style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "1rem",
+              fontSize: "0.875rem",
+              color: "#64748b",
+            }}>
+              <span>
+                Showing {startIndex + 1} to {endIndex} of {totalItems} entries
+              </span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                style={{
+                  padding: "0.375rem 0.75rem",
+                  borderRadius: "6px",
+                  border: "1px solid #e2e8f0",
+                  fontSize: "0.875rem",
+                  cursor: "pointer",
+                }}
+              >
+                <option value={10}>10 per page</option>
+                <option value={25}>25 per page</option>
+                <option value={50}>50 per page</option>
+                <option value={100}>100 per page</option>
+              </select>
+            </div>
+
+            <div className="pagination-buttons" style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+            }}>
+              <button
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1 || loading}
+                style={{
+                  padding: "0.5rem 0.75rem",
+                  borderRadius: "6px",
+                  border: "1px solid #e2e8f0",
+                  background: currentPage === 1 ? "#f1f5f9" : "#fff",
+                  color: currentPage === 1 ? "#94a3b8" : "#374151",
+                  cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                  fontSize: "0.875rem",
+                }}
+              >
+                First
+              </button>
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1 || loading}
+                style={{
+                  padding: "0.5rem 0.75rem",
+                  borderRadius: "6px",
+                  border: "1px solid #e2e8f0",
+                  background: currentPage === 1 ? "#f1f5f9" : "#fff",
+                  color: currentPage === 1 ? "#94a3b8" : "#374151",
+                  cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                  fontSize: "0.875rem",
+                }}
+              >
+                Previous
+              </button>
+              
+              {/* Page numbers */}
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    disabled={loading}
+                    style={{
+                      padding: "0.5rem 0.875rem",
+                      borderRadius: "6px",
+                      border: "1px solid",
+                      borderColor: currentPage === pageNum ? "#3b82f6" : "#e2e8f0",
+                      background: currentPage === pageNum ? "#3b82f6" : "#fff",
+                      color: currentPage === pageNum ? "#fff" : "#374151",
+                      cursor: "pointer",
+                      fontSize: "0.875rem",
+                      fontWeight: currentPage === pageNum ? 600 : 400,
+                    }}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages || loading}
+                style={{
+                  padding: "0.5rem 0.75rem",
+                  borderRadius: "6px",
+                  border: "1px solid #e2e8f0",
+                  background: currentPage === totalPages ? "#f1f5f9" : "#fff",
+                  color: currentPage === totalPages ? "#94a3b8" : "#374151",
+                  cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+                  fontSize: "0.875rem",
+                }}
+              >
+                Next
+              </button>
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages || loading}
+                style={{
+                  padding: "0.5rem 0.75rem",
+                  borderRadius: "6px",
+                  border: "1px solid #e2e8f0",
+                  background: currentPage === totalPages ? "#f1f5f9" : "#fff",
+                  color: currentPage === totalPages ? "#94a3b8" : "#374151",
+                  cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+                  fontSize: "0.875rem",
+                }}
+              >
+                Last
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Add Category Modal */}
