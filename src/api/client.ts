@@ -229,6 +229,38 @@ export const api = {
       body: JSON.stringify({ status }),
     }),
 
+  // File Upload (Storage)
+  uploadFile: async (file: File, folder: string = "misc", entityId?: string): Promise<{
+    url: string;
+    key: string;
+    filename: string;
+    size: number;
+    contentType: string;
+  }> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("folder", folder);
+    if (entityId) {
+      formData.append("entityId", entityId);
+    }
+
+    const url = `${API_BASE_URL}/storage-providers/upload`;
+    const response = await fetch(url, {
+      method: "POST",
+      body: formData,
+      credentials: "include",
+      // Note: Don't set Content-Type header - browser will set it with boundary for FormData
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.message || `Upload failed: HTTP ${response.status}`);
+    }
+
+    const result = await response.json();
+    return result.data;
+  },
+
   // Permissions
   getPermissions: () => request<{ data: any[] }>("/permissions"),
   getEmployeePermissions: (employeeId: string) =>

@@ -1,12 +1,21 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { api } from "../../api/client";
 import "../../styles/category-setup.css";
 
 interface Category {
   id: string;
   name: string;
-  images: string[];
-  priority: number;
-  homeStatus: boolean;
+  slug: string;
+  description: string | null;
+  imageUrl: string | null;
+  secondaryImageUrl: string | null;
+  metaImageUrl: string | null;
+  metaTitle: string | null;
+  parentId: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface CategoryFormData {
@@ -15,22 +24,16 @@ interface CategoryFormData {
   priority: string;
   logo1: File | null;
   logo1Preview: string;
+  logo1Url: string; // Existing URL from backend
   logo2: File | null;
   logo2Preview: string;
+  logo2Url: string;
   metaTitle: string;
   metaDescription: string;
   metaImage: File | null;
   metaImagePreview: string;
+  metaImageUrl: string;
 }
-
-const mockCategories: Category[] = [
-  { id: "21", name: "Shop by Color", images: ["https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=60&h=60&fit=crop", "https://images.unsplash.com/photo-1573408301185-9146fe634ad0?w=60&h=60&fit=crop", "https://images.unsplash.com/photo-1602751584552-8ba73aad10e1?w=60&h=60&fit=crop"], priority: 1, homeStatus: true },
-  { id: "16", name: "By Pricing", images: ["https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=60&h=60&fit=crop", "https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=60&h=60&fit=crop", "https://images.unsplash.com/photo-1603561591411-07134e71a2a9?w=60&h=60&fit=crop"], priority: 0, homeStatus: true },
-  { id: "13", name: "Anklets", images: ["https://images.unsplash.com/photo-1611652022419-a9419f74343d?w=60&h=60&fit=crop", "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=60&h=60&fit=crop"], priority: 10, homeStatus: true },
-  { id: "8", name: "Bangles", images: ["https://images.unsplash.com/photo-1573408301185-9146fe634ad0?w=60&h=60&fit=crop", "https://images.unsplash.com/photo-1602751584552-8ba73aad10e1?w=60&h=60&fit=crop"], priority: 9, homeStatus: true },
-  { id: "5", name: "Rings", images: ["https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=60&h=60&fit=crop", "https://images.unsplash.com/photo-1603561591411-07134e71a2a9?w=60&h=60&fit=crop"], priority: 3, homeStatus: true },
-  { id: "4", name: "Chains", images: ["https://images.unsplash.com/photo-1599459183200-59c3f4b13c2e?w=60&h=60&fit=crop", "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=60&h=60&fit=crop"], priority: 2, homeStatus: true },
-];
 
 const initialFormData: CategoryFormData = {
   status: true,
@@ -38,44 +41,102 @@ const initialFormData: CategoryFormData = {
   priority: "",
   logo1: null,
   logo1Preview: "",
+  logo1Url: "",
   logo2: null,
   logo2Preview: "",
+  logo2Url: "",
   metaTitle: "",
   metaDescription: "",
   metaImage: null,
   metaImagePreview: "",
+  metaImageUrl: "",
 };
 
 export default function Categories() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [categories, setCategories] = useState(mockCategories);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [formData, setFormData] = useState<CategoryFormData>(initialFormData);
+  const [submitting, setSubmitting] = useState(false);
+  
+  // Delete confirmation modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
+  const [deleting, setDeleting] = useState(false);
   
   // File input refs
   const logo1InputRef = useRef<HTMLInputElement>(null);
   const logo2InputRef = useRef<HTMLInputElement>(null);
   const metaImageInputRef = useRef<HTMLInputElement>(null);
 
+  // Load categories from API
+  useEffect(() => {
+    loadCategories();
+  }, []);
+
+  async function loadCategories() {
+    setLoading(true);
+    try {
+      const data = await api.getCategories();
+      setCategories(data || []);
+    } catch (error) {
+      console.error("Failed to load categories:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const filteredCategories = categories.filter(cat =>
     cat.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  function toggleHomeStatus(id: string) {
-    setCategories(prev =>
-      prev.map(cat =>
-        cat.id === id ? { ...cat, homeStatus: !cat.homeStatus } : cat
-      )
-    );
+  async function toggleHomeStatus(id: string) {
+    const category = categories.find(c => c.id === id);
+    if (!category) return;
+    
+    try {
+      await api.updateCategory(id, { isActive: !category.isActive });
+      setCategories(prev =>
+        prev.map(cat =>
+          cat.id === id ? { ...cat, isActive: !cat.isActive } : cat
+        )
+      );
+    } catch (error) {
+      console.error("Failed to update category status:", error);
+    }
   }
 
-  function openAddModal() {
-    setFormData(initialFormData);
+  function openAddModal(category?: Category) {
+    if (category) {
+      setEditingCategory(category);
+      setFormData({
+        status: category.isActive,
+        nameEN: category.name,
+        priority: category.sortOrder.toString(),
+        logo1: null,
+        logo1Preview: "",
+        logo1Url: category.imageUrl || "",
+        logo2: null,
+        logo2Preview: "",
+        logo2Url: category.secondaryImageUrl || "",
+        metaTitle: category.metaTitle || "",
+        metaDescription: category.description || "",
+        metaImage: null,
+        metaImagePreview: "",
+        metaImageUrl: category.metaImageUrl || "",
+      });
+    } else {
+      setEditingCategory(null);
+      setFormData(initialFormData);
+    }
     setShowAddModal(true);
   }
 
   function closeAddModal() {
     setShowAddModal(false);
+    setEditingCategory(null);
     setFormData(initialFormData);
   }
 
@@ -100,21 +161,109 @@ export default function Categories() {
 
   function removeFile(field: 'logo1' | 'logo2' | 'metaImage') {
     const previewField = `${field}Preview` as keyof CategoryFormData;
+    const urlField = `${field}Url` as keyof CategoryFormData;
     setFormData(prev => ({
       ...prev,
       [field]: null,
-      [previewField]: ""
+      [previewField]: "",
+      [urlField]: "",
     }));
   }
 
   function handleReset() {
-    setFormData(initialFormData);
+    if (editingCategory) {
+      openAddModal(editingCategory);
+    } else {
+      setFormData(initialFormData);
+    }
   }
 
-  function handleSubmit() {
-    // Static for now - will be wired to backend later
-    console.log("Form submitted:", formData);
-    closeAddModal();
+  async function handleSubmit() {
+    if (!formData.nameEN.trim()) {
+      alert("Category name is required");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      // Upload images if new files were selected
+      let imageUrl = formData.logo1Url;
+      let secondaryImageUrl = formData.logo2Url;
+      let metaImageUrl = formData.metaImageUrl;
+
+      if (formData.logo1) {
+        const result = await api.uploadFile(formData.logo1, "categories");
+        imageUrl = result.url;
+      }
+
+      if (formData.logo2) {
+        const result = await api.uploadFile(formData.logo2, "categories");
+        secondaryImageUrl = result.url;
+      }
+
+      if (formData.metaImage) {
+        const result = await api.uploadFile(formData.metaImage, "categories");
+        metaImageUrl = result.url;
+      }
+
+      // Create slug from name
+      const slug = formData.nameEN
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
+
+      const categoryData = {
+        name: formData.nameEN,
+        slug: editingCategory?.slug || slug,
+        description: formData.metaDescription || null,
+        imageUrl: imageUrl || null,
+        secondaryImageUrl: secondaryImageUrl || null,
+        metaImageUrl: metaImageUrl || null,
+        metaTitle: formData.metaTitle || null,
+        sortOrder: parseInt(formData.priority) || 0,
+        isActive: formData.status,
+      };
+
+      if (editingCategory) {
+        await api.updateCategory(editingCategory.id, categoryData);
+      } else {
+        await api.createCategory(categoryData);
+      }
+
+      await loadCategories();
+      closeAddModal();
+    } catch (error: any) {
+      console.error("Failed to save category:", error);
+      alert(error.message || "Failed to save category");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function openDeleteModal(category: Category) {
+    setDeletingCategory(category);
+    setShowDeleteModal(true);
+  }
+
+  function closeDeleteModal() {
+    setShowDeleteModal(false);
+    setDeletingCategory(null);
+  }
+
+  async function handleConfirmDelete() {
+    if (!deletingCategory) return;
+
+    setDeleting(true);
+    try {
+      await api.deleteCategory(deletingCategory.id);
+      await loadCategories();
+      closeDeleteModal();
+    } catch (error: any) {
+      console.error("Failed to delete category:", error);
+      alert(error.message || "Failed to delete category");
+    } finally {
+      setDeleting(false);
+    }
   }
 
   return (
@@ -145,7 +294,7 @@ export default function Categories() {
                 </svg>
                 Export
               </button>
-              <button className="btn-add" onClick={openAddModal}>
+              <button className="btn-add" onClick={() => openAddModal()}>
                 + Add Category
               </button>
             </div>
@@ -153,6 +302,9 @@ export default function Categories() {
         </div>
 
         <div className="category-table-container">
+          {loading ? (
+            <div style={{ padding: "2rem", textAlign: "center" }}>Loading categories...</div>
+          ) : (
           <table className="category-table">
             <thead>
               <tr>
@@ -170,22 +322,22 @@ export default function Categories() {
                   <td>
                     <div className="category-name-cell">
                       <div className="category-images">
-                        {category.images.slice(0, 3).map((img, i) => (
-                          <img key={i} src={img} alt="" className="category-thumb" />
-                        ))}
+                        {category.imageUrl && (
+                          <img src={category.imageUrl} alt="" className="category-thumb" />
+                        )}
                       </div>
                       <div className="category-info">
                         <span className="name">{category.name}</span>
-                        <span className="id">ID #{category.id}</span>
+                        <span className="id">ID #{category.id.slice(0, 8)}</span>
                       </div>
                     </div>
                   </td>
-                  <td>{category.priority}</td>
+                  <td>{category.sortOrder}</td>
                   <td>
                     <label className="toggle-switch">
                       <input
                         type="checkbox"
-                        checked={category.homeStatus}
+                        checked={category.isActive}
                         onChange={() => toggleHomeStatus(category.id)}
                       />
                       <span className="toggle-slider"></span>
@@ -193,19 +345,13 @@ export default function Categories() {
                   </td>
                   <td>
                     <div className="action-buttons">
-                      <button className="btn-action btn-icon-view" title="View">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#4f46e5" strokeWidth="2"/>
-                          <circle cx="12" cy="12" r="3" stroke="#4f46e5" strokeWidth="2"/>
-                        </svg>
-                      </button>
-                      <button className="btn-action btn-icon-edit" title="Edit">
+                      <button className="btn-action btn-icon-edit" title="Edit" onClick={() => openAddModal(category)}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="#f59e0b" strokeWidth="2"/>
                           <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#f59e0b" strokeWidth="2"/>
                         </svg>
                       </button>
-                      <button className="btn-action btn-icon-delete" title="Delete">
+                      <button className="btn-action btn-icon-delete" title="Delete" onClick={() => openDeleteModal(category)}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                           <polyline points="3,6 5,6 21,6" stroke="#ef4444" strokeWidth="2"/>
                           <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="#ef4444" strokeWidth="2"/>
@@ -215,8 +361,16 @@ export default function Categories() {
                   </td>
                 </tr>
               ))}
+              {filteredCategories.length === 0 && (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: "center", padding: "2rem" }}>
+                    {searchQuery ? "No categories found matching your search" : "No categories yet. Click 'Add Category' to create one."}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
+          )}
         </div>
       </div>
 
@@ -235,8 +389,8 @@ export default function Categories() {
                   </svg>
                 </div>
                 <div>
-                  <h2>Add New Category</h2>
-                  <p>Create a new product category for your store</p>
+                  <h2>{editingCategory ? "Edit Category" : "Add New Category"}</h2>
+                  <p>{editingCategory ? "Update category details" : "Create a new product category for your store"}</p>
                 </div>
               </div>
               <button className="modal-close-btn" onClick={closeAddModal}>
@@ -394,14 +548,14 @@ export default function Categories() {
                           accept="image/jpeg,image/png,image/gif"
                           onChange={(e) => handleFileUpload('logo1', e.target.files?.[0] || null)}
                         />
-                        {formData.logo1Preview ? (
+                        {formData.logo1Preview || formData.logo1Url ? (
                           <div className="image-preview-card">
-                            <img src={formData.logo1Preview} alt="Primary Logo" />
+                            <img src={formData.logo1Preview || formData.logo1Url} alt="Primary Logo" />
                             <div className="image-actions">
-                              <button className="btn-change" onClick={() => logo1InputRef.current?.click()}>
+                              <button type="button" className="btn-change" onClick={() => logo1InputRef.current?.click()}>
                                 Change
                               </button>
-                              <button className="btn-remove" onClick={() => removeFile('logo1')}>
+                              <button type="button" className="btn-remove" onClick={() => removeFile('logo1')}>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                   <polyline points="3,6 5,6 21,6" />
                                   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -434,14 +588,14 @@ export default function Categories() {
                           accept="image/jpeg,image/png,image/gif"
                           onChange={(e) => handleFileUpload('logo2', e.target.files?.[0] || null)}
                         />
-                        {formData.logo2Preview ? (
+                        {formData.logo2Preview || formData.logo2Url ? (
                           <div className="image-preview-card">
-                            <img src={formData.logo2Preview} alt="Secondary Logo" />
+                            <img src={formData.logo2Preview || formData.logo2Url} alt="Secondary Logo" />
                             <div className="image-actions">
-                              <button className="btn-change" onClick={() => logo2InputRef.current?.click()}>
+                              <button type="button" className="btn-change" onClick={() => logo2InputRef.current?.click()}>
                                 Change
                               </button>
-                              <button className="btn-remove" onClick={() => removeFile('logo2')}>
+                              <button type="button" className="btn-remove" onClick={() => removeFile('logo2')}>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                   <polyline points="3,6 5,6 21,6" />
                                   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -476,14 +630,14 @@ export default function Categories() {
                         accept="image/jpeg,image/png,image/gif"
                         onChange={(e) => handleFileUpload('metaImage', e.target.files?.[0] || null)}
                       />
-                      {formData.metaImagePreview ? (
+                      {formData.metaImagePreview || formData.metaImageUrl ? (
                         <div className="meta-image-preview-wide">
-                          <img src={formData.metaImagePreview} alt="Meta" />
+                          <img src={formData.metaImagePreview || formData.metaImageUrl} alt="Meta" />
                           <div className="image-actions">
-                            <button className="btn-change" onClick={() => metaImageInputRef.current?.click()}>
+                            <button type="button" className="btn-change" onClick={() => metaImageInputRef.current?.click()}>
                               Change
                             </button>
-                            <button className="btn-remove" onClick={() => removeFile('metaImage')}>
+                            <button type="button" className="btn-remove" onClick={() => removeFile('metaImage')}>
                               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <polyline points="3,6 5,6 21,6" />
                                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -522,13 +676,140 @@ export default function Categories() {
                   </svg>
                   Reset
                 </button>
-                <button className="btn-submit-wide" onClick={handleSubmit}>
+                <button className="btn-submit-wide" onClick={handleSubmit} disabled={submitting}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <polyline points="20,6 9,17 4,12" />
                   </svg>
-                  Create Category
+                  {submitting ? "Saving..." : editingCategory ? "Update Category" : "Create Category"}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && deletingCategory && (
+        <div className="modal-overlay" onClick={closeDeleteModal}>
+          <div 
+            className="delete-confirm-modal" 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "white",
+              borderRadius: "12px",
+              padding: "0",
+              width: "400px",
+              maxWidth: "90vw",
+              boxShadow: "0 20px 50px rgba(0,0,0,0.15)",
+              overflow: "hidden",
+            }}
+          >
+            {/* Header */}
+            <div style={{
+              padding: "1.5rem",
+              borderBottom: "1px solid #e5e7eb",
+              display: "flex",
+              alignItems: "center",
+              gap: "1rem",
+            }}>
+              <div style={{
+                width: "48px",
+                height: "48px",
+                borderRadius: "50%",
+                background: "#fee2e2",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2">
+                  <polyline points="3,6 5,6 21,6" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  <line x1="10" y1="11" x2="10" y2="17" />
+                  <line x1="14" y1="11" x2="14" y2="17" />
+                </svg>
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: "1.125rem", fontWeight: 600, color: "#111827" }}>
+                  Delete Category
+                </h3>
+                <p style={{ margin: "0.25rem 0 0", fontSize: "0.875rem", color: "#6b7280" }}>
+                  This action cannot be undone
+                </p>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: "1.5rem" }}>
+              <p style={{ margin: 0, color: "#374151", lineHeight: 1.6 }}>
+                Are you sure you want to delete <strong>"{deletingCategory.name}"</strong>? 
+                This will permanently remove the category and cannot be recovered.
+              </p>
+            </div>
+
+            {/* Footer */}
+            <div style={{
+              padding: "1rem 1.5rem",
+              background: "#f9fafb",
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: "0.75rem",
+            }}>
+              <button
+                onClick={closeDeleteModal}
+                disabled={deleting}
+                style={{
+                  padding: "0.625rem 1.25rem",
+                  borderRadius: "8px",
+                  border: "1px solid #d1d5db",
+                  background: "white",
+                  color: "#374151",
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  fontSize: "0.875rem",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={deleting}
+                style={{
+                  padding: "0.625rem 1.25rem",
+                  borderRadius: "8px",
+                  border: "none",
+                  background: "#ef4444",
+                  color: "white",
+                  fontWeight: 500,
+                  cursor: deleting ? "not-allowed" : "pointer",
+                  fontSize: "0.875rem",
+                  opacity: deleting ? 0.7 : 1,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                }}
+              >
+                {deleting ? (
+                  <>
+                    <span style={{
+                      width: "14px",
+                      height: "14px",
+                      border: "2px solid rgba(255,255,255,0.3)",
+                      borderTopColor: "white",
+                      borderRadius: "50%",
+                      animation: "spin 0.8s linear infinite",
+                    }} />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="3,6 5,6 21,6" />
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                    Delete Category
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
