@@ -42,7 +42,7 @@ export default function Products() {
   useEffect(() => {
     async function loadCategories() {
       try {
-        const data = await api.getCategories();
+        const data = await api.getAllCategories();
         setCategories(data);
       }
       catch (error) {

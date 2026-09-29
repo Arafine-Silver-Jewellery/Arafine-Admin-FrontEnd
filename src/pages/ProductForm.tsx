@@ -41,7 +41,7 @@ export default function ProductForm() {
   useEffect(() => {
     async function loadData() {
       try {
-        const cats = await api.getCategories();
+        const cats = await api.getAllCategories();
         setCategories(cats);
 
         if (isEdit && id) {

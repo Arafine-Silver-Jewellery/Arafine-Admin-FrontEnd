@@ -87,7 +87,7 @@ export default function Categories() {
 
   // Close export dropdown when clicking outside
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
+    function handleClickOutside() {
       if (showExportDropdown) {
         setShowExportDropdown(false);
       }

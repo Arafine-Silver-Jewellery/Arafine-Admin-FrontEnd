@@ -19,7 +19,7 @@ export default function Categories() {
   async function loadCategories() {
     setLoading(true);
     try {
-      const data = await api.getCategories();
+      const data = await api.getAllCategories();
       setCategories(data);
     }
     catch (error) {
