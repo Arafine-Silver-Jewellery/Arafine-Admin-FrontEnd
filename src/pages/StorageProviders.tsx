@@ -40,6 +40,9 @@ export default function StorageProviders() {
     secretKey: "",
   });
 
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
   async function loadProviders() {
     setLoading(true);
     try {
@@ -86,14 +89,19 @@ export default function StorageProviders() {
   function closeModal() {
     setShowModal(false);
     setEditingProvider(null);
+    setTestResult(null);
   }
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData(prev => {
+      const updated = { ...prev, [name]: value };
+      // Clear endpoint when switching to S3
+      if (name === "type" && value === "s3") {
+        updated.endpoint = "";
+      }
+      return updated;
+    });
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -154,6 +162,19 @@ export default function StorageProviders() {
     } catch (error: any) {
       console.error("Failed to deactivate storage provider:", error);
       alert(error.message || "Failed to deactivate storage provider");
+    }
+  }
+
+  async function handleTestConnection(providerId?: string) {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const res = await api.testStorageConnection(providerId);
+      setTestResult({ success: res.success, message: res.message });
+    } catch (error: any) {
+      setTestResult({ success: false, message: error.message || "Connection test failed" });
+    } finally {
+      setTesting(false);
     }
   }
 
@@ -348,25 +369,35 @@ export default function StorageProviders() {
                 </div>
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Region</label>
+                    <label>Region {formData.type === "s3" && "*"}</label>
                     <input
                       type="text"
                       name="region"
                       value={formData.region}
                       onChange={handleChange}
-                      placeholder="us-east-1"
+                      placeholder={formData.type === "s3" ? "us-east-1" : "auto (optional)"}
+                      required={formData.type === "s3"}
                     />
                   </div>
-                  <div className="form-group">
-                    <label>Endpoint</label>
-                    <input
-                      type="url"
-                      name="endpoint"
-                      value={formData.endpoint}
-                      onChange={handleChange}
-                      placeholder="For R2/MinIO: https://..."
-                    />
-                  </div>
+                  {formData.type !== "s3" && (
+                    <div className="form-group">
+                      <label>Endpoint *</label>
+                      <input
+                        type="url"
+                        name="endpoint"
+                        value={formData.endpoint}
+                        onChange={handleChange}
+                        placeholder={
+                          formData.type === "r2" ? "https://<account_id>.r2.cloudflarestorage.com" :
+                          formData.type === "minio" ? "https://minio.example.com:9000" :
+                          formData.type === "gcs" ? "https://storage.googleapis.com" :
+                          formData.type === "azure" ? "https://<account>.blob.core.windows.net" :
+                          "https://..."
+                        }
+                        required
+                      />
+                    </div>
+                  )}
                 </div>
                 <div className="form-group">
                   <label>Access Key *</label>
@@ -390,6 +421,17 @@ export default function StorageProviders() {
                 </div>
               </div>
               <div className="modal-footer">
+                {editingProvider && (
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    onClick={() => handleTestConnection(editingProvider.id)}
+                    disabled={testing}
+                    style={{ marginRight: "auto" }}
+                  >
+                    {testing ? "Testing..." : "Test Connection"}
+                  </button>
+                )}
                 <button type="button" className="btn btn-secondary" onClick={closeModal}>
                   Cancel
                 </button>
@@ -397,6 +439,20 @@ export default function StorageProviders() {
                   {editingProvider ? "Update" : "Create"}
                 </button>
               </div>
+              {testResult && (
+                <div
+                  className="test-result"
+                  style={{
+                    padding: "0.75rem 1.5rem",
+                    background: testResult.success ? "#dcfce7" : "#fee2e2",
+                    color: testResult.success ? "#166534" : "#991b1b",
+                    borderTop: "1px solid #e5e7eb",
+                    fontSize: "0.875rem",
+                  }}
+                >
+                  {testResult.success ? "✓ " : "✗ "}{testResult.message}
+                </div>
+              )}
             </form>
           </div>
         </div>

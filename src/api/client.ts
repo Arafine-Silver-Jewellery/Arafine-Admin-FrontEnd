@@ -202,6 +202,11 @@ export const api = {
     request<any>(`/storage-providers/${id}/activate`, { method: "PUT" }),
   deactivateStorageProvider: (id: string) =>
     request<any>(`/storage-providers/${id}/deactivate`, { method: "PUT" }),
+  testStorageConnection: (providerId?: string) =>
+    request<{ success: boolean; message: string; data?: any }>("/storage-providers/test-connection", {
+      method: "POST",
+      body: JSON.stringify({ providerId }),
+    }),
 
   // Employees
   getEmployees: () => request<{ data: any[] }>("/employees"),
