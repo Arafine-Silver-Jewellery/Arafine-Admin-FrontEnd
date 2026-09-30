@@ -14,7 +14,7 @@ import POS from "./pages/POS";
 import OrdersNew from "./pages/OrdersNew";
 import RefundRequests from "./pages/RefundRequests";
 import { Categories, SubCategories, SubSubCategories } from "./pages/CategorySetup";
-import { ProductList, AddNewProduct, LimitedStock, BulkImport, RequestRestockList } from "./pages/ProductsModule";
+import { ProductList, AddNewProduct, ProductView, LimitedStock, BulkImport, RequestRestockList } from "./pages/ProductsModule";
 import BannerSetup from "./pages/BannerSetup";
 import { Coupon, FlashDeals, DealOfTheDay, FeaturedDeal, ClearanceSale } from "./pages/OffersDeals";
 import { SendNotification, PushNotificationsSetup } from "./pages/Notifications";
@@ -69,6 +69,8 @@ function App() {
             {/* Products Module */}
             <Route path="products-module" element={<RequirePermission permission="products-module"><ProductList /></RequirePermission>} />
             <Route path="products-module/add-new" element={<RequirePermission permission="products-module"><AddNewProduct /></RequirePermission>} />
+            <Route path="products-module/view/:id" element={<RequirePermission permission="products-module"><ProductView /></RequirePermission>} />
+            <Route path="products-module/edit/:id" element={<RequirePermission permission="products-module"><AddNewProduct /></RequirePermission>} />
             <Route path="products-module/limited-stock" element={<RequirePermission permission="products-module"><LimitedStock /></RequirePermission>} />
             <Route path="products-module/bulk-import" element={<RequirePermission permission="products-module"><BulkImport /></RequirePermission>} />
             <Route path="products-module/restock-requests" element={<RequirePermission permission="products-module"><RequestRestockList /></RequirePermission>} />

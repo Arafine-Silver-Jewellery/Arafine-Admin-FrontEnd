@@ -22,6 +22,7 @@ interface Product {
   name: string;
   slug: string;
   description: string | null;
+  shortDescription: string | null;
   sku: string;
   pricePaise: number;
   compareAtPricePaise: number | null;
@@ -129,6 +130,7 @@ export default function ProductList() {
     }
   }
 
+  // Delete modal functions
   function openDeleteModal(product: Product) {
     setDeletingProduct(product);
     setShowDeleteModal(true);
@@ -186,7 +188,6 @@ export default function ProductList() {
   async function handleExportAll() {
     setExporting(true);
     try {
-      // Fetch all products (large limit)
       const response = await api.getProducts({ page: 1, limit: 10000 });
       const allProducts = response.data || [];
       
@@ -398,7 +399,11 @@ export default function ProductList() {
                   </td>
                   <td>
                     <div className="action-buttons">
-                      <button className="btn-action btn-icon-view" title="View">
+                      <button 
+                        className="btn-action btn-icon-view" 
+                        title="View"
+                        onClick={() => navigate(`/products-module/view/${product.id}`)}
+                      >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#4f46e5" strokeWidth="2"/>
                           <circle cx="12" cy="12" r="3" stroke="#4f46e5" strokeWidth="2"/>
@@ -407,7 +412,7 @@ export default function ProductList() {
                       <button 
                         className="btn-action btn-icon-edit" 
                         title="Edit"
-                        onClick={() => navigate(`/products/${product.id}`)}
+                        onClick={() => navigate(`/products-module/edit/${product.id}`)}
                       >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="#f59e0b" strokeWidth="2"/>
