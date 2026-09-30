@@ -400,6 +400,20 @@ export default function ProductList() {
                   <td>
                     <div className="action-buttons">
                       <button 
+                        className="btn-action btn-icon-barcode" 
+                        title="Barcode"
+                        onClick={() => navigate(`/products-module/barcode/${product.id}`)}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                          <rect x="3" y="4" width="2" height="16" fill="#6b7280"/>
+                          <rect x="7" y="4" width="1" height="16" fill="#6b7280"/>
+                          <rect x="10" y="4" width="3" height="16" fill="#6b7280"/>
+                          <rect x="15" y="4" width="1" height="16" fill="#6b7280"/>
+                          <rect x="18" y="4" width="2" height="16" fill="#6b7280"/>
+                          <rect x="22" y="4" width="1" height="16" fill="#6b7280"/>
+                        </svg>
+                      </button>
+                      <button 
                         className="btn-action btn-icon-view" 
                         title="View"
                         onClick={() => navigate(`/products-module/view/${product.id}`)}
