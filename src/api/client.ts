@@ -77,6 +77,22 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ ids, status }),
     }),
+  getLimitedStockProducts: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }) => {
+    const query = new URLSearchParams();
+    if (params.page) query.set("page", params.page.toString());
+    if (params.limit) query.set("limit", params.limit.toString());
+    if (params.search) query.set("search", params.search);
+    return request<ApiResponse<any[]>>(`/products/limited-stock?${query}`);
+  },
+  updateProductStock: (id: string, quantity: number) =>
+    request<any>(`/products/${id}/stock`, {
+      method: "PATCH",
+      body: JSON.stringify({ quantity }),
+    }),
 
   // Categories
   getCategories: (params?: { page?: number; limit?: number; search?: string }) => {

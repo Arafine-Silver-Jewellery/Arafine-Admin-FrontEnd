@@ -323,6 +323,22 @@
   gap: 8px;
 }
 
+.quantity-badge .stock-value {
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.quantity-badge .stock-value.out-of-stock {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.quantity-badge .stock-value.low-stock {
+  background: #fef3c7;
+  color: #d97706;
+}
+
 .btn-add-qty {
   width: 24px;
   height: 24px;
