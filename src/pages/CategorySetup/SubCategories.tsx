@@ -1,32 +1,366 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { api } from "../../api/client";
+import * as XLSX from "xlsx";
 import "../../styles/category-setup.css";
 
-interface SubCategory {
+interface Category {
   id: string;
   name: string;
-  image: string;
-  mainCategory: string;
-  priority: number;
+  slug: string;
+  description: string | null;
+  imageUrl: string | null;
+  secondaryImageUrl: string | null;
+  metaImageUrl: string | null;
+  metaTitle: string | null;
+  parentId: string | null;
+  parent: Category | null;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
-const mockSubCategories: SubCategory[] = [
-  { id: "22", name: "Gold Plated", image: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=80&h=80&fit=crop", mainCategory: "Shop by Color", priority: 0 },
-  { id: "23", name: "Rose Gold Plated", image: "https://images.unsplash.com/photo-1602751584552-8ba73aad10e1?w=80&h=80&fit=crop", mainCategory: "Shop by Color", priority: 9 },
-  { id: "24", name: "Silver", image: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=80&h=80&fit=crop", mainCategory: "Shop by Color", priority: 8 },
-  { id: "19", name: "Below 7999", image: "https://images.unsplash.com/photo-1573408301185-9146fe634ad0?w=80&h=80&fit=crop", mainCategory: "By Pricing", priority: 10 },
-  { id: "18", name: "Under 5999", image: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=80&h=80&fit=crop", mainCategory: "By Pricing", priority: 9 },
-  { id: "17", name: "Under 3999", image: "https://images.unsplash.com/photo-1611652022419-a9419f74343d?w=80&h=80&fit=crop", mainCategory: "By Pricing", priority: 8 },
-  { id: "15", name: "Daily Wear", image: "https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=80&h=80&fit=crop", mainCategory: "Anklets", priority: 5 },
-  { id: "14", name: "Traditional", image: "https://images.unsplash.com/photo-1603561591411-07134e71a2a9?w=80&h=80&fit=crop", mainCategory: "Bangles", priority: 4 },
-];
+interface SubCategoryFormData {
+  status: boolean;
+  nameEN: string;
+  parentId: string;
+  priority: string;
+  logo: File | null;
+  logoPreview: string;
+  logoUrl: string;
+  metaTitle: string;
+  metaDescription: string;
+  metaImage: File | null;
+  metaImagePreview: string;
+  metaImageUrl: string;
+}
+
+const initialFormData: SubCategoryFormData = {
+  status: true,
+  nameEN: "",
+  parentId: "",
+  priority: "",
+  logo: null,
+  logoPreview: "",
+  logoUrl: "",
+  metaTitle: "",
+  metaDescription: "",
+  metaImage: null,
+  metaImagePreview: "",
+  metaImageUrl: "",
+};
 
 export default function SubCategories() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [subCategories, setSubCategories] = useState<Category[]>([]);
+  const [parentCategories, setParentCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingSubCategory, setEditingSubCategory] = useState<Category | null>(null);
+  const [formData, setFormData] = useState<SubCategoryFormData>(initialFormData);
+  const [submitting, setSubmitting] = useState(false);
+  
+  // Delete confirmation modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingSubCategory, setDeletingSubCategory] = useState<Category | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  
+  // Export dropdown state
+  const [showExportDropdown, setShowExportDropdown] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
-  const filteredSubCategories = mockSubCategories.filter(cat =>
-    cat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    cat.mainCategory.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter by parent category
+  const [filterParentId, setFilterParentId] = useState("");
+  
+  // Pagination state (server-side)
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  
+  // Debounced search
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  
+  // File input refs
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const metaImageInputRef = useRef<HTMLInputElement>(null);
+
+  // Close export dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside() {
+      if (showExportDropdown) {
+        setShowExportDropdown(false);
+      }
+    }
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [showExportDropdown]);
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Load parent categories for dropdown
+  useEffect(() => {
+    loadParentCategories();
+  }, []);
+
+  // Load sub categories with pagination
+  useEffect(() => {
+    loadSubCategories();
+  }, [currentPage, itemsPerPage, debouncedSearch, filterParentId]);
+
+  async function loadParentCategories() {
+    try {
+      const categories = await api.getAllCategories();
+      setParentCategories(categories);
+    } catch (error) {
+      console.error("Failed to load parent categories:", error);
+    }
+  }
+
+  async function loadSubCategories() {
+    setLoading(true);
+    try {
+      const response = await api.getSubCategories({
+        page: currentPage,
+        limit: itemsPerPage,
+        search: debouncedSearch || undefined,
+        parentId: filterParentId || undefined,
+      });
+      setSubCategories(response.data || []);
+      setTotalItems(response.pagination.total);
+      setTotalPages(response.pagination.totalPages);
+    } catch (error) {
+      console.error("Failed to load sub categories:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+
+  function openAddModal(subCategory?: Category) {
+    if (subCategory) {
+      setEditingSubCategory(subCategory);
+      setFormData({
+        status: subCategory.isActive,
+        nameEN: subCategory.name,
+        parentId: subCategory.parentId || "",
+        priority: subCategory.sortOrder.toString(),
+        logo: null,
+        logoPreview: "",
+        logoUrl: subCategory.imageUrl || "",
+        metaTitle: subCategory.metaTitle || "",
+        metaDescription: subCategory.description || "",
+        metaImage: null,
+        metaImagePreview: "",
+        metaImageUrl: subCategory.metaImageUrl || "",
+      });
+    } else {
+      setEditingSubCategory(null);
+      setFormData(initialFormData);
+    }
+    setShowAddModal(true);
+  }
+
+  function closeAddModal() {
+    setShowAddModal(false);
+    setEditingSubCategory(null);
+    setFormData(initialFormData);
+  }
+
+  function handleInputChange(field: keyof SubCategoryFormData, value: string | boolean) {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  }
+
+  function handleFileUpload(field: 'logo' | 'metaImage', file: File | null) {
+    if (file) {
+      const previewField = `${field}Preview` as keyof SubCategoryFormData;
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({
+          ...prev,
+          [field]: file,
+          [previewField]: reader.result as string
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function removeFile(field: 'logo' | 'metaImage') {
+    const previewField = `${field}Preview` as keyof SubCategoryFormData;
+    const urlField = `${field}Url` as keyof SubCategoryFormData;
+    setFormData(prev => ({
+      ...prev,
+      [field]: null,
+      [previewField]: "",
+      [urlField]: "",
+    }));
+  }
+
+  function handleReset() {
+    if (editingSubCategory) {
+      openAddModal(editingSubCategory);
+    } else {
+      setFormData(initialFormData);
+    }
+  }
+
+  async function handleSubmit() {
+    if (!formData.nameEN.trim()) {
+      alert("Sub category name is required");
+      return;
+    }
+    if (!formData.parentId) {
+      alert("Please select a main category");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      let imageUrl = formData.logoUrl;
+      let metaImageUrl = formData.metaImageUrl;
+
+      if (formData.logo) {
+        const result = await api.uploadFile(formData.logo, "categories");
+        imageUrl = result.url;
+      }
+
+      if (formData.metaImage) {
+        const result = await api.uploadFile(formData.metaImage, "categories");
+        metaImageUrl = result.url;
+      }
+
+      const slug = formData.nameEN
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
+
+      const subCategoryData = {
+        name: formData.nameEN,
+        slug: editingSubCategory?.slug || slug,
+        description: formData.metaDescription || null,
+        imageUrl: imageUrl || null,
+        metaImageUrl: metaImageUrl || null,
+        metaTitle: formData.metaTitle || null,
+        parentId: formData.parentId,
+        sortOrder: parseInt(formData.priority) || 0,
+        isActive: formData.status,
+      };
+
+      if (editingSubCategory) {
+        await api.updateCategory(editingSubCategory.id, subCategoryData);
+      } else {
+        await api.createCategory(subCategoryData);
+      }
+
+      await loadSubCategories();
+      closeAddModal();
+    } catch (error: any) {
+      console.error("Failed to save sub category:", error);
+      alert(error.message || "Failed to save sub category");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function openDeleteModal(subCategory: Category) {
+    setDeletingSubCategory(subCategory);
+    setShowDeleteModal(true);
+  }
+
+  function closeDeleteModal() {
+    setShowDeleteModal(false);
+    setDeletingSubCategory(null);
+  }
+
+  async function handleConfirmDelete() {
+    if (!deletingSubCategory) return;
+
+    setDeleting(true);
+    try {
+      await api.deleteCategory(deletingSubCategory.id);
+      await loadSubCategories();
+      closeDeleteModal();
+    } catch (error: any) {
+      console.error("Failed to delete sub category:", error);
+      alert(error.message || "Failed to delete sub category");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  function handleExport(exportAll: boolean) {
+    setShowExportDropdown(false);
+    if (exportAll) {
+      handleExportAll();
+    } else {
+      handleExportCurrentPage();
+    }
+  }
+
+  function handleExportCurrentPage() {
+    const exportData = subCategories.map((cat, index) => ({
+      "SL": startIndex + index + 1,
+      "Sub Category Name": cat.name,
+      "Main Category": cat.parent?.name || "",
+      "Slug": cat.slug,
+      "Description": cat.description || "",
+      "Priority": cat.sortOrder,
+      "Status": cat.isActive ? "Active" : "Inactive",
+      "Created At": new Date(cat.createdAt).toLocaleDateString(),
+    }));
+    downloadExcel(exportData, "sub-categories-page");
+  }
+
+  async function handleExportAll() {
+    setExporting(true);
+    try {
+      const allSubCategories = await api.getAllSubCategories();
+      const exportData = allSubCategories.map((cat: Category, index: number) => ({
+        "SL": index + 1,
+        "Sub Category Name": cat.name,
+        "Main Category": cat.parent?.name || "",
+        "Slug": cat.slug,
+        "Description": cat.description || "",
+        "Priority": cat.sortOrder,
+        "Status": cat.isActive ? "Active" : "Inactive",
+        "Created At": new Date(cat.createdAt).toLocaleDateString(),
+      }));
+      downloadExcel(exportData, "sub-categories-all");
+    } catch (error) {
+      console.error("Failed to export:", error);
+      alert("Failed to export sub categories");
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  function downloadExcel(data: any[], filenamePrefix: string) {
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    worksheet["!cols"] = [
+      { wch: 5 },
+      { wch: 25 },
+      { wch: 20 },
+      { wch: 25 },
+      { wch: 40 },
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 15 },
+    ];
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Sub Categories");
+    const date = new Date().toISOString().split("T")[0];
+    XLSX.writeFile(workbook, `${filenamePrefix}-${date}.xlsx`);
+  }
 
   return (
     <div className="category-setup-container">
@@ -48,15 +382,81 @@ export default function SubCategories() {
               </div>
             </div>
             <div className="category-actions-right">
-              <button className="btn-export">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7,10 12,15 17,10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-                Export
-              </button>
-              <button className="btn-add">
+              <div style={{ position: "relative" }} onClick={(e) => e.stopPropagation()}>
+                <button 
+                  className="btn-export" 
+                  onClick={() => setShowExportDropdown(!showExportDropdown)}
+                  disabled={exporting}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7,10 12,15 17,10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  {exporting ? "Exporting..." : "Export"}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14, marginLeft: 4 }}>
+                    <polyline points="6,9 12,15 18,9" />
+                  </svg>
+                </button>
+                {showExportDropdown && (
+                  <div style={{
+                    position: "absolute",
+                    top: "100%",
+                    right: 0,
+                    marginTop: 4,
+                    background: "#fff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 8,
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                    zIndex: 100,
+                    minWidth: 180,
+                    overflow: "hidden",
+                  }}>
+                    <button
+                      onClick={() => handleExport(false)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        width: "100%",
+                        padding: "10px 14px",
+                        border: "none",
+                        background: "transparent",
+                        cursor: "pointer",
+                        fontSize: "0.875rem",
+                        color: "#374151",
+                        textAlign: "left",
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = "#f1f5f9"}
+                      onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                    >
+                      Current Page ({subCategories.length})
+                    </button>
+                    <button
+                      onClick={() => handleExport(true)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        width: "100%",
+                        padding: "10px 14px",
+                        border: "none",
+                        background: "transparent",
+                        cursor: "pointer",
+                        fontSize: "0.875rem",
+                        color: "#374151",
+                        textAlign: "left",
+                        borderTop: "1px solid #e2e8f0",
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = "#f1f5f9"}
+                      onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                    >
+                      All Data ({totalItems})
+                    </button>
+                  </div>
+                )}
+              </div>
+              <button className="btn-add" onClick={() => openAddModal()}>
                 + Add Sub Category
               </button>
             </div>
@@ -64,49 +464,51 @@ export default function SubCategories() {
         </div>
 
         <div className="category-table-container">
+          {loading ? (
+            <div style={{ padding: "2rem", textAlign: "center" }}>Loading sub categories...</div>
+          ) : (
           <table className="category-table">
             <thead>
               <tr>
                 <th>SL</th>
-                <th>Sub Category Image</th>
                 <th>Sub Category Name</th>
-                <th>Main Category Name</th>
+                <th>Main Category</th>
                 <th>Priority</th>
                 <th>Action</th>
               </tr>
             </thead>
             <tbody>
-              {filteredSubCategories.map((category, index) => (
-                <tr key={category.id}>
-                  <td>{index + 1}</td>
+              {subCategories.map((subCat, index) => (
+                <tr key={subCat.id}>
+                  <td>{startIndex + index + 1}</td>
                   <td>
-                    <img src={category.image} alt="" className="sub-category-image" />
-                  </td>
-                  <td>
-                    <div className="sub-category-name">
-                      <span className="name">{category.name}</span>
-                      <span className="id">ID #{category.id}</span>
+                    <div className="category-name-cell">
+                      <div className="category-images">
+                        {subCat.imageUrl && (
+                          <img src={subCat.imageUrl} alt="" className="category-thumb" />
+                        )}
+                      </div>
+                      <div className="category-info">
+                        <span className="name">{subCat.name}</span>
+                        <span className="id">ID #{subCat.id.slice(0, 8)}</span>
+                      </div>
                     </div>
                   </td>
                   <td>
-                    <a href="#" className="main-category-link">{category.mainCategory}</a>
+                    <span style={{ color: "#6366f1", fontWeight: 500 }}>
+                      {subCat.parent?.name || "-"}
+                    </span>
                   </td>
-                  <td>{category.priority}</td>
+                  <td>{subCat.sortOrder}</td>
                   <td>
                     <div className="action-buttons">
-                      <button className="btn-action btn-icon-view" title="View">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#4f46e5" strokeWidth="2"/>
-                          <circle cx="12" cy="12" r="3" stroke="#4f46e5" strokeWidth="2"/>
-                        </svg>
-                      </button>
-                      <button className="btn-action btn-icon-edit" title="Edit">
+                      <button className="btn-action btn-icon-edit" title="Edit" onClick={() => openAddModal(subCat)}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="#f59e0b" strokeWidth="2"/>
                           <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#f59e0b" strokeWidth="2"/>
                         </svg>
                       </button>
-                      <button className="btn-action btn-icon-delete" title="Delete">
+                      <button className="btn-action btn-icon-delete" title="Delete" onClick={() => openDeleteModal(subCat)}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                           <polyline points="3,6 5,6 21,6" stroke="#ef4444" strokeWidth="2"/>
                           <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="#ef4444" strokeWidth="2"/>
@@ -116,10 +518,394 @@ export default function SubCategories() {
                   </td>
                 </tr>
               ))}
+              {subCategories.length === 0 && (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: "center", padding: "2rem" }}>
+                    {debouncedSearch || filterParentId ? "No sub categories found" : "No sub categories yet. Click 'Add Sub Category' to create one."}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
+          )}
         </div>
+
+        {/* Pagination */}
+        {totalItems > 0 && (
+          <div className="pagination-container" style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "1rem 1.5rem",
+            borderTop: "1px solid #e2e8f0",
+            background: "#f8fafc",
+          }}>
+            <div className="pagination-info" style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "1rem",
+              fontSize: "0.875rem",
+              color: "#64748b",
+            }}>
+              <span>Showing {startIndex + 1} to {endIndex} of {totalItems} entries</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                style={{
+                  padding: "0.375rem 0.75rem",
+                  borderRadius: "6px",
+                  border: "1px solid #e2e8f0",
+                  fontSize: "0.875rem",
+                  cursor: "pointer",
+                }}
+              >
+                <option value={10}>10 per page</option>
+                <option value={25}>25 per page</option>
+                <option value={50}>50 per page</option>
+                <option value={100}>100 per page</option>
+              </select>
+            </div>
+
+            <div className="pagination-buttons" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <button
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1 || loading}
+                style={{
+                  padding: "0.5rem 0.75rem",
+                  borderRadius: "6px",
+                  border: "1px solid #e2e8f0",
+                  background: currentPage === 1 ? "#f1f5f9" : "#fff",
+                  color: currentPage === 1 ? "#94a3b8" : "#374151",
+                  cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                  fontSize: "0.875rem",
+                }}
+              >
+                First
+              </button>
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1 || loading}
+                style={{
+                  padding: "0.5rem 0.75rem",
+                  borderRadius: "6px",
+                  border: "1px solid #e2e8f0",
+                  background: currentPage === 1 ? "#f1f5f9" : "#fff",
+                  color: currentPage === 1 ? "#94a3b8" : "#374151",
+                  cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                  fontSize: "0.875rem",
+                }}
+              >
+                Previous
+              </button>
+              
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    disabled={loading}
+                    style={{
+                      padding: "0.5rem 0.875rem",
+                      borderRadius: "6px",
+                      border: "1px solid",
+                      borderColor: currentPage === pageNum ? "#3b82f6" : "#e2e8f0",
+                      background: currentPage === pageNum ? "#3b82f6" : "#fff",
+                      color: currentPage === pageNum ? "#fff" : "#374151",
+                      cursor: "pointer",
+                      fontSize: "0.875rem",
+                      fontWeight: currentPage === pageNum ? 600 : 400,
+                    }}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages || loading}
+                style={{
+                  padding: "0.5rem 0.75rem",
+                  borderRadius: "6px",
+                  border: "1px solid #e2e8f0",
+                  background: currentPage === totalPages ? "#f1f5f9" : "#fff",
+                  color: currentPage === totalPages ? "#94a3b8" : "#374151",
+                  cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+                  fontSize: "0.875rem",
+                }}
+              >
+                Next
+              </button>
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages || loading}
+                style={{
+                  padding: "0.5rem 0.75rem",
+                  borderRadius: "6px",
+                  border: "1px solid #e2e8f0",
+                  background: currentPage === totalPages ? "#f1f5f9" : "#fff",
+                  color: currentPage === totalPages ? "#94a3b8" : "#374151",
+                  cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+                  fontSize: "0.875rem",
+                }}
+              >
+                Last
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Add/Edit Sub Category Modal */}
+      {showAddModal && (
+        <div className="modal-overlay" onClick={closeAddModal}>
+          <div className="add-category-modal-wide" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header-wide">
+              <div className="modal-title-section">
+                <div className="modal-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                    <path d="M2 17l10 5 10-5" />
+                    <path d="M2 12l10 5 10-5" />
+                  </svg>
+                </div>
+                <div>
+                  <h2>{editingSubCategory ? "Edit Sub Category" : "Add New Sub Category"}</h2>
+                  <p>{editingSubCategory ? "Update sub category details" : "Create a new sub category"}</p>
+                </div>
+              </div>
+              <button className="modal-close-btn" onClick={closeAddModal}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="modal-body-wide">
+              <div className="form-grid-two-col">
+                <div className="form-column">
+                  <div className="form-card">
+                    <div className="form-card-header">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
+                      <span>Basic Information</span>
+                    </div>
+                    
+                    <div className="form-row">
+                      <div className="status-toggle-row-wide">
+                        <div className="status-info">
+                          <span className="status-label">Sub Category Status</span>
+                          <span className="status-hint">Enable to make visible</span>
+                        </div>
+                        <div className="status-toggle-wrapper">
+                          <label className="toggle-switch">
+                            <input
+                              type="checkbox"
+                              checked={formData.status}
+                              onChange={(e) => handleInputChange('status', e.target.checked)}
+                            />
+                            <span className="toggle-slider"></span>
+                          </label>
+                          <span className={`status-badge ${formData.status ? 'active' : 'inactive'}`}>
+                            {formData.status ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="form-row">
+                      <label className="form-label">
+                        Main Category <span className="required">*</span>
+                      </label>
+                      <select
+                        className="form-select"
+                        value={formData.parentId}
+                        onChange={(e) => handleInputChange('parentId', e.target.value)}
+                      >
+                        <option value="">Select main category</option>
+                        {parentCategories.map(cat => (
+                          <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="form-row-inline">
+                      <div className="form-field flex-2">
+                        <label className="form-label">
+                          Sub Category Name <span className="required">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="Enter sub category name"
+                          value={formData.nameEN}
+                          onChange={(e) => handleInputChange('nameEN', e.target.value)}
+                        />
+                      </div>
+                      <div className="form-field flex-1">
+                        <label className="form-label">Priority</label>
+                        <select
+                          className="form-select"
+                          value={formData.priority}
+                          onChange={(e) => handleInputChange('priority', e.target.value)}
+                        >
+                          <option value="">Select</option>
+                          {[...Array(10)].map((_, i) => (
+                            <option key={i + 1} value={i + 1}>{i + 1}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="form-card">
+                    <div className="form-card-header">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="M21 21l-4.35-4.35" />
+                      </svg>
+                      <span>SEO Settings</span>
+                      <span className="optional-badge">Optional</span>
+                    </div>
+
+                    <div className="form-row">
+                      <label className="form-label">Meta Title</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="SEO title"
+                        maxLength={50}
+                        value={formData.metaTitle}
+                        onChange={(e) => handleInputChange('metaTitle', e.target.value)}
+                      />
+                    </div>
+
+                    <div className="form-row">
+                      <label className="form-label">Meta Description</label>
+                      <textarea
+                        className="form-textarea"
+                        placeholder="Brief description"
+                        maxLength={160}
+                        rows={3}
+                        value={formData.metaDescription}
+                        onChange={(e) => handleInputChange('metaDescription', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="form-column">
+                  <div className="form-card">
+                    <div className="form-card-header">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <polyline points="21,15 16,10 5,21" />
+                      </svg>
+                      <span>Sub Category Image</span>
+                    </div>
+
+                    <div className="image-upload-grid">
+                      <div className="image-upload-card">
+                        <span className="upload-label">Sub Category Image</span>
+                        <input
+                          type="file"
+                          ref={logoInputRef}
+                          className="file-input-hidden"
+                          accept="image/jpeg,image/png,image/gif"
+                          onChange={(e) => handleFileUpload('logo', e.target.files?.[0] || null)}
+                        />
+                        {formData.logoPreview || formData.logoUrl ? (
+                          <div className="image-preview-card">
+                            <img src={formData.logoPreview || formData.logoUrl} alt="Sub Category" />
+                            <div className="image-actions">
+                              <button type="button" className="btn-change" onClick={() => logoInputRef.current?.click()}>
+                                Change
+                              </button>
+                              <button type="button" className="btn-remove" onClick={() => removeFile('logo')}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <polyline points="3,6 5,6 21,6" />
+                                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="upload-dropzone" onClick={() => logoInputRef.current?.click()}>
+                            <div className="dropzone-icon">
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="17,8 12,3 7,8" />
+                                <line x1="12" y1="3" x2="12" y2="15" />
+                              </svg>
+                            </div>
+                            <span className="dropzone-text">Click to upload</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer-wide">
+              <button type="button" className="btn-reset" onClick={handleReset}>Reset</button>
+              <button type="button" className="btn-cancel" onClick={closeAddModal}>Cancel</button>
+              <button 
+                type="button" 
+                className="btn-submit" 
+                onClick={handleSubmit}
+                disabled={submitting}
+              >
+                {submitting ? "Saving..." : (editingSubCategory ? "Update" : "Submit")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && deletingSubCategory && (
+        <div className="modal-overlay" onClick={closeDeleteModal}>
+          <div className="delete-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="delete-modal-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="15" y1="9" x2="9" y2="15" />
+                <line x1="9" y1="9" x2="15" y2="15" />
+              </svg>
+            </div>
+            <h3>Delete Sub Category</h3>
+            <p>Are you sure you want to delete <strong>{deletingSubCategory.name}</strong>?</p>
+            <p className="delete-warning">This action cannot be undone.</p>
+            <div className="delete-modal-actions">
+              <button className="btn-cancel" onClick={closeDeleteModal} disabled={deleting}>
+                Cancel
+              </button>
+              <button className="btn-delete" onClick={handleConfirmDelete} disabled={deleting}>
+                {deleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
