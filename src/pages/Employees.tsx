@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { api } from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../components/Toast";
 import "../styles/employees.css";
 
 interface Employee {
@@ -32,6 +33,7 @@ interface EmployeeForm {
 }
 
 export default function Employees() {
+  const toast = useToast();
   const { employee: currentEmployee } = useAuth();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -133,7 +135,7 @@ export default function Employees() {
         await api.updateEmployee(editingEmployee.id, data);
       } else {
         if (!formData.password) {
-          alert("Password is required for new employee");
+          toast.warning("Password is required for new employee");
           return;
         }
         data.password = formData.password;
@@ -143,7 +145,7 @@ export default function Employees() {
       loadEmployees();
     } catch (error: any) {
       console.error("Failed to save employee:", error);
-      alert(error.message || "Failed to save employee");
+      toast.error(error.message || "Failed to save employee");
     }
   }
 
@@ -154,7 +156,7 @@ export default function Employees() {
       loadEmployees();
     } catch (error: any) {
       console.error("Failed to update status:", error);
-      alert(error.message || "Failed to update status");
+      toast.error(error.message || "Failed to update status");
     }
   }
 
@@ -166,7 +168,7 @@ export default function Employees() {
       loadEmployees();
     } catch (error: any) {
       console.error("Failed to delete employee:", error);
-      alert(error.message || "Failed to delete employee");
+      toast.error(error.message || "Failed to delete employee");
     }
   }
 
@@ -220,7 +222,7 @@ export default function Employees() {
       closePermissionModal();
     } catch (error: any) {
       console.error("Failed to save permissions:", error);
-      alert(error.message || "Failed to save permissions");
+      toast.error(error.message || "Failed to save permissions");
     } finally {
       setSavingPermissions(false);
     }

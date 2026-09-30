@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
+import { useToast } from "../../components/Toast";
 import * as XLSX from "xlsx";
 import "../../styles/products-module.css";
 
@@ -39,6 +40,7 @@ interface Product {
 
 export default function ProductList() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -151,7 +153,7 @@ export default function ProductList() {
       closeDeleteModal();
     } catch (error: any) {
       console.error("Failed to delete product:", error);
-      alert(error.message || "Failed to delete product");
+      toast.error(error.message || "Failed to delete product");
     } finally {
       setDeleting(false);
     }
@@ -205,7 +207,7 @@ export default function ProductList() {
       downloadExcel(exportData, "products-all");
     } catch (error) {
       console.error("Failed to export:", error);
-      alert("Failed to export products");
+      toast.error("Failed to export products");
     } finally {
       setExporting(false);
     }

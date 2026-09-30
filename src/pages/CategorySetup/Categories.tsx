@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { api } from "../../api/client";
+import { useToast } from "../../components/Toast";
 import * as XLSX from "xlsx";
 import "../../styles/category-setup.css";
 
@@ -54,6 +55,7 @@ const initialFormData: CategoryFormData = {
 };
 
 export default function Categories() {
+  const toast = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -220,7 +222,7 @@ export default function Categories() {
 
   async function handleSubmit() {
     if (!formData.nameEN.trim()) {
-      alert("Category name is required");
+      toast.warning("Category name is required");
       return;
     }
 
@@ -274,7 +276,7 @@ export default function Categories() {
       closeAddModal();
     } catch (error: any) {
       console.error("Failed to save category:", error);
-      alert(error.message || "Failed to save category");
+      toast.error(error.message || "Failed to save category");
     } finally {
       setSubmitting(false);
     }
@@ -300,7 +302,7 @@ export default function Categories() {
       closeDeleteModal();
     } catch (error: any) {
       console.error("Failed to delete category:", error);
-      alert(error.message || "Failed to delete category");
+      toast.error(error.message || "Failed to delete category");
     } finally {
       setDeleting(false);
     }
@@ -353,7 +355,7 @@ export default function Categories() {
       downloadExcel(exportData, "categories-all");
     } catch (error) {
       console.error("Failed to export categories:", error);
-      alert("Failed to export categories");
+      toast.error("Failed to export categories");
     } finally {
       setExporting(false);
     }

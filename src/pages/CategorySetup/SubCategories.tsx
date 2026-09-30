@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { api } from "../../api/client";
+import { useToast } from "../../components/Toast";
 import * as XLSX from "xlsx";
 import "../../styles/category-setup.css";
 
@@ -51,6 +52,7 @@ const initialFormData: SubCategoryFormData = {
 };
 
 export default function SubCategories() {
+  const toast = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [subCategories, setSubCategories] = useState<Category[]>([]);
   const [parentCategories, setParentCategories] = useState<Category[]>([]);
@@ -211,11 +213,11 @@ export default function SubCategories() {
 
   async function handleSubmit() {
     if (!formData.nameEN.trim()) {
-      alert("Sub category name is required");
+      toast.warning("Sub category name is required");
       return;
     }
     if (!formData.parentId) {
-      alert("Please select a main category");
+      toast.warning("Please select a main category");
       return;
     }
 
@@ -261,7 +263,7 @@ export default function SubCategories() {
       closeAddModal();
     } catch (error: any) {
       console.error("Failed to save sub category:", error);
-      alert(error.message || "Failed to save sub category");
+      toast.error(error.message || "Failed to save sub category");
     } finally {
       setSubmitting(false);
     }
@@ -287,7 +289,7 @@ export default function SubCategories() {
       closeDeleteModal();
     } catch (error: any) {
       console.error("Failed to delete sub category:", error);
-      alert(error.message || "Failed to delete sub category");
+      toast.error(error.message || "Failed to delete sub category");
     } finally {
       setDeleting(false);
     }
@@ -333,7 +335,7 @@ export default function SubCategories() {
       downloadExcel(exportData, "sub-categories-all");
     } catch (error) {
       console.error("Failed to export:", error);
-      alert("Failed to export sub categories");
+      toast.error("Failed to export sub categories");
     } finally {
       setExporting(false);
     }

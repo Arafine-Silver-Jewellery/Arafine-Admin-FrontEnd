@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { api } from "../../api/client";
+import { useToast } from "../../components/Toast";
 import * as XLSX from "xlsx";
 import "../../styles/category-setup.css";
 
@@ -51,6 +52,7 @@ const initialFormData: SubSubCategoryFormData = {
 };
 
 export default function SubSubCategories() {
+  const toast = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [subSubCategories, setSubSubCategories] = useState<Category[]>([]);
   const [subCategories, setSubCategories] = useState<Category[]>([]);
@@ -211,11 +213,11 @@ export default function SubSubCategories() {
 
   async function handleSubmit() {
     if (!formData.nameEN.trim()) {
-      alert("Sub sub category name is required");
+      toast.warning("Sub sub category name is required");
       return;
     }
     if (!formData.parentId) {
-      alert("Please select a sub category");
+      toast.warning("Please select a sub category");
       return;
     }
 
@@ -261,7 +263,7 @@ export default function SubSubCategories() {
       closeAddModal();
     } catch (error: any) {
       console.error("Failed to save sub sub category:", error);
-      alert(error.message || "Failed to save sub sub category");
+      toast.error(error.message || "Failed to save sub sub category");
     } finally {
       setSubmitting(false);
     }
@@ -287,7 +289,7 @@ export default function SubSubCategories() {
       closeDeleteModal();
     } catch (error: any) {
       console.error("Failed to delete sub sub category:", error);
-      alert(error.message || "Failed to delete sub sub category");
+      toast.error(error.message || "Failed to delete sub sub category");
     } finally {
       setDeleting(false);
     }
@@ -333,7 +335,7 @@ export default function SubSubCategories() {
       downloadExcel(exportData, "sub-sub-categories-all");
     } catch (error) {
       console.error("Failed to export:", error);
-      alert("Failed to export sub sub categories");
+      toast.error("Failed to export sub sub categories");
     } finally {
       setExporting(false);
     }

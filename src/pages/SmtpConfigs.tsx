@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
+import { useToast } from "../components/Toast";
 import "../styles/settings.css";
 
 interface SmtpConfig {
@@ -17,6 +18,7 @@ interface SmtpConfig {
 }
 
 export default function SmtpConfigs() {
+  const toast = useToast();
   const [configs, setConfigs] = useState<SmtpConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -118,7 +120,7 @@ export default function SmtpConfigs() {
       loadConfigs();
     } catch (error: any) {
       console.error("Failed to save SMTP config:", error);
-      alert(error.message || "Failed to save SMTP config");
+      toast.error(error.message || "Failed to save SMTP config");
     }
   }
 
@@ -130,7 +132,7 @@ export default function SmtpConfigs() {
       loadConfigs();
     } catch (error: any) {
       console.error("Failed to delete SMTP config:", error);
-      alert(error.message || "Failed to delete SMTP config");
+      toast.error(error.message || "Failed to delete SMTP config");
     }
   }
 
@@ -140,7 +142,7 @@ export default function SmtpConfigs() {
       loadConfigs();
     } catch (error: any) {
       console.error("Failed to activate SMTP config:", error);
-      alert(error.message || "Failed to activate SMTP config");
+      toast.error(error.message || "Failed to activate SMTP config");
     }
   }
 
@@ -150,7 +152,7 @@ export default function SmtpConfigs() {
       loadConfigs();
     } catch (error: any) {
       console.error("Failed to deactivate SMTP config:", error);
-      alert(error.message || "Failed to deactivate SMTP config");
+      toast.error(error.message || "Failed to deactivate SMTP config");
     }
   }
 

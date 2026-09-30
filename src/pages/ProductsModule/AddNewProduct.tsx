@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../../api/client";
+import { useToast } from "../../components/Toast";
 import "../../styles/products-module.css";
 
 interface Category {
@@ -198,6 +199,7 @@ function RichTextEditor({
 
 export default function AddNewProduct() {
   const navigate = useNavigate();
+  const toast = useToast();
   const { id: productId } = useParams<{ id: string }>();
   const isEditMode = Boolean(productId);
   
@@ -397,7 +399,7 @@ export default function AddNewProduct() {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        alert("Image size must be less than 2MB");
+        toast.warning("Image size must be less than 2MB");
         return;
       }
       setThumbnail(file);
@@ -448,7 +450,7 @@ export default function AddNewProduct() {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        alert("Image size must be less than 2MB");
+        toast.warning("Image size must be less than 2MB");
         return;
       }
       setMetaImage(file);

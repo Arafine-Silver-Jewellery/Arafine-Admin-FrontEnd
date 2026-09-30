@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
+import { useToast } from "../components/Toast";
 import "../styles/settings.css";
 
 type StorageType = "s3" | "r2" | "gcs" | "azure" | "minio";
@@ -26,6 +27,7 @@ const storageTypes: { value: StorageType; label: string }[] = [
 ];
 
 export default function StorageProviders() {
+  const toast = useToast();
   const [providers, setProviders] = useState<StorageProvider[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -129,7 +131,7 @@ export default function StorageProviders() {
       loadProviders();
     } catch (error: any) {
       console.error("Failed to save storage provider:", error);
-      alert(error.message || "Failed to save storage provider");
+      toast.error(error.message || "Failed to save storage provider");
     }
   }
 
@@ -141,7 +143,7 @@ export default function StorageProviders() {
       loadProviders();
     } catch (error: any) {
       console.error("Failed to delete storage provider:", error);
-      alert(error.message || "Failed to delete storage provider");
+      toast.error(error.message || "Failed to delete storage provider");
     }
   }
 
@@ -151,7 +153,7 @@ export default function StorageProviders() {
       loadProviders();
     } catch (error: any) {
       console.error("Failed to activate storage provider:", error);
-      alert(error.message || "Failed to activate storage provider");
+      toast.error(error.message || "Failed to activate storage provider");
     }
   }
 
@@ -161,7 +163,7 @@ export default function StorageProviders() {
       loadProviders();
     } catch (error: any) {
       console.error("Failed to deactivate storage provider:", error);
-      alert(error.message || "Failed to deactivate storage provider");
+      toast.error(error.message || "Failed to deactivate storage provider");
     }
   }
 

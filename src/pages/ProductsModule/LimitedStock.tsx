@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
+import { useToast } from "../../components/Toast";
 import "../../styles/products-module.css";
 
 interface ProductImage {
@@ -31,6 +32,7 @@ interface Product {
 
 export default function LimitedStock() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -122,7 +124,7 @@ export default function LimitedStock() {
       closeAddStockModal();
     } catch (error) {
       console.error("Failed to update stock:", error);
-      alert("Failed to update stock");
+      toast.error("Failed to update stock");
     } finally {
       setUpdating(false);
     }
