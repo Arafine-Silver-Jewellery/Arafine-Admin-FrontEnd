@@ -4,22 +4,22 @@ import { useAuth } from "../context/AuthContext";
 import "../styles/layout.css";
 
 const orderSubmenus = [
-  { path: "/orders-management", label: "All", count: 87 },
-  { path: "/orders-management/pending", label: "Pending", count: 0 },
-  { path: "/orders-management/confirmed", label: "Confirmed", count: 50 },
-  { path: "/orders-management/packaging", label: "Packaging", count: 0 },
-  { path: "/orders-management/out-for-delivery", label: "Out for delivery", count: 0 },
-  { path: "/orders-management/delivered", label: "Delivered", count: 17 },
-  { path: "/orders-management/returned", label: "Returned", count: 0 },
-  { path: "/orders-management/failed-to-deliver", label: "Failed to Deliver", count: 0 },
-  { path: "/orders-management/canceled", label: "Canceled", count: 20 },
+  { path: "/orders-management", label: "All" },
+  { path: "/orders-management/pending", label: "Pending" },
+  { path: "/orders-management/confirmed", label: "Confirmed" },
+  { path: "/orders-management/packaging", label: "Packaging" },
+  { path: "/orders-management/out-for-delivery", label: "Out for delivery" },
+  { path: "/orders-management/delivered", label: "Delivered" },
+  { path: "/orders-management/returned", label: "Returned" },
+  { path: "/orders-management/failed-to-deliver", label: "Failed to Deliver" },
+  { path: "/orders-management/canceled", label: "Canceled" },
 ];
 
 const refundSubmenus = [
-  { path: "/refund-requests", label: "Pending", count: 0 },
-  { path: "/refund-requests/approved", label: "Approved", count: 0 },
-  { path: "/refund-requests/refunded", label: "Refunded", count: 0 },
-  { path: "/refund-requests/rejected", label: "Rejected", count: 0 },
+  { path: "/refund-requests", label: "Pending" },
+  { path: "/refund-requests/approved", label: "Approved" },
+  { path: "/refund-requests/refunded", label: "Refunded" },
+  { path: "/refund-requests/rejected", label: "Rejected" },
 ];
 
 const categorySubmenus = [
@@ -29,7 +29,7 @@ const categorySubmenus = [
 ];
 
 const productsSubmenus = [
-  { path: "/products-module", label: "Product List", count: 242 },
+  { path: "/products-module", label: "Product List" },
   { path: "/products-module/limited-stock", label: "Limited Stock" },
   { path: "/products-module/bulk-import", label: "Bulk Import" },
   { path: "/products-module/restock-requests", label: "Request Restock List" },
@@ -59,18 +59,18 @@ const customersSubmenus = [
 ];
 
 // Page title mapping based on route
-const pageTitleMap: Record<string, { title: string; icon: string; count?: number }> = {
+const pageTitleMap: Record<string, { title: string; icon: string }> = {
   "/": { title: "Dashboard", icon: "dashboard" },
   "/pos": { title: "POS", icon: "pos" },
-  "/orders-management": { title: "All Orders", icon: "orders", count: 87 },
+  "/orders-management": { title: "All Orders", icon: "orders" },
   "/orders-management/pending": { title: "Pending Orders", icon: "orders" },
-  "/orders-management/confirmed": { title: "Confirmed Orders", icon: "orders", count: 50 },
+  "/orders-management/confirmed": { title: "Confirmed Orders", icon: "orders" },
   "/orders-management/packaging": { title: "Packaging Orders", icon: "orders" },
   "/orders-management/out-for-delivery": { title: "Out for Delivery", icon: "orders" },
-  "/orders-management/delivered": { title: "Delivered Orders", icon: "orders", count: 17 },
+  "/orders-management/delivered": { title: "Delivered Orders", icon: "orders" },
   "/orders-management/returned": { title: "Returned Orders", icon: "orders" },
   "/orders-management/failed-to-deliver": { title: "Failed to Deliver", icon: "orders" },
-  "/orders-management/canceled": { title: "Canceled Orders", icon: "orders", count: 20 },
+  "/orders-management/canceled": { title: "Canceled Orders", icon: "orders" },
   "/refund-requests": { title: "Pending Refunds", icon: "refund" },
   "/refund-requests/approved": { title: "Approved Refunds", icon: "refund" },
   "/refund-requests/refunded": { title: "Refunded", icon: "refund" },
@@ -79,7 +79,7 @@ const pageTitleMap: Record<string, { title: string; icon: string; count?: number
   "/category-setup/sub-categories": { title: "Sub Categories", icon: "category" },
   "/category-setup/sub-sub-categories": { title: "Sub Sub Categories", icon: "category" },
   "/brand-setup": { title: "Brand Setup", icon: "brand" },
-  "/products-module": { title: "In House Product List", icon: "product", count: 6 },
+  "/products-module": { title: "In House Product List", icon: "product" },
   "/products-module/add-new": { title: "Add New Product", icon: "product" },
   "/products-module/limited-stock": { title: "Limited Stock Products", icon: "product" },
   "/products-module/bulk-import": { title: "Bulk Import", icon: "product" },
@@ -115,7 +115,7 @@ const pageTitleMap: Record<string, { title: string; icon: string; count?: number
   "/storage": { title: "Storage Providers", icon: "storage" },
 };
 
-function getPageTitle(pathname: string): { title: string; icon: string; count?: number } {
+function getPageTitle(pathname: string): { title: string; icon: string } {
   // Direct match
   if (pageTitleMap[pathname]) {
     return pageTitleMap[pathname];
@@ -219,7 +219,6 @@ export default function Layout() {
                 <path d="M16 10a4 4 0 0 1-8 0" />
               </svg>
               <span>Orders</span>
-              <span className="nav-badge">87</span>
               <svg className={`chevron ${ordersExpanded ? "expanded" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polyline points="6,9 12,15 18,9" />
               </svg>
@@ -234,7 +233,6 @@ export default function Layout() {
                     className={({ isActive }) => `submenu-item ${isActive ? "active" : ""}`}
                   >
                     <span>{item.label}</span>
-                    <span className="submenu-count">{item.count}</span>
                   </NavLink>
                 ))}
               </div>
@@ -267,7 +265,6 @@ export default function Layout() {
                     className={({ isActive }) => `submenu-item ${isActive ? "active" : ""}`}
                   >
                     <span>{item.label}</span>
-                    <span className="submenu-count">{item.count}</span>
                   </NavLink>
                 ))}
               </div>
@@ -327,7 +324,6 @@ export default function Layout() {
                 <line x1="7" y1="7" x2="7.01" y2="7" />
               </svg>
               <span>Products</span>
-              <span className="nav-badge">242</span>
               <svg className={`chevron ${productsExpanded ? "expanded" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polyline points="6,9 12,15 18,9" />
               </svg>
@@ -342,7 +338,6 @@ export default function Layout() {
                     className={({ isActive }) => `submenu-item ${isActive ? "active" : ""}`}
                   >
                     <span>{item.label}</span>
-                    {item.count !== undefined && <span className="submenu-count">{item.count}</span>}
                   </NavLink>
                 ))}
               </div>
@@ -704,9 +699,6 @@ export default function Layout() {
                 )}
               </span>
               <span className="page-title-text">{currentPage.title}</span>
-              {currentPage.count !== undefined && (
-                <span className="page-title-count">{currentPage.count}</span>
-              )}
             </div>
           </div>
           <div className="header-right">

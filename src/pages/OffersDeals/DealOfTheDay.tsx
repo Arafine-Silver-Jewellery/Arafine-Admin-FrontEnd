@@ -31,10 +31,6 @@ export default function DealOfTheDay() {
   return (
     <div className="offers-deals-container">
       <div className="deal-form-card">
-        <div className="language-tabs">
-          <button className="active">English(EN)</button>
-        </div>
-
         <div className="form-content">
           <div className="form-group">
             <label>Title (EN) *</label>

@@ -28,10 +28,6 @@ export default function AddNewProduct() {
           </div>
 
           <div className="form-card">
-            <div className="language-tabs">
-              <button className="active">English(EN)</button>
-            </div>
-
             <div className="form-content">
               <div className="form-group">
                 <label>Product Name (EN) *</label>

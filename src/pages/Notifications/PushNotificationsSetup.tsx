@@ -119,10 +119,6 @@ export default function PushNotificationsSetup() {
           </button>
         </div>
 
-        <div className="language-tabs">
-          <button className="active">English(EN)</button>
-        </div>
-
         <div className="notification-messages-grid">
           {currentMessages.map((notification) => (
             <div key={notification.id} className="notification-message-item">

@@ -69,9 +69,6 @@ export default function SubCategories() {
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const [exporting, setExporting] = useState(false);
 
-  // Filter by parent category
-  const [filterParentId, setFilterParentId] = useState("");
-  
   // Pagination state (server-side)
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -83,7 +80,6 @@ export default function SubCategories() {
   
   // File input refs
   const logoInputRef = useRef<HTMLInputElement>(null);
-  const metaImageInputRef = useRef<HTMLInputElement>(null);
 
   // Close export dropdown when clicking outside
   useEffect(() => {
@@ -113,7 +109,7 @@ export default function SubCategories() {
   // Load sub categories with pagination
   useEffect(() => {
     loadSubCategories();
-  }, [currentPage, itemsPerPage, debouncedSearch, filterParentId]);
+  }, [currentPage, itemsPerPage, debouncedSearch]);
 
   async function loadParentCategories() {
     try {
@@ -131,7 +127,6 @@ export default function SubCategories() {
         page: currentPage,
         limit: itemsPerPage,
         search: debouncedSearch || undefined,
-        parentId: filterParentId || undefined,
       });
       setSubCategories(response.data || []);
       setTotalItems(response.pagination.total);
@@ -521,7 +516,7 @@ export default function SubCategories() {
               {subCategories.length === 0 && (
                 <tr>
                   <td colSpan={5} style={{ textAlign: "center", padding: "2rem" }}>
-                    {debouncedSearch || filterParentId ? "No sub categories found" : "No sub categories yet. Click 'Add Sub Category' to create one."}
+                    {debouncedSearch ? "No sub categories found" : "No sub categories yet. Click 'Add Sub Category' to create one."}
                   </td>
                 </tr>
               )}

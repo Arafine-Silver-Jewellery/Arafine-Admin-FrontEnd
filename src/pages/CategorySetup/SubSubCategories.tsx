@@ -80,7 +80,6 @@ export default function SubSubCategories() {
   
   // File input refs
   const logoInputRef = useRef<HTMLInputElement>(null);
-  const metaImageInputRef = useRef<HTMLInputElement>(null);
 
   // Close export dropdown when clicking outside
   useEffect(() => {
