@@ -24,6 +24,7 @@ interface Category {
 interface SubSubCategoryFormData {
   status: boolean;
   nameEN: string;
+  mainCategoryId: string;
   parentId: string;
   priority: string;
   logo: File | null;
@@ -39,6 +40,7 @@ interface SubSubCategoryFormData {
 const initialFormData: SubSubCategoryFormData = {
   status: true,
   nameEN: "",
+  mainCategoryId: "",
   parentId: "",
   priority: "",
   logo: null,
@@ -55,6 +57,7 @@ export default function SubSubCategories() {
   const toast = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [subSubCategories, setSubSubCategories] = useState<Category[]>([]);
+  const [mainCategories, setMainCategories] = useState<Category[]>([]);
   const [subCategories, setSubCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -105,6 +108,7 @@ export default function SubSubCategories() {
 
   // Load sub categories for dropdown (parent of sub-sub)
   useEffect(() => {
+    loadMainCategories();
     loadSubCategories();
   }, []);
 
@@ -112,6 +116,15 @@ export default function SubSubCategories() {
   useEffect(() => {
     loadSubSubCategories();
   }, [currentPage, itemsPerPage, debouncedSearch]);
+
+  async function loadMainCategories() {
+    try {
+      const categories = await api.getAllCategories();
+      setMainCategories(categories);
+    } catch (error) {
+      console.error("Failed to load main categories:", error);
+    }
+  }
 
   async function loadSubCategories() {
     try {
@@ -146,9 +159,13 @@ export default function SubSubCategories() {
   function openAddModal(subSubCategory?: Category) {
     if (subSubCategory) {
       setEditingSubSubCategory(subSubCategory);
+      // Find the main category from the sub category's parent
+      const parentSubCat = subCategories.find(sc => sc.id === subSubCategory.parentId);
+      const mainCatId = parentSubCat?.parentId || "";
       setFormData({
         status: subSubCategory.isActive,
         nameEN: subSubCategory.name,
+        mainCategoryId: mainCatId,
         parentId: subSubCategory.parentId || "",
         priority: subSubCategory.sortOrder.toString(),
         logo: null,
@@ -174,8 +191,18 @@ export default function SubSubCategories() {
   }
 
   function handleInputChange(field: keyof SubSubCategoryFormData, value: string | boolean) {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    // When main category changes, reset the sub category selection
+    if (field === 'mainCategoryId') {
+      setFormData(prev => ({ ...prev, mainCategoryId: value as string, parentId: "" }));
+    } else {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    }
   }
+
+  // Filter sub categories based on selected main category
+  const filteredSubCategories = formData.mainCategoryId 
+    ? subCategories.filter(sc => sc.parentId === formData.mainCategoryId)
+    : subCategories;
 
   function handleFileUpload(field: 'logo' | 'metaImage', file: File | null) {
     if (file) {
@@ -214,6 +241,10 @@ export default function SubSubCategories() {
   async function handleSubmit() {
     if (!formData.nameEN.trim()) {
       toast.warning("Sub sub category name is required");
+      return;
+    }
+    if (!formData.mainCategoryId) {
+      toast.warning("Please select a main category");
       return;
     }
     if (!formData.parentId) {
@@ -728,15 +759,32 @@ export default function SubSubCategories() {
 
                     <div className="form-row">
                       <label className="form-label">
+                        Main Category <span className="required">*</span>
+                      </label>
+                      <select
+                        className="form-select"
+                        value={formData.mainCategoryId}
+                        onChange={(e) => handleInputChange('mainCategoryId', e.target.value)}
+                      >
+                        <option value="">Select main category</option>
+                        {mainCategories.map(cat => (
+                          <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="form-row">
+                      <label className="form-label">
                         Sub Category <span className="required">*</span>
                       </label>
                       <select
                         className="form-select"
                         value={formData.parentId}
                         onChange={(e) => handleInputChange('parentId', e.target.value)}
+                        disabled={!formData.mainCategoryId}
                       >
-                        <option value="">Select sub category</option>
-                        {subCategories.map(cat => (
+                        <option value="">{formData.mainCategoryId ? "Select sub category" : "Select main category first"}</option>
+                        {filteredSubCategories.map(cat => (
                           <option key={cat.id} value={cat.id}>{cat.name}</option>
                         ))}
                       </select>

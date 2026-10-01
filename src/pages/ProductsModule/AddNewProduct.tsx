@@ -218,12 +218,15 @@ export default function AddNewProduct() {
   
   // Thumbnail image
   const [thumbnail, setThumbnail] = useState<File | null>(null);
-  const [thumbnailPreview, setThumbnailPreview] = useState("");
+  const [, setThumbnailPreview] = useState("");
   const [existingThumbnailUrl, setExistingThumbnailUrl] = useState("");
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
-  const thumbnailInputRef = useRef<HTMLInputElement>(null);
   
-  // Additional images
+  // Product images (multi-image upload)
+  const [productImages, setProductImages] = useState<{ file: File | null; preview: string; existing?: boolean; isPrimary?: boolean }[]>([]);
+  const productImagesInputRef = useRef<HTMLInputElement>(null);
+  
+  // Additional images (kept for backward compatibility)
   const [additionalImages, setAdditionalImages] = useState<{ file: File | null; preview: string; existing?: boolean }[]>([]);
   const additionalImagesInputRef = useRef<HTMLInputElement>(null);
   
@@ -302,7 +305,15 @@ export default function AddNewProduct() {
         setExistingThumbnailUrl(primaryImage.url);
         setThumbnailPreview(primaryImage.url);
         
-        // Set additional images
+        // Set all images into productImages
+        setProductImages(product.images.map((img: any) => ({
+          file: null,
+          preview: img.url,
+          existing: true,
+          isPrimary: img.isPrimary || false,
+        })));
+        
+        // Set additional images (for backward compatibility)
         const additionalImgs = product.images.filter((img: any) => !img.isPrimary);
         if (additionalImgs.length > 0) {
           setAdditionalImages(additionalImgs.map((img: any) => ({
@@ -395,29 +406,102 @@ export default function AddNewProduct() {
     setFormData(prev => ({ ...prev, [field]: value }));
   }
 
-  function handleThumbnailUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        toast.warning("Image size must be less than 2MB");
-        return;
-      }
-      setThumbnail(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setThumbnailPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+  function handleProductImagesUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (files) {
+      const newImages = Array.from(files).filter(file => {
+        if (file.size > 2 * 1024 * 1024) {
+          toast.warning(`${file.name} exceeds 2MB limit`);
+          return false;
+        }
+        return true;
+      }).map(file => {
+        const reader = new FileReader();
+        return new Promise<{ file: File; preview: string; isPrimary: boolean }>((resolve) => {
+          reader.onloadend = () => {
+            resolve({ file, preview: reader.result as string, isPrimary: false });
+          };
+          reader.readAsDataURL(file);
+        });
+      });
+      
+      Promise.all(newImages).then(images => {
+        setProductImages(prev => {
+          const updated = [...prev, ...images];
+          // If no primary image, set the first one as primary
+          if (!updated.some(img => img.isPrimary) && updated.length > 0) {
+            updated[0].isPrimary = true;
+          }
+          return updated;
+        });
+      });
+    }
+    if (productImagesInputRef.current) {
+      productImagesInputRef.current.value = "";
     }
   }
 
-  function removeThumbnail() {
-    setThumbnail(null);
-    setThumbnailPreview("");
-    setExistingThumbnailUrl("");
-    if (thumbnailInputRef.current) {
-      thumbnailInputRef.current.value = "";
+  function removeProductImage(index: number) {
+    setProductImages(prev => {
+      const updated = prev.filter((_, i) => i !== index);
+      // If removed image was primary, set first remaining as primary
+      if (prev[index]?.isPrimary && updated.length > 0) {
+        updated[0].isPrimary = true;
+      }
+      return updated;
+    });
+  }
+
+  function setAsPrimaryImage(index: number) {
+    setProductImages(prev => 
+      prev.map((img, i) => ({
+        ...img,
+        isPrimary: i === index
+      }))
+    );
+  }
+
+  function handleProductImagesDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const files = e.dataTransfer.files;
+    if (files) {
+      const newImages = Array.from(files).filter(file => {
+        if (!file.type.startsWith('image/')) {
+          toast.warning(`${file.name} is not an image`);
+          return false;
+        }
+        if (file.size > 2 * 1024 * 1024) {
+          toast.warning(`${file.name} exceeds 2MB limit`);
+          return false;
+        }
+        return true;
+      }).map(file => {
+        const reader = new FileReader();
+        return new Promise<{ file: File; preview: string; isPrimary: boolean }>((resolve) => {
+          reader.onloadend = () => {
+            resolve({ file, preview: reader.result as string, isPrimary: false });
+          };
+          reader.readAsDataURL(file);
+        });
+      });
+      
+      Promise.all(newImages).then(images => {
+        setProductImages(prev => {
+          const updated = [...prev, ...images];
+          if (!updated.some(img => img.isPrimary) && updated.length > 0) {
+            updated[0].isPrimary = true;
+          }
+          return updated;
+        });
+      });
     }
+  }
+
+  function handleDragOver(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.stopPropagation();
   }
 
   function handleAdditionalImagesUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -503,50 +587,48 @@ export default function AddNewProduct() {
     setError("");
 
     try {
-      // Upload thumbnail if a new file was selected
-      let thumbnailUrl = existingThumbnailUrl;
-      if (thumbnail) {
-        setUploadingThumbnail(true);
-        const uploadResult = await api.uploadFile(thumbnail, "products");
-        thumbnailUrl = uploadResult.url;
-        setUploadingThumbnail(false);
-      }
-
-      // Upload additional images
-      const uploadedAdditionalImages: { url: string; altText: string; sortOrder: number; isPrimary: boolean }[] = [];
-      for (let i = 0; i < additionalImages.length; i++) {
-        const img = additionalImages[i];
-        if (img.file) {
-          const uploadResult = await api.uploadFile(img.file, "products");
-          uploadedAdditionalImages.push({
-            url: uploadResult.url,
-            altText: formData.name,
-            sortOrder: i + 1,
-            isPrimary: false,
-          });
-        } else if (img.existing && img.preview) {
-          uploadedAdditionalImages.push({
-            url: img.preview,
-            altText: formData.name,
-            sortOrder: i + 1,
-            isPrimary: false,
-          });
-        }
-      }
-
-      // Prepare images array
+      // Upload all product images
       const allImages: { url: string; altText: string; sortOrder: number; isPrimary: boolean }[] = [];
       
-      if (thumbnailUrl) {
+      for (let i = 0; i < productImages.length; i++) {
+        const img = productImages[i];
+        let imageUrl = img.preview;
+        
+        // Upload if it's a new file
+        if (img.file) {
+          setUploadingThumbnail(true);
+          const uploadResult = await api.uploadFile(img.file, "products");
+          imageUrl = uploadResult.url;
+        }
+        
         allImages.push({
-          url: thumbnailUrl,
+          url: imageUrl,
+          altText: formData.name,
+          sortOrder: i,
+          isPrimary: img.isPrimary || false,
+        });
+      }
+      
+      // Fallback: Upload legacy thumbnail if productImages is empty
+      if (allImages.length === 0 && thumbnail) {
+        setUploadingThumbnail(true);
+        const uploadResult = await api.uploadFile(thumbnail, "products");
+        allImages.push({
+          url: uploadResult.url,
+          altText: formData.name,
+          sortOrder: 0,
+          isPrimary: true,
+        });
+      } else if (allImages.length === 0 && existingThumbnailUrl) {
+        allImages.push({
+          url: existingThumbnailUrl,
           altText: formData.name,
           sortOrder: 0,
           isPrimary: true,
         });
       }
       
-      allImages.push(...uploadedAdditionalImages);
+      setUploadingThumbnail(false);
 
       // Determine final categoryId
       let finalCategoryId = formData.categoryId || selectedSubCategory || selectedMainCategory || null;
@@ -616,6 +698,7 @@ export default function AddNewProduct() {
       setThumbnail(null);
       setThumbnailPreview("");
       setExistingThumbnailUrl("");
+      setProductImages([]);
       setAdditionalImages([]);
       setMetaImage(null);
       setMetaImagePreview("");
@@ -1197,72 +1280,135 @@ export default function AddNewProduct() {
         {/* Sidebar */}
         <div className="form-sidebar">
           <div className="form-group">
-            <label>Product Thumbnail *</label>
-            <p className="label-hint">Upload main product image</p>
+            <label>Product Images *</label>
+            <p className="label-hint">Upload product images (first image will be primary)</p>
             
-            {thumbnailPreview ? (
+            {/* Image Grid */}
+            {productImages.length > 0 && (
               <div style={{
-                position: "relative",
-                borderRadius: "8px",
-                overflow: "hidden",
-                border: "1px solid #e2e8f0",
+                display: "grid",
+                gridTemplateColumns: "repeat(2, 1fr)",
+                gap: "8px",
+                marginBottom: "12px",
               }}>
-                <img
-                  src={thumbnailPreview}
-                  alt="Thumbnail preview"
-                  style={{ width: "100%", aspectRatio: "1", objectFit: "cover" }}
-                />
-                <button
-                  type="button"
-                  onClick={removeThumbnail}
-                  style={{
-                    position: "absolute",
-                    top: "8px",
-                    right: "8px",
-                    width: "28px",
-                    height: "28px",
-                    borderRadius: "50%",
-                    background: "#ef4444",
-                    color: "#fff",
-                    border: "none",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "1.25rem",
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-            ) : (
-              <div 
-                className="upload-area"
-                onClick={() => thumbnailInputRef.current?.click()}
-                style={{ cursor: "pointer" }}
-              >
-                <div className="upload-placeholder">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                    <circle cx="8.5" cy="8.5" r="1.5" />
-                    <polyline points="21,15 16,10 5,21" />
-                  </svg>
-                  <p>Click to upload<br />Or drag and drop</p>
-                </div>
+                {productImages.map((img, index) => (
+                  <div 
+                    key={index}
+                    style={{
+                      position: "relative",
+                      borderRadius: "8px",
+                      overflow: "hidden",
+                      border: img.isPrimary ? "2px solid #3b82f6" : "1px solid #e2e8f0",
+                      aspectRatio: "1",
+                    }}
+                  >
+                    <img
+                      src={img.preview}
+                      alt={`Product ${index + 1}`}
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                    {img.isPrimary && (
+                      <span style={{
+                        position: "absolute",
+                        top: "4px",
+                        left: "4px",
+                        background: "#3b82f6",
+                        color: "#fff",
+                        fontSize: "0.625rem",
+                        padding: "2px 6px",
+                        borderRadius: "4px",
+                        fontWeight: 600,
+                      }}>
+                        Primary
+                      </span>
+                    )}
+                    <div style={{
+                      position: "absolute",
+                      top: "4px",
+                      right: "4px",
+                      display: "flex",
+                      gap: "4px",
+                    }}>
+                      {!img.isPrimary && (
+                        <button
+                          type="button"
+                          onClick={() => setAsPrimaryImage(index)}
+                          title="Set as primary"
+                          style={{
+                            width: "24px",
+                            height: "24px",
+                            borderRadius: "50%",
+                            background: "#fff",
+                            color: "#3b82f6",
+                            border: "1px solid #3b82f6",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: "0.75rem",
+                          }}
+                        >
+                          ★
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeProductImage(index)}
+                        style={{
+                          width: "24px",
+                          height: "24px",
+                          borderRadius: "50%",
+                          background: "#ef4444",
+                          color: "#fff",
+                          border: "none",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "1rem",
+                        }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
             
+            {/* Upload Area */}
+            <div 
+              className="upload-area"
+              onClick={() => productImagesInputRef.current?.click()}
+              onDrop={handleProductImagesDrop}
+              onDragOver={handleDragOver}
+              style={{ 
+                cursor: "pointer",
+                minHeight: productImages.length > 0 ? "80px" : "150px",
+              }}
+            >
+              <div className="upload-placeholder">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21,15 16,10 5,21" />
+                </svg>
+                <p>Click to upload<br />Or drag and drop</p>
+              </div>
+            </div>
+            
             <input
-              ref={thumbnailInputRef}
+              ref={productImagesInputRef}
               type="file"
               accept="image/jpeg,image/png,image/jpg,image/webp"
-              onChange={handleThumbnailUpload}
+              onChange={handleProductImagesUpload}
+              multiple
               style={{ display: "none" }}
             />
             
             <p className="upload-hint">
               JPEG, PNG, JPG, WEBP<br />
-              Image size: Max 2MB<br />
+              Image size: Max 2MB each<br />
               Ratio 1:1 (500 x 500 px)
             </p>
           </div>
