@@ -38,6 +38,7 @@ interface Product {
   weightGrams: number | null;
   metaTitle: string | null;
   metaDescription: string | null;
+  metaImageUrl: string | null;
   searchTags: string[];
   createdAt: string;
   updatedAt: string;
@@ -433,6 +434,28 @@ export default function ProductView() {
                   <span className="info-value meta-description">
                     {product.metaDescription || <span className="no-content">Not set</span>}
                   </span>
+                </div>
+                <div className="info-row full-width">
+                  <span className="info-label">Meta Image</span>
+                  <div className="info-value">
+                    {product.metaImageUrl ? (
+                      <div className="meta-image-preview">
+                        <img 
+                          src={product.metaImageUrl} 
+                          alt="Meta Image" 
+                          style={{
+                            width: "150px",
+                            height: "100px",
+                            objectFit: "cover",
+                            borderRadius: "8px",
+                            border: "1px solid #e5e7eb"
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <span className="no-content">Not set</span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

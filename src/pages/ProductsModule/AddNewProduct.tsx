@@ -2,7 +2,9 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../../api/client";
 import { useToast } from "../../components/Toast";
+import TagInput from "../../components/TagInput";
 import "../../styles/products-module.css";
+import "../../styles/tag-input.css";
 
 interface Category {
   id: string;
@@ -209,12 +211,23 @@ export default function AddNewProduct() {
   const [subSubCategories, setSubSubCategories] = useState<Category[]>([]);
   const [selectedMainCategory, setSelectedMainCategory] = useState("");
   const [selectedSubCategory, setSelectedSubCategory] = useState("");
+  
+  // Tag-based selections for multi-select
+  const [selectedCategories, setSelectedCategories] = useState<{ id: string; name: string }[]>([]);
+  const [selectedSubCategoriesTags, setSelectedSubCategoriesTags] = useState<{ id: string; name: string }[]>([]);
+  const [selectedSubSubCategoriesTags, setSelectedSubSubCategoriesTags] = useState<{ id: string; name: string }[]>([]);
+  const [searchTagsList, setSearchTagsList] = useState<{ id: string; name: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   
   // Product variation toggle
   const [hasVariations, setHasVariations] = useState(false);
+  const [enableColors, setEnableColors] = useState(false);
+  const [selectedColors, setSelectedColors] = useState<{ id: string; name: string; hex?: string }[]>([]);
+  const [selectedAttributes, setSelectedAttributes] = useState<{ id: string; name: string }[]>([]);
+  const [colorWiseImages, setColorWiseImages] = useState<{ colorId: string; colorName: string; images: { file: File | null; preview: string }[] }[]>([]);
+  const colorImageInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   
   // Thumbnail image
   const [thumbnail, setThumbnail] = useState<File | null>(null);
@@ -231,8 +244,9 @@ export default function AddNewProduct() {
   const additionalImagesInputRef = useRef<HTMLInputElement>(null);
   
   // Meta image
-  const [, setMetaImage] = useState<File | null>(null);
+  const [metaImage, setMetaImage] = useState<File | null>(null);
   const [metaImagePreview, setMetaImagePreview] = useState("");
+  const [existingMetaImageUrl, setExistingMetaImageUrl] = useState("");
   const metaImageInputRef = useRef<HTMLInputElement>(null);
 
   // Load categories and product on mount
@@ -299,6 +313,20 @@ export default function AddNewProduct() {
         metaIndex: product.metaIndex || "index",
       });
       
+      // Set existing meta image
+      if (product.metaImageUrl) {
+        setExistingMetaImageUrl(product.metaImageUrl);
+        setMetaImagePreview(product.metaImageUrl);
+      }
+      
+      // Set search tags as tag list
+      if (product.searchTags && product.searchTags.length > 0) {
+        setSearchTagsList(product.searchTags.map((tag: string) => ({
+          id: tag.toLowerCase().replace(/\s+/g, "-"),
+          name: tag,
+        })));
+      }
+      
       // Set existing thumbnail
       if (product.images && product.images.length > 0) {
         const primaryImage = product.images.find((img: any) => img.isPrimary) || product.images[0];
@@ -324,6 +352,37 @@ export default function AddNewProduct() {
         }
       }
       
+      // Load variations data
+      if (product.hasVariations) {
+        setHasVariations(true);
+        
+        // Load colors
+        if (product.colors && product.colors.length > 0) {
+          setEnableColors(true);
+          setSelectedColors(product.colors.map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            hex: c.hexCode,
+          })));
+          setColorWiseImages(product.colors.map((c: any) => ({
+            colorId: c.id,
+            colorName: c.name,
+            images: c.images?.map((img: any) => ({
+              file: null,
+              preview: img.url,
+            })) || [],
+          })));
+        }
+        
+        // Load attributes
+        if (product.productAttributes && product.productAttributes.length > 0) {
+          setSelectedAttributes(product.productAttributes.map((attr: any) => ({
+            id: attr.id,
+            name: attr.name,
+          })));
+        }
+      }
+      
       // Load category hierarchy if product has a category
       if (product.category) {
         await loadCategoryHierarchy(product.category);
@@ -345,6 +404,7 @@ export default function AddNewProduct() {
       const isMainCategory = allCategories.find((c: Category) => c.id === category.id && !c.parentId);
       if (isMainCategory) {
         setSelectedMainCategory(category.id);
+        setSelectedCategories([{ id: category.id, name: category.name }]);
         return;
       }
       
@@ -353,6 +413,13 @@ export default function AddNewProduct() {
         setSelectedMainCategory(isSubCategory.parentId || "");
         setSubCategories(allSubCategories.filter((c: Category) => c.parentId === isSubCategory.parentId));
         setSelectedSubCategory(category.id);
+        
+        // Set tag-based selections
+        const mainCat = allCategories.find((c: Category) => c.id === isSubCategory.parentId);
+        if (mainCat) {
+          setSelectedCategories([{ id: mainCat.id, name: mainCat.name }]);
+        }
+        setSelectedSubCategoriesTags([{ id: category.id, name: category.name }]);
         return;
       }
       
@@ -365,6 +432,14 @@ export default function AddNewProduct() {
           setSelectedSubCategory(parentSubCategory.id);
           setSubSubCategories(allSubSubCategories.filter((c: Category) => c.parentId === parentSubCategory.id));
           setFormData(prev => ({ ...prev, categoryId: category.id }));
+          
+          // Set tag-based selections
+          const mainCat = allCategories.find((c: Category) => c.id === parentSubCategory.parentId);
+          if (mainCat) {
+            setSelectedCategories([{ id: mainCat.id, name: mainCat.name }]);
+          }
+          setSelectedSubCategoriesTags([{ id: parentSubCategory.id, name: parentSubCategory.name }]);
+          setSelectedSubSubCategoriesTags([{ id: category.id, name: category.name }]);
         }
       }
     } catch (err) {
@@ -549,6 +624,7 @@ export default function AddNewProduct() {
   function removeMetaImage() {
     setMetaImage(null);
     setMetaImagePreview("");
+    setExistingMetaImageUrl("");
     if (metaImageInputRef.current) {
       metaImageInputRef.current.value = "";
     }
@@ -630,8 +706,19 @@ export default function AddNewProduct() {
       
       setUploadingThumbnail(false);
 
-      // Determine final categoryId
-      let finalCategoryId = formData.categoryId || selectedSubCategory || selectedMainCategory || null;
+      // Upload meta image if provided
+      let metaImageUrl: string | null = existingMetaImageUrl || null;
+      if (metaImage) {
+        const metaUploadResult = await api.uploadFile(metaImage, "products");
+        metaImageUrl = metaUploadResult.url;
+      }
+
+      // Determine final categoryId - use first selected category or sub-category
+      let finalCategoryId = 
+        (selectedSubSubCategoriesTags.length > 0 ? selectedSubSubCategoriesTags[0].id : null) ||
+        (selectedSubCategoriesTags.length > 0 ? selectedSubCategoriesTags[0].id : null) ||
+        (selectedCategories.length > 0 ? selectedCategories[0].id : null) ||
+        formData.categoryId || selectedSubCategory || selectedMainCategory || null;
 
       // Prepare product data
       const productData: any = {
@@ -652,7 +739,10 @@ export default function AddNewProduct() {
         weightGrams: formData.weightGrams || null,
         metaTitle: formData.metaTitle || null,
         metaDescription: formData.metaDescription || null,
-        searchTags: formData.searchTags ? formData.searchTags.split(",").map(t => t.trim()) : [],
+        metaImageUrl: metaImageUrl,
+        searchTags: searchTagsList.length > 0 
+          ? searchTagsList.map(t => t.name) 
+          : (formData.searchTags ? formData.searchTags.split(",").map(t => t.trim()) : []),
         status: formData.status,
         isVisible: formData.isVisible,
         isFeatured: formData.isFeatured,
@@ -665,11 +755,54 @@ export default function AddNewProduct() {
         discountType: formData.discountType,
         youtubeVideoUrl: formData.youtubeVideoUrl || null,
         metaIndex: formData.metaIndex,
+        // Variation fields
+        hasVariations: hasVariations,
       };
 
       // Only include images if we have new ones or it's a new product
       if (allImages.length > 0 || !isEditMode) {
         productData.images = allImages;
+      }
+
+      // Add colors if variations are enabled
+      if (hasVariations && enableColors && selectedColors.length > 0) {
+        // Upload color images first if needed
+        const colorsWithUploadedImages = await Promise.all(
+          colorWiseImages.map(async (colorItem) => {
+            const uploadedImages = await Promise.all(
+              colorItem.images.map(async (img, idx) => {
+                let imageUrl = img.preview;
+                if (img.file) {
+                  const uploadResult = await api.uploadFile(img.file, "products");
+                  imageUrl = uploadResult.url;
+                }
+                return {
+                  url: imageUrl,
+                  altText: `${colorItem.colorName} image ${idx + 1}`,
+                  sortOrder: idx,
+                };
+              })
+            );
+            
+            const colorInfo = selectedColors.find(c => c.id === colorItem.colorId);
+            return {
+              name: colorItem.colorName,
+              hexCode: colorInfo?.hex || "#000000",
+              sortOrder: selectedColors.findIndex(c => c.id === colorItem.colorId),
+              images: uploadedImages,
+            };
+          })
+        );
+        productData.colors = colorsWithUploadedImages;
+      }
+
+      // Add attributes if variations are enabled
+      if (hasVariations && selectedAttributes.length > 0) {
+        productData.productAttributes = selectedAttributes.map((attr, idx) => ({
+          name: attr.name,
+          values: [],
+          sortOrder: idx,
+        }));
       }
 
       if (isEditMode && productId) {
@@ -695,6 +828,10 @@ export default function AddNewProduct() {
       setFormData(initialFormData);
       setSelectedMainCategory("");
       setSelectedSubCategory("");
+      setSelectedCategories([]);
+      setSelectedSubCategoriesTags([]);
+      setSelectedSubSubCategoriesTags([]);
+      setSearchTagsList([]);
       setThumbnail(null);
       setThumbnailPreview("");
       setExistingThumbnailUrl("");
@@ -702,7 +839,12 @@ export default function AddNewProduct() {
       setAdditionalImages([]);
       setMetaImage(null);
       setMetaImagePreview("");
+      setExistingMetaImageUrl("");
       setHasVariations(false);
+      setEnableColors(false);
+      setSelectedColors([]);
+      setSelectedAttributes([]);
+      setColorWiseImages([]);
     }
     setError("");
   }
@@ -831,47 +973,63 @@ export default function AddNewProduct() {
                 </div>
               </div>
 
-              {/* Category Selection */}
+              {/* Category Selection - Tag Based */}
               <div className="form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem", marginTop: "1rem" }}>
                 <div className="form-group">
                   <label>Category *</label>
-                  <select
-                    value={selectedMainCategory}
-                    onChange={(e) => setSelectedMainCategory(e.target.value)}
-                  >
-                    <option value="">Select Category</option>
-                    {categories.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
-                  </select>
+                  <TagInput
+                    placeholder="Select category"
+                    selectedTags={selectedCategories}
+                    onTagsChange={(tags) => {
+                      setSelectedCategories(tags);
+                      // Update legacy state for filtering
+                      if (tags.length > 0) {
+                        setSelectedMainCategory(tags[tags.length - 1].id);
+                      } else {
+                        setSelectedMainCategory("");
+                        setSelectedSubCategoriesTags([]);
+                      }
+                    }}
+                    options={categories.map(c => ({ id: c.id, name: c.name }))}
+                  />
                 </div>
 
                 <div className="form-group">
                   <label>Sub Category</label>
-                  <select
-                    value={selectedSubCategory}
-                    onChange={(e) => setSelectedSubCategory(e.target.value)}
-                    disabled={!selectedMainCategory}
-                  >
-                    <option value="">Select Sub Category</option>
-                    {subCategories.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
-                  </select>
+                  <TagInput
+                    placeholder="Select sub category"
+                    selectedTags={selectedSubCategoriesTags}
+                    onTagsChange={(tags) => {
+                      setSelectedSubCategoriesTags(tags);
+                      // Update legacy state for filtering
+                      if (tags.length > 0) {
+                        setSelectedSubCategory(tags[tags.length - 1].id);
+                      } else {
+                        setSelectedSubCategory("");
+                      }
+                    }}
+                    options={subCategories.map(c => ({ id: c.id, name: c.name }))}
+                    disabled={selectedCategories.length === 0}
+                  />
                 </div>
 
                 <div className="form-group">
                   <label>Sub Sub Category</label>
-                  <select
-                    value={formData.categoryId}
-                    onChange={(e) => handleInputChange("categoryId", e.target.value)}
-                    disabled={!selectedSubCategory}
-                  >
-                    <option value="">Select Sub Sub Category</option>
-                    {subSubCategories.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
-                  </select>
+                  <TagInput
+                    placeholder="Select sub sub category"
+                    selectedTags={selectedSubSubCategoriesTags}
+                    onTagsChange={(tags) => {
+                      setSelectedSubSubCategoriesTags(tags);
+                      // Update formData.categoryId for backward compatibility
+                      if (tags.length > 0) {
+                        handleInputChange("categoryId", tags[tags.length - 1].id);
+                      } else {
+                        handleInputChange("categoryId", "");
+                      }
+                    }}
+                    options={subSubCategories.map(c => ({ id: c.id, name: c.name }))}
+                    disabled={selectedSubCategoriesTags.length === 0}
+                  />
                 </div>
               </div>
 
@@ -900,11 +1058,11 @@ export default function AddNewProduct() {
 
                 <div className="form-group">
                   <label>Search Tags</label>
-                  <input
-                    type="text"
-                    placeholder="Enter tags separated by comma"
-                    value={formData.searchTags}
-                    onChange={(e) => handleInputChange("searchTags", e.target.value)}
+                  <TagInput
+                    placeholder="Type tag and press Enter"
+                    selectedTags={searchTagsList}
+                    onTagsChange={setSearchTagsList}
+                    allowCustomTags={true}
                   />
                 </div>
               </div>
@@ -1043,36 +1201,425 @@ export default function AddNewProduct() {
           </div>
 
           {/* Product Variation Setup */}
-          <div className="section-header" style={{ marginTop: "2rem" }}>
-            <h2>Product Variation Setup</h2>
-            <p>Add variations such as color, size etc.</p>
-          </div>
-
-          <div className="form-card">
-            <div className="form-content">
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: "0.875rem", color: "#475569" }}>
-                  Enable product variations (colors, sizes, etc.)
-                </span>
-                <label className="toggle-switch">
-                  <input
-                    type="checkbox"
-                    checked={hasVariations}
-                    onChange={(e) => setHasVariations(e.target.checked)}
-                  />
-                  <span className="toggle-slider"></span>
-                </label>
-              </div>
-
-              {hasVariations && (
-                <div style={{ marginTop: "1.5rem", padding: "1rem", background: "#f8fafc", borderRadius: "8px", border: "1px dashed #e2e8f0" }}>
-                  <p style={{ fontSize: "0.875rem", color: "#64748b", textAlign: "center" }}>
-                    Product variation setup coming soon. You can add color, size, and other attributes here.
-                  </p>
-                </div>
-              )}
+          <div className="section-header" style={{ marginTop: "2rem", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div>
+              <h2>Product Variation Setup</h2>
+              <p>Enable and manage different variations of a product.</p>
             </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={hasVariations}
+                onChange={(e) => {
+                  setHasVariations(e.target.checked);
+                  if (!e.target.checked) {
+                    setEnableColors(false);
+                    setSelectedColors([]);
+                    setSelectedAttributes([]);
+                    setColorWiseImages([]);
+                  }
+                }}
+              />
+              <span className="toggle-slider"></span>
+            </label>
           </div>
+
+          {hasVariations && (
+            <div className="form-card">
+              <div className="form-content">
+                {/* Colors and Attributes Row */}
+                <div className="form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem", alignItems: "start" }}>
+                  {/* Colors Section */}
+                  <div className="form-group">
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
+                      <label style={{ margin: 0 }}>
+                        Colors
+                        <span style={{ 
+                          display: "inline-block",
+                          width: "14px",
+                          height: "14px",
+                          marginLeft: "4px",
+                          borderRadius: "50%",
+                          background: "#e5e7eb",
+                          color: "#6b7280",
+                          fontSize: "10px",
+                          textAlign: "center",
+                          lineHeight: "14px",
+                          cursor: "help"
+                        }} title="Add color variations for this product">?</span>
+                      </label>
+                      <label className="toggle-switch">
+                        <input
+                          type="checkbox"
+                          checked={enableColors}
+                          onChange={(e) => {
+                            setEnableColors(e.target.checked);
+                            if (!e.target.checked) {
+                              setSelectedColors([]);
+                              setColorWiseImages([]);
+                            }
+                          }}
+                        />
+                        <span className="toggle-slider"></span>
+                      </label>
+                    </div>
+                    
+                    {/* Selected Colors Display */}
+                    {selectedColors.length > 0 && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "12px" }}>
+                        {selectedColors.map(color => (
+                          <span 
+                            key={color.id} 
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              padding: "4px 10px",
+                              background: "#fff",
+                              border: "1px solid #e5e7eb",
+                              borderRadius: "6px",
+                              fontSize: "13px",
+                            }}
+                          >
+                            <span style={{
+                              width: "14px",
+                              height: "14px",
+                              borderRadius: "50%",
+                              background: color.hex || "#ccc",
+                              border: "1px solid rgba(0,0,0,0.1)"
+                            }} />
+                            {color.name}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newColors = selectedColors.filter(c => c.id !== color.id);
+                                setSelectedColors(newColors);
+                                setColorWiseImages(prev => prev.filter(c => c.colorId !== color.id));
+                              }}
+                              style={{
+                                background: "none",
+                                border: "none",
+                                color: "#9ca3af",
+                                cursor: "pointer",
+                                padding: "0",
+                                fontSize: "14px",
+                                lineHeight: 1
+                              }}
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Color Picker */}
+                    {enableColors && (
+                      <div style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                        padding: "12px",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "8px",
+                        background: "#fff"
+                      }}>
+                        <input
+                          type="color"
+                          id="colorPicker"
+                          style={{
+                            width: "44px",
+                            height: "44px",
+                            padding: "0",
+                            border: "none",
+                            borderRadius: "8px",
+                            cursor: "pointer",
+                            background: "transparent"
+                          }}
+                          onChange={(e) => {
+                            const hex = e.target.value.toUpperCase();
+                            const colorNameInput = document.getElementById("colorNameInput") as HTMLInputElement;
+                            if (colorNameInput) {
+                              colorNameInput.value = hex;
+                            }
+                          }}
+                        />
+                        <div style={{ flex: 1, display: "flex", alignItems: "center", gap: "8px" }}>
+                          <span style={{ color: "#6b7280", fontSize: "14px" }}>#</span>
+                          <input
+                            type="text"
+                            id="colorNameInput"
+                            placeholder="F54927"
+                            maxLength={6}
+                            style={{
+                              flex: 1,
+                              padding: "10px 12px",
+                              border: "1px solid #e5e7eb",
+                              borderRadius: "6px",
+                              fontSize: "14px",
+                              fontFamily: "monospace",
+                              textTransform: "uppercase"
+                            }}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/[^0-9A-Fa-f]/g, "").toUpperCase();
+                              e.target.value = value;
+                              if (value.length === 6) {
+                                const colorPicker = document.getElementById("colorPicker") as HTMLInputElement;
+                                if (colorPicker) {
+                                  colorPicker.value = `#${value}`;
+                                }
+                              }
+                            }}
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const colorPicker = document.getElementById("colorPicker") as HTMLInputElement;
+                            const colorNameInput = document.getElementById("colorNameInput") as HTMLInputElement;
+                            const hex = colorPicker?.value?.toUpperCase() || "#000000";
+                            const colorName = colorNameInput?.value?.toUpperCase() || hex.replace("#", "");
+                            
+                            // Check if color already exists
+                            if (selectedColors.some(c => c.hex?.toUpperCase() === hex)) {
+                              return;
+                            }
+                            
+                            const newColor = { 
+                              id: `color-${Date.now()}`, 
+                              name: `#${colorName}`, 
+                              hex: hex 
+                            };
+                            const newColors = [...selectedColors, newColor];
+                            setSelectedColors(newColors);
+                            setColorWiseImages(prev => [...prev, { colorId: newColor.id, colorName: newColor.name, images: [] }]);
+                            
+                            // Reset inputs
+                            if (colorNameInput) colorNameInput.value = "";
+                          }}
+                          style={{
+                            padding: "10px 20px",
+                            background: "#3B82F6",
+                            color: "#fff",
+                            border: "none",
+                            borderRadius: "6px",
+                            fontSize: "14px",
+                            fontWeight: 500,
+                            cursor: "pointer"
+                          }}
+                        >
+                          Add Color
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Attributes Section */}
+                  <div className="form-group">
+                    <label>
+                      Attributes
+                      <span style={{ 
+                        display: "inline-block",
+                        width: "14px",
+                        height: "14px",
+                        marginLeft: "4px",
+                        borderRadius: "50%",
+                        background: "#e5e7eb",
+                        color: "#6b7280",
+                        fontSize: "10px",
+                        textAlign: "center",
+                        lineHeight: "14px",
+                        cursor: "help"
+                      }} title="Add attribute variations like size, material etc.">?</span>
+                    </label>
+                    <select
+                      value=""
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          const option = { id: e.target.value, name: e.target.options[e.target.selectedIndex].text };
+                          if (!selectedAttributes.some(a => a.id === option.id)) {
+                            setSelectedAttributes([...selectedAttributes, option]);
+                          }
+                        }
+                      }}
+                    >
+                      <option value="">Choose attributes</option>
+                      <option value="size" disabled={selectedAttributes.some(a => a.id === "size")}>Size</option>
+                      <option value="material" disabled={selectedAttributes.some(a => a.id === "material")}>Material</option>
+                      <option value="style" disabled={selectedAttributes.some(a => a.id === "style")}>Style</option>
+                      <option value="weight" disabled={selectedAttributes.some(a => a.id === "weight")}>Weight</option>
+                      <option value="length" disabled={selectedAttributes.some(a => a.id === "length")}>Length</option>
+                      <option value="width" disabled={selectedAttributes.some(a => a.id === "width")}>Width</option>
+                    </select>
+                    {selectedAttributes.length > 0 && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "8px" }}>
+                        {selectedAttributes.map(attr => (
+                          <span key={attr.id} className="tag-chip">
+                            {attr.name}
+                            <button
+                              type="button"
+                              className="tag-remove"
+                              onClick={() => setSelectedAttributes(selectedAttributes.filter(a => a.id !== attr.id))}
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Product Color Wise Images */}
+                {enableColors && selectedColors.length > 0 && (
+                  <div style={{ marginTop: "2rem", paddingTop: "1.5rem", borderTop: "1px solid #e5e7eb" }}>
+                    <h3 style={{ fontSize: "1rem", fontWeight: 600, color: "#111827", marginBottom: "4px" }}>
+                      Product Color Wise Images
+                    </h3>
+                    <p style={{ fontSize: "0.813rem", color: "#6b7280", marginBottom: "1rem" }}>
+                      Here you can add color wise product image. <span style={{ color: "#9ca3af" }}>JPG, JPEG, PNG image size : Max 20 MB (Ratio 1:1 500 x 500 px).</span>
+                    </p>
+
+                    <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                      {colorWiseImages.map((colorItem) => (
+                        <div 
+                          key={colorItem.colorId}
+                          style={{
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: "1rem",
+                            padding: "1rem",
+                            background: "#f9fafb",
+                            borderRadius: "8px",
+                            border: "1px solid #e5e7eb"
+                          }}
+                        >
+                          <div style={{
+                            minWidth: "80px",
+                            padding: "8px 16px",
+                            background: "#eff6ff",
+                            border: "1px solid #bfdbfe",
+                            borderRadius: "6px",
+                            fontSize: "0.875rem",
+                            color: "#3b82f6",
+                            fontWeight: 500,
+                            textAlign: "center"
+                          }}>
+                            {colorItem.colorName}
+                          </div>
+                          
+                          <div style={{ flex: 1, display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                            {colorItem.images.map((img, imgIndex) => (
+                              <div 
+                                key={imgIndex}
+                                style={{
+                                  position: "relative",
+                                  width: "60px",
+                                  height: "60px",
+                                  borderRadius: "6px",
+                                  overflow: "hidden",
+                                  border: "1px solid #e5e7eb"
+                                }}
+                              >
+                                <img 
+                                  src={img.preview} 
+                                  alt={`${colorItem.colorName} ${imgIndex + 1}`}
+                                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setColorWiseImages(prev => prev.map(c => 
+                                      c.colorId === colorItem.colorId 
+                                        ? { ...c, images: c.images.filter((_, i) => i !== imgIndex) }
+                                        : c
+                                    ));
+                                  }}
+                                  style={{
+                                    position: "absolute",
+                                    top: "2px",
+                                    right: "2px",
+                                    width: "18px",
+                                    height: "18px",
+                                    borderRadius: "50%",
+                                    background: "#ef4444",
+                                    color: "#fff",
+                                    border: "none",
+                                    cursor: "pointer",
+                                    fontSize: "12px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center"
+                                  }}
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                            
+                            {/* Add Image Button */}
+                            <div
+                              onClick={() => colorImageInputRefs.current[colorItem.colorId]?.click()}
+                              style={{
+                                width: "60px",
+                                height: "60px",
+                                borderRadius: "6px",
+                                border: "2px dashed #d1d5db",
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                cursor: "pointer",
+                                color: "#9ca3af",
+                                fontSize: "10px",
+                                gap: "2px"
+                              }}
+                            >
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                              </svg>
+                              Add
+                            </div>
+                            <input
+                              ref={(el) => { colorImageInputRefs.current[colorItem.colorId] = el; }}
+                              type="file"
+                              accept="image/jpeg,image/png,image/jpg,image/webp"
+                              multiple
+                              style={{ display: "none" }}
+                              onChange={(e) => {
+                                const files = e.target.files;
+                                if (files) {
+                                  const newImages = Array.from(files).map(file => {
+                                    const reader = new FileReader();
+                                    return new Promise<{ file: File; preview: string }>((resolve) => {
+                                      reader.onloadend = () => {
+                                        resolve({ file, preview: reader.result as string });
+                                      };
+                                      reader.readAsDataURL(file);
+                                    });
+                                  });
+                                  
+                                  Promise.all(newImages).then(images => {
+                                    setColorWiseImages(prev => prev.map(c => 
+                                      c.colorId === colorItem.colorId 
+                                        ? { ...c, images: [...c.images, ...images] }
+                                        : c
+                                    ));
+                                  });
+                                }
+                                e.target.value = "";
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Product Additional Images */}
           <div className="section-header" style={{ marginTop: "2rem" }}>
