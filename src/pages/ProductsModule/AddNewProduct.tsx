@@ -878,21 +878,23 @@ export default function AddNewProduct() {
               {/* Unit & Search Tags */}
               <div className="form-row" style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "1rem", marginTop: "1rem" }}>
                 <div className="form-group">
-                  <label>Unit</label>
+                  <label>Unit *</label>
                   <select
                     value={formData.unit}
                     onChange={(e) => handleInputChange("unit", e.target.value)}
                   >
-                    <option value="pc">Pc</option>
-                    <option value="kg">Kg</option>
-                    <option value="gm">Gm</option>
-                    <option value="ltr">Ltr</option>
-                    <option value="ml">Ml</option>
-                    <option value="box">Box</option>
-                    <option value="pack">Pack</option>
-                    <option value="set">Set</option>
-                    <option value="pair">Pair</option>
-                    <option value="dozen">Dozen</option>
+                    <option value="pc">pc</option>
+                    <option value="kg">kg</option>
+                    <option value="gms">gms</option>
+                    <option value="ltrs">ltrs</option>
+                    <option value="pair">pair</option>
+                    <option value="oz">oz</option>
+                    <option value="lb">lb</option>
+                    <option value="ml">ml</option>
+                    <option value="box">box</option>
+                    <option value="pack">pack</option>
+                    <option value="set">set</option>
+                    <option value="dozen">dozen</option>
                   </select>
                 </div>
 
