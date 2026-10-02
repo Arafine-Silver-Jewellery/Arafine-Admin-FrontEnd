@@ -1,13 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { api } from "../api/client";
 import "../styles/pos.css";
 
 interface Product {
   id: string;
   name: string;
-  originalPrice: number;
-  salePrice: number;
-  image: string;
-  category: "physical" | "digital";
+  sku: string;
+  pricePaise: number;
+  compareAtPricePaise: number | null;
+  productType: "physical" | "digital";
+  stockQuantity: number;
+  images: { url: string; sortOrder: number; isPrimary: boolean }[];
+  category?: { name: string };
 }
 
 interface CartItem {
@@ -15,37 +19,105 @@ interface CartItem {
   quantity: number;
 }
 
-const mockProducts: Product[] = [
-  { id: "1", name: "Luna Butterfly Ring", originalPrice: 4310, salePrice: 3886.92, image: "https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=150&h=150&fit=crop", category: "physical" },
-  { id: "2", name: "Aria Split-Shank Ring", originalPrice: 4078, salePrice: 3670.92, image: "https://images.unsplash.com/photo-1603561591411-07134e71a2a9?w=150&h=150&fit=crop", category: "physical" },
-  { id: "3", name: "Sunset Sorbet Ring", originalPrice: 4078, salePrice: 3670.42, image: "https://images.unsplash.com/photo-1602751584552-8ba73aad10e1?w=150&h=150&fit=crop", category: "physical" },
-  { id: "4", name: "Pearl Whisper Pendant", originalPrice: 3958, salePrice: 3562.92, image: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=150&h=150&fit=crop", category: "physical" },
-  { id: "5", name: "Meadow Glow Earrings", originalPrice: 3598, salePrice: 3238.92, image: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=150&h=150&fit=crop", category: "physical" },
-  { id: "6", name: "Arafine Braided Band", originalPrice: 5398, salePrice: 4858.92, image: "https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=150&h=150&fit=crop", category: "physical" },
-  { id: "7", name: "Arafine Trio Pink Set", originalPrice: 5038, salePrice: 4534.92, image: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=150&h=150&fit=crop", category: "physical" },
-  { id: "8", name: "Arafine Cascade Necklace", originalPrice: 5878, salePrice: 5290.42, image: "https://images.unsplash.com/photo-1599459183200-59c3f4b13c2e?w=150&h=150&fit=crop", category: "physical" },
-  { id: "9", name: "Arafine Trinity Bracelet", originalPrice: 5038, salePrice: 4534.92, image: "https://images.unsplash.com/photo-1573408301185-9146fe634ad0?w=150&h=150&fit=crop", category: "physical" },
-  { id: "10", name: "Arafine Interlock Ring", originalPrice: 4678, salePrice: 4210.92, image: "https://images.unsplash.com/photo-1603561591411-07134e71a2a9?w=150&h=150&fit=crop", category: "physical" },
-  { id: "11", name: "Digital Gift Card", originalPrice: 1000, salePrice: 1000, image: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=150&h=150&fit=crop", category: "digital" },
-  { id: "12", name: "Premium Membership", originalPrice: 2999, salePrice: 2499, image: "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=150&h=150&fit=crop", category: "digital" },
-];
+interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
 
 export default function POS() {
   const [activeTab, setActiveTab] = useState<"physical" | "digital">("physical");
   const [searchQuery, setSearchQuery] = useState("");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [pagination, setPagination] = useState<Pagination>({
+    page: 1,
+    limit: 12,
+    total: 0,
+    totalPages: 0,
+  });
   const [cart, setCart] = useState<CartItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card">("cash");
   const [paidAmount, setPaidAmount] = useState("");
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [extraDiscount, setExtraDiscount] = useState(0);
 
-  const filteredProducts = mockProducts.filter(
-    (p) =>
-      p.category === activeTab &&
-      p.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Fetch products when tab, search, or page changes
+  useEffect(() => {
+    fetchProducts();
+  }, [activeTab, pagination.page]);
+
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (pagination.page === 1) {
+        fetchProducts();
+      } else {
+        setPagination(prev => ({ ...prev, page: 1 }));
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  async function fetchProducts() {
+    setLoading(true);
+    try {
+      const response = await api.getProducts({
+        page: pagination.page,
+        limit: pagination.limit,
+        search: searchQuery || undefined,
+        status: "active",
+      });
+
+      // Filter by product type (physical/digital)
+      const filtered = (response.data || []).filter(
+        (p: Product) => p.productType === activeTab
+      );
+      
+      setProducts(filtered);
+      if (response.pagination) {
+        setPagination(prev => ({
+          ...prev,
+          total: response.pagination!.total,
+          totalPages: response.pagination!.totalPages,
+        }));
+      }
+    } catch (error) {
+      console.error("Failed to fetch products:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function getProductImage(product: Product): string {
+    if (product.images && product.images.length > 0) {
+      // First try to find primary image
+      const primary = product.images.find(img => img.isPrimary);
+      if (primary) return primary.url;
+      
+      // Otherwise sort by sortOrder and get first
+      const sorted = [...product.images].sort((a, b) => a.sortOrder - b.sortOrder);
+      return sorted[0].url;
+    }
+    return "https://via.placeholder.com/150?text=No+Image";
+  }
+
+  function formatPrice(paise: number): string {
+    return `₹${(paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+  }
 
   function addToCart(product: Product) {
+    // Check stock for physical products
+    if (product.productType === "physical") {
+      const existingItem = cart.find(item => item.product.id === product.id);
+      const currentQty = existingItem ? existingItem.quantity : 0;
+      if (currentQty >= product.stockQuantity) {
+        alert("Not enough stock available");
+        return;
+      }
+    }
+
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
       if (existing) {
@@ -62,11 +134,21 @@ export default function POS() {
   function updateQuantity(productId: string, delta: number) {
     setCart((prev) =>
       prev
-        .map((item) =>
-          item.product.id === productId
-            ? { ...item, quantity: Math.max(0, item.quantity + delta) }
-            : item
-        )
+        .map((item) => {
+          if (item.product.id !== productId) return item;
+          
+          const newQty = item.quantity + delta;
+          
+          // Check stock for physical products
+          if (delta > 0 && item.product.productType === "physical") {
+            if (newQty > item.product.stockQuantity) {
+              alert("Not enough stock available");
+              return item;
+            }
+          }
+          
+          return { ...item, quantity: Math.max(0, newQty) };
+        })
         .filter((item) => item.quantity > 0)
     );
   }
@@ -82,16 +164,66 @@ export default function POS() {
     setExtraDiscount(0);
   }
 
+  function handlePageChange(newPage: number) {
+    if (newPage >= 1 && newPage <= pagination.totalPages) {
+      setPagination(prev => ({ ...prev, page: newPage }));
+    }
+  }
+
   const subTotal = cart.reduce(
-    (sum, item) => sum + item.product.salePrice * item.quantity,
+    (sum, item) => sum + item.product.pricePaise * item.quantity,
     0
   );
-  const productDiscount = cart.reduce(
-    (sum, item) =>
-      sum + (item.product.originalPrice - item.product.salePrice) * item.quantity,
-    0
-  );
-  const total = subTotal - couponDiscount - extraDiscount;
+  
+  const productDiscount = cart.reduce((sum, item) => {
+    const comparePrice = item.product.compareAtPricePaise || item.product.pricePaise;
+    return sum + (comparePrice - item.product.pricePaise) * item.quantity;
+  }, 0);
+  
+  const total = subTotal - (couponDiscount * 100) - (extraDiscount * 100);
+
+  // Generate pagination buttons
+  function renderPaginationButtons() {
+    const buttons = [];
+    const { page, totalPages } = pagination;
+    
+    // Previous button
+    buttons.push(
+      <button key="prev" onClick={() => handlePageChange(page - 1)} disabled={page === 1}>
+        &lt;
+      </button>
+    );
+
+    // Page numbers
+    const maxVisible = 5;
+    let start = Math.max(1, page - Math.floor(maxVisible / 2));
+    let end = Math.min(totalPages, start + maxVisible - 1);
+    
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+
+    for (let i = start; i <= end; i++) {
+      buttons.push(
+        <button
+          key={i}
+          className={page === i ? "active" : ""}
+          onClick={() => handlePageChange(i)}
+        >
+          {i}
+        </button>
+      );
+    }
+
+    // Next button
+    buttons.push(
+      <button key="next" onClick={() => handlePageChange(page + 1)} disabled={page === totalPages || totalPages === 0}>
+        &gt;
+      </button>
+    );
+
+    return buttons;
+  }
 
   return (
     <div className="pos-container">
@@ -119,48 +251,63 @@ export default function POS() {
         <div className="pos-tabs">
           <button
             className={activeTab === "physical" ? "active" : ""}
-            onClick={() => setActiveTab("physical")}
+            onClick={() => {
+              setActiveTab("physical");
+              setPagination(prev => ({ ...prev, page: 1 }));
+            }}
           >
             Physical Products
           </button>
           <button
             className={activeTab === "digital" ? "active" : ""}
-            onClick={() => setActiveTab("digital")}
+            onClick={() => {
+              setActiveTab("digital");
+              setPagination(prev => ({ ...prev, page: 1 }));
+            }}
           >
             Digital Products
           </button>
         </div>
 
         <div className="pos-product-grid">
-          {filteredProducts.map((product) => (
-            <div
-              key={product.id}
-              className="pos-product-card"
-              onClick={() => addToCart(product)}
-            >
-              <img src={product.image} alt={product.name} />
-              <div className="pos-product-info">
-                <span className="pos-product-name">{product.name}</span>
-                <span className="pos-product-original">
-                  ₹{product.originalPrice.toLocaleString()}
-                </span>
-                <span className="pos-product-price">
-                  ₹{product.salePrice.toLocaleString()}
-                </span>
+          {loading ? (
+            <div className="pos-loading">Loading products...</div>
+          ) : products.length === 0 ? (
+            <div className="pos-empty">No products found</div>
+          ) : (
+            products.map((product) => (
+              <div
+                key={product.id}
+                className={`pos-product-card ${product.stockQuantity === 0 && product.productType === "physical" ? "out-of-stock" : ""}`}
+                onClick={() => addToCart(product)}
+              >
+                <img src={getProductImage(product)} alt={product.name} />
+                <div className="pos-product-info">
+                  <span className="pos-product-name">{product.name}</span>
+                  {product.compareAtPricePaise && product.compareAtPricePaise > product.pricePaise && (
+                    <span className="pos-product-original">
+                      {formatPrice(product.compareAtPricePaise)}
+                    </span>
+                  )}
+                  <span className="pos-product-price">
+                    {formatPrice(product.pricePaise)}
+                  </span>
+                  {product.productType === "physical" && product.stockQuantity <= 5 && (
+                    <span className="pos-product-stock">
+                      {product.stockQuantity === 0 ? "Out of stock" : `Only ${product.stockQuantity} left`}
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
 
-        <div className="pos-pagination">
-          <button disabled>&lt;</button>
-          <button className="active">1</button>
-          <button>2</button>
-          <button>3</button>
-          <button>4</button>
-          <button>5</button>
-          <button>&gt;</button>
-        </div>
+        {pagination.totalPages > 1 && (
+          <div className="pos-pagination">
+            {renderPaginationButtons()}
+          </div>
+        )}
       </div>
 
       <div className="pos-billing">
@@ -175,8 +322,6 @@ export default function POS() {
         <div className="pos-customer-select">
           <select>
             <option>Walk In Customer</option>
-            <option>John Doe</option>
-            <option>Jane Smith</option>
           </select>
         </div>
 
@@ -188,10 +333,10 @@ export default function POS() {
             <div className="pos-cart-items">
               {cart.map((item) => (
                 <div key={item.product.id} className="pos-cart-item">
-                  <img src={item.product.image} alt={item.product.name} />
+                  <img src={getProductImage(item.product)} alt={item.product.name} />
                   <div className="pos-cart-item-info">
                     <span className="name">{item.product.name}</span>
-                    <span className="price">₹{item.product.salePrice.toLocaleString()}</span>
+                    <span className="price">{formatPrice(item.product.pricePaise)}</span>
                   </div>
                   <div className="pos-cart-item-qty">
                     <button onClick={() => updateQuantity(item.product.id, -1)}>-</button>
@@ -214,11 +359,11 @@ export default function POS() {
           <h3>Billing Summary</h3>
           <div className="summary-row">
             <span>Sub Total:</span>
-            <span>₹{subTotal.toFixed(2)}</span>
+            <span>{formatPrice(subTotal)}</span>
           </div>
           <div className="summary-row">
             <span>Product Discount:</span>
-            <span>₹{productDiscount.toFixed(2)}</span>
+            <span>{formatPrice(productDiscount)}</span>
           </div>
           <div className="summary-row editable">
             <span>Coupon Discount:</span>
@@ -240,7 +385,7 @@ export default function POS() {
           </div>
           <div className="summary-row total">
             <span>Total:</span>
-            <span>₹{total.toFixed(2)}</span>
+            <span>{formatPrice(Math.max(0, total))}</span>
           </div>
         </div>
 
