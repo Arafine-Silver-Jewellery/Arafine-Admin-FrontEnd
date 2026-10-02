@@ -111,7 +111,6 @@ const pageTitleMap: Record<string, { title: string; icon: string }> = {
   "/messages": { title: "Messages", icon: "messages" },
   "/support-ticket": { title: "Support Ticket", icon: "support" },
   "/employees": { title: "Employees", icon: "employee" },
-  "/smtp": { title: "SMTP Configuration", icon: "settings" },
   "/storage": { title: "Storage Providers", icon: "storage" },
 };
 
@@ -573,22 +572,13 @@ export default function Layout() {
           </NavLink>
           )}
           
-          {(hasPermission("smtp") || hasPermission("storage")) && (
+          {hasPermission("storage") && (
           <>
           <div className="sidebar-divider" />
           <span className="sidebar-label">Settings</span>
           </>
           )}
           
-          {hasPermission("smtp") && (
-          <NavLink to="/smtp" className={({ isActive }) => isActive ? "active" : ""}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-              <polyline points="22,6 12,13 2,6" />
-            </svg>
-            SMTP
-          </NavLink>
-          )}
           {hasPermission("storage") && (
           <NavLink to="/storage" className={({ isActive }) => isActive ? "active" : ""}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
