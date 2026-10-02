@@ -120,6 +120,7 @@ export default function POS() {
   const [searchResults, setSearchResults] = useState<{ id: string; mobileNumber: string; firstName: string; lastName: string; fullName: string }[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<{ id: string; mobileNumber: string; firstName: string; lastName: string; fullName: string } | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
   // Fetch products when tab, search, or page changes
   useEffect(() => {
@@ -173,6 +174,7 @@ export default function POS() {
     setCustomerAddress("");
     setSearchResults([]);
     setSelectedCustomer(null);
+    setHasSearched(false);
     setShowCustomerModal(true);
   }
 
@@ -187,9 +189,11 @@ export default function POS() {
     }
 
     setIsSearching(true);
+    setHasSearched(false);
     try {
       const response = await api.searchPOSCustomers(customerPhone);
       setSearchResults(response.data || []);
+      setHasSearched(true);
       
       if (response.data.length === 0) {
         // No results - show message
@@ -1501,8 +1505,9 @@ export default function POS() {
                           const value = e.target.value.replace(/\D/g, "").slice(0, 10);
                           setCustomerPhone(value);
                           // Clear search results when typing
-                          if (searchResults.length > 0) {
+                          if (searchResults.length > 0 || hasSearched) {
                             setSearchResults([]);
+                            setHasSearched(false);
                           }
                         }}
                         onKeyDown={(e) => e.key === "Enter" && customerPhone.length >= 3 && handleCustomerSearch()}
@@ -1551,51 +1556,53 @@ export default function POS() {
                     </div>
                   )}
 
-                  {/* Customer Form - Name Fields */}
-                  <div className="customer-form">
-                    <div className="customer-form-title">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                        <circle cx="8.5" cy="7" r="4"/>
-                        <line x1="20" y1="8" x2="20" y2="14"/>
-                        <line x1="23" y1="11" x2="17" y2="11"/>
-                      </svg>
-                      Customer Details
-                    </div>
+                  {/* Customer Form - Only show when searched and NO results found (new customer) */}
+                  {hasSearched && searchResults.length === 0 && (
+                    <div className="customer-form">
+                      <div className="customer-form-title">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                          <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                          <circle cx="8.5" cy="7" r="4"/>
+                          <line x1="20" y1="8" x2="20" y2="14"/>
+                          <line x1="23" y1="11" x2="17" y2="11"/>
+                        </svg>
+                        New Customer Details
+                      </div>
 
-                    <div className="customer-form-row">
-                      <div className="customer-form-group">
-                        <label>First Name <span>*</span></label>
-                        <input
-                          type="text"
-                          placeholder="First name"
-                          value={customerFirstName}
-                          onChange={(e) => setCustomerFirstName(e.target.value)}
-                        />
+                      <div className="customer-form-row">
+                        <div className="customer-form-group">
+                          <label>First Name <span>*</span></label>
+                          <input
+                            type="text"
+                            placeholder="First name"
+                            value={customerFirstName}
+                            onChange={(e) => setCustomerFirstName(e.target.value)}
+                          />
+                        </div>
+                        <div className="customer-form-group">
+                          <label>Last Name</label>
+                          <input
+                            type="text"
+                            placeholder="Last name"
+                            value={customerLastName}
+                            onChange={(e) => setCustomerLastName(e.target.value)}
+                          />
+                        </div>
                       </div>
-                      <div className="customer-form-group">
-                        <label>Last Name</label>
-                        <input
-                          type="text"
-                          placeholder="Last name"
-                          value={customerLastName}
-                          onChange={(e) => setCustomerLastName(e.target.value)}
-                        />
-                      </div>
-                    </div>
 
-                    <div className="customer-form-row">
-                      <div className="customer-form-group full-width">
-                        <label>Address (Optional)</label>
-                        <input
-                          type="text"
-                          placeholder="Delivery address"
-                          value={customerAddress}
-                          onChange={(e) => setCustomerAddress(e.target.value)}
-                        />
+                      <div className="customer-form-row">
+                        <div className="customer-form-group full-width">
+                          <label>Address (Optional)</label>
+                          <input
+                            type="text"
+                            placeholder="Delivery address"
+                            value={customerAddress}
+                            onChange={(e) => setCustomerAddress(e.target.value)}
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </>
               )}
 
