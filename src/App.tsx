@@ -8,7 +8,6 @@ import Home from "./pages/Home";
 import ProductForm from "./pages/ProductForm";
 import Users from "./pages/Users";
 import Promotions from "./pages/Promotions";
-import SmtpConfigs from "./pages/SmtpConfigs";
 import StorageProviders from "./pages/StorageProviders";
 import Employees from "./pages/Employees";
 import POS from "./pages/POS";
@@ -122,7 +121,6 @@ function App() {
             <Route path="promotions" element={<RequirePermission permission="offers-deals"><Promotions /></RequirePermission>} />
             
             {/* Settings */}
-            <Route path="smtp" element={<RequirePermission permission="smtp"><SmtpConfigs /></RequirePermission>} />
             <Route path="storage" element={<RequirePermission permission="storage"><StorageProviders /></RequirePermission>} />
             
             {/* Employee Management - requires employees permission */}
