@@ -383,7 +383,7 @@ export default function CustomerList() {
                       <label className="toggle-switch">
                         <input
                           type="checkbox"
-                          checked={!customer.isBlocked}
+                          checked={customer.isBlocked}
                           onChange={() => toggleBlock(customer)}
                         />
                         <span className="toggle-slider"></span>
