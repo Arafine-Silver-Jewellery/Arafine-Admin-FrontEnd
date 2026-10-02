@@ -272,20 +272,62 @@ export const api = {
       }
     ),
 
-  // Users
-  getUsers: (params: { page?: number; limit?: number; search?: string; status?: string }) => {
+  // Users/Customers
+  getUsers: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: string;
+    isBlocked?: string;
+    isDeleted?: string;
+    orderDateFrom?: string;
+    orderDateTo?: string;
+    joinDateFrom?: string;
+    joinDateTo?: string;
+    sortBy?: string;
+  }) => {
     const query = new URLSearchParams();
     if (params.page) query.set("page", params.page.toString());
     if (params.limit) query.set("limit", params.limit.toString());
     if (params.search) query.set("search", params.search);
     if (params.status) query.set("status", params.status);
+    if (params.isBlocked) query.set("isBlocked", params.isBlocked);
+    if (params.isDeleted) query.set("isDeleted", params.isDeleted);
+    if (params.orderDateFrom) query.set("orderDateFrom", params.orderDateFrom);
+    if (params.orderDateTo) query.set("orderDateTo", params.orderDateTo);
+    if (params.joinDateFrom) query.set("joinDateFrom", params.joinDateFrom);
+    if (params.joinDateTo) query.set("joinDateTo", params.joinDateTo);
+    if (params.sortBy) query.set("sortBy", params.sortBy);
     return request<ApiResponse<any[]>>(`/users?${query}`);
   },
+
+  getUser: (id: string) => request<any>(`/users/${id}`),
+
   updateUserStatus: (id: string, status: string) =>
     request<any>(`/users/${id}/status`, {
       method: "PATCH",
       body: JSON.stringify({ status }),
     }),
+
+  toggleUserBlock: (id: string, isBlocked?: boolean) =>
+    request<any>(`/users/${id}/block`, {
+      method: "PATCH",
+      body: JSON.stringify({ isBlocked }),
+    }),
+
+  deleteUser: (id: string) =>
+    request<any>(`/users/${id}`, { method: "DELETE" }),
+
+  restoreUser: (id: string) =>
+    request<any>(`/users/${id}/restore`, { method: "PATCH" }),
+
+  exportUsersCSV: (params: { search?: string; status?: string; isBlocked?: string }) => {
+    const query = new URLSearchParams();
+    if (params.search) query.set("search", params.search);
+    if (params.status) query.set("status", params.status);
+    if (params.isBlocked) query.set("isBlocked", params.isBlocked);
+    return `${API_BASE_URL}/users/export/csv?${query}`;
+  },
 
   // Promotions
   getPromotions: (params: { page?: number; limit?: number; isActive?: boolean }) => {
