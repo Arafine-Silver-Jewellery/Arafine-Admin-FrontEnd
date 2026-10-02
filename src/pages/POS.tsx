@@ -93,7 +93,7 @@ export default function POS() {
   const [holdNote, setHoldNote] = useState("");
 
   // Toast notification state
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "warning" } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "warning" | "info" } | null>(null);
 
   // Product quick view modal state
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -110,6 +110,16 @@ export default function POS() {
     confirmText?: string;
     cancelText?: string;
   } | null>(null);
+
+  // Customer modal state
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerFirstName, setCustomerFirstName] = useState("");
+  const [customerLastName, setCustomerLastName] = useState("");
+  const [customerAddress, setCustomerAddress] = useState("");
+  const [searchResults, setSearchResults] = useState<{ id: string; mobileNumber: string; firstName: string; lastName: string; fullName: string }[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<{ id: string; mobileNumber: string; firstName: string; lastName: string; fullName: string } | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
 
   // Fetch products when tab, search, or page changes
   useEffect(() => {
@@ -129,7 +139,7 @@ export default function POS() {
     }
   }, [toast]);
 
-  function showToast(message: string, type: "success" | "error" | "warning" = "success") {
+  function showToast(message: string, type: "success" | "error" | "warning" | "info" = "success") {
     setToast({ message, type });
   }
 
@@ -152,6 +162,157 @@ export default function POS() {
 
   function closeConfirmModal() {
     setConfirmModal(null);
+  }
+
+  // Customer modal functions
+  function openCustomerModal() {
+    // Reset customer modal state
+    setCustomerPhone("");
+    setCustomerFirstName("");
+    setCustomerLastName("");
+    setCustomerAddress("");
+    setSearchResults([]);
+    setSelectedCustomer(null);
+    setShowCustomerModal(true);
+  }
+
+  function closeCustomerModal() {
+    setShowCustomerModal(false);
+  }
+
+  async function handleCustomerSearch() {
+    if (!customerPhone || customerPhone.length < 3) {
+      showToast("Enter at least 3 digits to search", "warning");
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const response = await api.searchPOSCustomers(customerPhone);
+      setSearchResults(response.data || []);
+      
+      if (response.data.length === 0) {
+        // No results - show message
+        showToast("No customer found. Enter details to create new.", "info");
+        setSelectedCustomer(null);
+      }
+    } catch (error) {
+      console.error("Failed to search customers:", error);
+      showToast("Failed to search customers", "error");
+    } finally {
+      setIsSearching(false);
+    }
+  }
+
+  function selectCustomer(customer: { id: string; mobileNumber: string; firstName: string; lastName: string; fullName: string }) {
+    setSelectedCustomer(customer);
+    setCustomerPhone(customer.mobileNumber);
+    setCustomerFirstName(customer.firstName);
+    setCustomerLastName(customer.lastName);
+    setSearchResults([]);
+  }
+
+  function clearSelectedCustomer() {
+    setSelectedCustomer(null);
+    setCustomerPhone("");
+    setCustomerFirstName("");
+    setCustomerLastName("");
+  }
+
+  function getCustomerInitials(name: string): string {
+    const parts = name.trim().split(" ");
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  }
+
+  async function handleCustomerContinue() {
+    // Validate required fields - always required now
+    if (!customerPhone || customerPhone.length < 10) {
+      showToast("Please enter a valid 10-digit mobile number", "warning");
+      return;
+    }
+    if (!customerFirstName.trim()) {
+      showToast("Please enter customer's first name", "warning");
+      return;
+    }
+
+    // Close modal and proceed with order
+    setShowCustomerModal(false);
+    await placeOrderWithCustomer();
+  }
+
+  async function placeOrderWithCustomer() {
+    if (cart.length === 0) return;
+    
+    setIsPlacingOrder(true);
+    
+    try {
+      // Prepare items for API
+      const items = cart.map(item => ({
+        productId: item.product.id,
+        quantity: Number(item.quantity),
+        unitPricePaise: Number(item.product.pricePaise),
+      }));
+
+      // Calculate amounts
+      const paidAmountPaise = Math.round((Number(paidAmount) || 0) * 100);
+      const couponDiscountPaise = Math.round(Number(couponDiscount) * 100);
+      const extraDiscountPaise = Math.round(Number(extraDiscount) * 100);
+
+      // Prepare order data with customer details
+      const orderData: Parameters<typeof api.createPOSOrder>[0] = {
+        items,
+        paymentMethod,
+        couponDiscountPaise,
+        extraDiscountPaise,
+        paidAmountPaise,
+        isWalkIn: false,
+        customerId: selectedCustomer?.id,
+        customerPhone,
+        customerFirstName,
+        customerLastName,
+        customerName: `${customerFirstName} ${customerLastName}`.trim(),
+        customerAddress: customerAddress || undefined,
+      };
+
+      // Call API to create POS order
+      const response = await api.createPOSOrder(orderData);
+
+      // Create bill data from response
+      const order = response.data;
+      const finalTotal = Number(order.totalPaise);
+      const changeAmount = Math.max(0, paidAmountPaise - finalTotal);
+
+      const bill: OrderBill = {
+        orderNumber: order.orderNumber,
+        date: new Date(order.createdAt),
+        items: [...cart],
+        subTotal: Number(order.subtotalPaise),
+        productDiscount,
+        couponDiscount: couponDiscountPaise,
+        extraDiscount: extraDiscountPaise,
+        total: finalTotal,
+        paymentMethod,
+        paidAmount: paidAmountPaise,
+        change: changeAmount,
+      };
+
+      setCurrentBill(bill);
+      setShowBill(true);
+      
+      // Clear cart after successful order
+      setCart([]);
+      setPaidAmount("");
+      setCouponDiscount(0);
+      setExtraDiscount(0);
+    } catch (error) {
+      console.error("Failed to place order:", error);
+      showToast(error instanceof Error ? error.message : "Failed to place order. Please try again.", "error");
+    } finally {
+      setIsPlacingOrder(false);
+    }
   }
 
   function openProductQuickView(product: Product) {
@@ -272,30 +433,6 @@ export default function POS() {
 
   function formatPrice(paise: number): string {
     return `₹${(paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
-  }
-
-  function addToCart(product: Product) {
-    // Check stock for physical products
-    if (product.productType === "physical") {
-      const existingItem = cart.find(item => item.product.id === product.id);
-      const currentQty = existingItem ? existingItem.quantity : 0;
-      if (currentQty >= product.stockQuantity) {
-        showToast("Not enough stock available", "warning");
-        return;
-      }
-    }
-
-    setCart((prev) => {
-      const existing = prev.find((item) => item.product.id === product.id);
-      if (existing) {
-        return prev.map((item) =>
-          item.product.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
-      }
-      return [...prev, { product, quantity: 1 }];
-    });
   }
 
   function updateQuantity(productId: string, delta: number) {
@@ -567,63 +704,8 @@ export default function POS() {
   async function handlePlaceOrder() {
     if (cart.length === 0) return;
     
-    setIsPlacingOrder(true);
-    
-    try {
-      // Prepare items for API - ensure all values are numbers
-      const items = cart.map(item => ({
-        productId: item.product.id,
-        quantity: Number(item.quantity),
-        unitPricePaise: Number(item.product.pricePaise),
-      }));
-
-      // Calculate amounts - ensure all values are numbers
-      const paidAmountPaise = Math.round((Number(paidAmount) || 0) * 100);
-      const couponDiscountPaise = Math.round(Number(couponDiscount) * 100);
-      const extraDiscountPaise = Math.round(Number(extraDiscount) * 100);
-
-      // Call API to create POS order
-      const response = await api.createPOSOrder({
-        items,
-        paymentMethod,
-        couponDiscountPaise,
-        extraDiscountPaise,
-        paidAmountPaise,
-      });
-
-      // Create bill data from response
-      const order = response.data;
-      const finalTotal = Number(order.totalPaise);
-      const changeAmount = Math.max(0, paidAmountPaise - finalTotal);
-
-      const bill: OrderBill = {
-        orderNumber: order.orderNumber,
-        date: new Date(order.createdAt),
-        items: [...cart],
-        subTotal: Number(order.subtotalPaise),
-        productDiscount,
-        couponDiscount: couponDiscountPaise,
-        extraDiscount: extraDiscountPaise,
-        total: finalTotal,
-        paymentMethod,
-        paidAmount: paidAmountPaise,
-        change: changeAmount,
-      };
-
-      setCurrentBill(bill);
-      setShowBill(true);
-      
-      // Clear cart after successful order
-      setCart([]);
-      setPaidAmount("");
-      setCouponDiscount(0);
-      setExtraDiscount(0);
-    } catch (error) {
-      console.error("Failed to place order:", error);
-      showToast(error instanceof Error ? error.message : "Failed to place order. Please try again.", "error");
-    } finally {
-      setIsPlacingOrder(false);
-    }
+    // Open customer modal to collect customer details
+    openCustomerModal();
   }
 
   function handlePrintBill() {
@@ -1334,9 +1416,220 @@ export default function POS() {
                 <line x1="12" y1="17" x2="12.01" y2="17"/>
               </svg>
             )}
+            {toast.type === "info" && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+              </svg>
+            )}
           </div>
           <span className="pos-toast-message">{toast.message}</span>
           <button className="pos-toast-close" onClick={() => setToast(null)}>×</button>
+        </div>
+      )}
+
+      {/* Customer Details Modal */}
+      {showCustomerModal && (
+        <div className="customer-modal-overlay" onClick={closeCustomerModal}>
+          <div className="customer-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="customer-modal-header">
+              <h2>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="22" height="22">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+                Customer Details
+              </h2>
+              <button className="customer-close-btn" onClick={closeCustomerModal}>×</button>
+            </div>
+
+            <div className="customer-modal-content">
+              {/* Order Summary */}
+              <div className="customer-order-summary">
+                <h4>Order Summary</h4>
+                <div className="customer-order-row">
+                  <span>Items:</span>
+                  <span>{cart.reduce((sum, item) => sum + item.quantity, 0)}</span>
+                </div>
+                <div className="customer-order-row">
+                  <span>Sub Total:</span>
+                  <span>{formatPrice(subTotal)}</span>
+                </div>
+                {(couponDiscount > 0 || extraDiscount > 0) && (
+                  <div className="customer-order-row">
+                    <span>Discounts:</span>
+                    <span>-{formatPrice((couponDiscount + extraDiscount) * 100)}</span>
+                  </div>
+                )}
+                <div className="customer-order-row total">
+                  <span>Total:</span>
+                  <span>{formatPrice(Math.max(0, total))}</span>
+                </div>
+              </div>
+
+              {/* Selected Customer Display */}
+              {selectedCustomer && (
+                <div className="selected-customer-info">
+                  <div className="selected-customer-avatar">
+                    {getCustomerInitials(selectedCustomer.fullName || selectedCustomer.firstName)}
+                  </div>
+                  <div className="selected-customer-details">
+                    <div className="selected-customer-name">{selectedCustomer.fullName}</div>
+                    <div className="selected-customer-phone">{selectedCustomer.mobileNumber}</div>
+                  </div>
+                  <button className="selected-customer-clear" onClick={clearSelectedCustomer} title="Clear">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                      <line x1="18" y1="6" x2="6" y2="18"/>
+                      <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                </div>
+              )}
+
+              {/* Phone Search - only show if no customer selected */}
+              {!selectedCustomer && (
+                <>
+                  <div className="customer-phone-search">
+                    <label>Mobile Number <span style={{color: '#ef4444'}}>*</span></label>
+                    <div className="customer-phone-input-wrapper">
+                      <input
+                        type="tel"
+                        placeholder="Enter 10-digit mobile number"
+                        value={customerPhone}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, "").slice(0, 10);
+                          setCustomerPhone(value);
+                          // Clear search results when typing
+                          if (searchResults.length > 0) {
+                            setSearchResults([]);
+                          }
+                        }}
+                        onKeyDown={(e) => e.key === "Enter" && customerPhone.length >= 3 && handleCustomerSearch()}
+                      />
+                      <button
+                        className="customer-search-btn"
+                        onClick={handleCustomerSearch}
+                        disabled={isSearching || customerPhone.length < 3}
+                      >
+                        {isSearching ? (
+                          "..."
+                        ) : (
+                          <>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                              <circle cx="11" cy="11" r="8"/>
+                              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            </svg>
+                            Search
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Search Results */}
+                  {searchResults.length > 0 && (
+                    <div className="customer-search-results">
+                      <div className="customer-search-results-header">
+                        Found {searchResults.length} customer(s) - Click to select
+                      </div>
+                      {searchResults.map((customer) => (
+                        <div
+                          key={customer.id}
+                          className="customer-result-item"
+                          onClick={() => selectCustomer(customer)}
+                        >
+                          <div className="customer-result-avatar">
+                            {getCustomerInitials(customer.fullName || customer.firstName)}
+                          </div>
+                          <div className="customer-result-info">
+                            <div className="customer-result-name">{customer.fullName}</div>
+                            <div className="customer-result-phone">{customer.mobileNumber}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Customer Form - Name Fields */}
+                  <div className="customer-form">
+                    <div className="customer-form-title">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="8.5" cy="7" r="4"/>
+                        <line x1="20" y1="8" x2="20" y2="14"/>
+                        <line x1="23" y1="11" x2="17" y2="11"/>
+                      </svg>
+                      Customer Details
+                    </div>
+
+                    <div className="customer-form-row">
+                      <div className="customer-form-group">
+                        <label>First Name <span>*</span></label>
+                        <input
+                          type="text"
+                          placeholder="First name"
+                          value={customerFirstName}
+                          onChange={(e) => setCustomerFirstName(e.target.value)}
+                        />
+                      </div>
+                      <div className="customer-form-group">
+                        <label>Last Name</label>
+                        <input
+                          type="text"
+                          placeholder="Last name"
+                          value={customerLastName}
+                          onChange={(e) => setCustomerLastName(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="customer-form-row">
+                      <div className="customer-form-group full-width">
+                        <label>Address (Optional)</label>
+                        <input
+                          type="text"
+                          placeholder="Delivery address"
+                          value={customerAddress}
+                          onChange={(e) => setCustomerAddress(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Address field for selected customer */}
+              {selectedCustomer && (
+                <div className="customer-form">
+                  <div className="customer-form-row">
+                    <div className="customer-form-group full-width">
+                      <label>Address (Optional)</label>
+                      <input
+                        type="text"
+                        placeholder="Delivery address"
+                        value={customerAddress}
+                        onChange={(e) => setCustomerAddress(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="customer-modal-actions">
+              <button className="customer-btn-cancel" onClick={closeCustomerModal}>
+                Cancel
+              </button>
+              <button
+                className="customer-btn-continue"
+                onClick={handleCustomerContinue}
+                disabled={isPlacingOrder || (!selectedCustomer && (!customerPhone || customerPhone.length < 10 || !customerFirstName.trim()))}
+              >
+                {isPlacingOrder ? "Processing..." : "Place Order"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

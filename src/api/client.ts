@@ -191,6 +191,10 @@ export const api = {
     customerId?: string;
     customerName?: string;
     customerPhone?: string;
+    customerFirstName?: string;
+    customerLastName?: string;
+    customerAddress?: string;
+    isWalkIn?: boolean;
     paymentMethod: "cash" | "card";
     couponCode?: string;
     couponDiscountPaise?: number;
@@ -243,6 +247,26 @@ export const api = {
     request<{ message: string; data: any }>(`/pos/hold/${id}`, {
       method: "DELETE",
     }),
+
+  // POS Customers
+  searchPOSCustomers: (phone: string) =>
+    request<{ data: { id: string; mobileNumber: string; firstName: string; lastName: string; fullName: string }[] }>(
+      `/pos/customers/search?phone=${encodeURIComponent(phone)}`
+    ),
+  
+  getPOSCustomerByPhone: (phone: string) =>
+    request<{ data: { id: string; mobileNumber: string; firstName: string; lastName: string; fullName: string } }>(
+      `/pos/customers/by-phone/${encodeURIComponent(phone)}`
+    ),
+  
+  createPOSCustomer: (data: { mobileNumber: string; firstName: string; lastName?: string }) =>
+    request<{ message: string; data: { id: string; mobileNumber: string; firstName: string; lastName: string; fullName: string; isNew: boolean } }>(
+      "/pos/customers",
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      }
+    ),
 
   // Users
   getUsers: (params: { page?: number; limit?: number; search?: string; status?: string }) => {
