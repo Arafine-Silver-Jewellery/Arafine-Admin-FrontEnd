@@ -908,12 +908,6 @@ export default function POS() {
           </button>
         </div>
 
-        <div className="pos-customer-select">
-          <select>
-            <option>Walk In Customer</option>
-          </select>
-        </div>
-
         <div className="pos-cart">
           <h3>Cart Item List</h3>
           {cart.length === 0 ? (

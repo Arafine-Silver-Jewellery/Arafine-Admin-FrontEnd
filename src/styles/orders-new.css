@@ -667,3 +667,474 @@
     justify-content: center;
   }
 }
+
+
+/* Filter Modal */
+.filter-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.filter-modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  animation: filterModalFadeIn 0.2s ease-out;
+}
+
+@keyframes filterModalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.filter-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.filter-modal-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.filter-modal-header h2 svg {
+  color: #3b82f6;
+}
+
+.filter-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #6b7280;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.filter-close-btn:hover {
+  background: #f3f4f6;
+  color: #1f2937;
+}
+
+.filter-modal-content {
+  padding: 1.5rem;
+}
+
+.filter-group {
+  margin-bottom: 1.5rem;
+}
+
+.filter-group:last-child {
+  margin-bottom: 0;
+}
+
+.filter-group label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.75rem;
+}
+
+.filter-date-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.filter-date-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-date-field span {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.filter-date-field input {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.filter-date-field input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.filter-options {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.filter-option {
+  padding: 0.5rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  background: #fff;
+  font-size: 0.85rem;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-option:hover {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+.filter-option.active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
+
+.filter-modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.btn-clear-filter {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #374151;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-clear-filter:hover {
+  background: #f3f4f6;
+}
+
+.btn-apply-filter {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 8px;
+  background: #3b82f6;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-apply-filter:hover {
+  background: #2563eb;
+}
+
+/* Filter Badge */
+.filter-badge {
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.4rem;
+  border-radius: 10px;
+  margin-left: 0.25rem;
+}
+
+/* Export button green variant */
+.btn-export {
+  background: #22c55e;
+  border: none;
+  color: #fff;
+}
+
+.btn-export:hover {
+  background: #16a34a;
+}
+
+@media (max-width: 500px) {
+  .filter-modal {
+    max-width: 100%;
+    border-radius: 0;
+  }
+  
+  .filter-date-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* Receipt Button */
+.btn-icon-receipt {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+}
+
+.btn-icon-receipt:hover {
+  background: #fef3c7;
+  border-color: #fbbf24;
+}
+
+/* Receipt Modal */
+.receipt-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.receipt-modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 400px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.receipt-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.receipt-modal-header h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.receipt-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #6b7280;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.receipt-close-btn:hover {
+  background: #f3f4f6;
+  color: #1f2937;
+}
+
+.receipt-content {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+}
+
+.receipt-content .receipt-header {
+  text-align: center;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px dashed #d1d5db;
+}
+
+.receipt-content .receipt-header h1 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+}
+
+.receipt-content .receipt-header p {
+  color: #6b7280;
+  font-size: 0.75rem;
+  margin: 0.15rem 0;
+}
+
+.receipt-content .receipt-info {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px dashed #d1d5db;
+}
+
+.receipt-content .receipt-info p {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+  font-size: 0.8rem;
+}
+
+.receipt-content .receipt-items {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px dashed #d1d5db;
+}
+
+.receipt-content .receipt-items-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  font-weight: bold;
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+}
+
+.receipt-content .receipt-item {
+  margin-bottom: 0.5rem;
+}
+
+.receipt-content .receipt-item-name {
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.receipt-content .receipt-item-details {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.receipt-content .receipt-summary {
+  margin-bottom: 1rem;
+}
+
+.receipt-content .receipt-summary p {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.receipt-content .receipt-summary .total {
+  font-weight: bold;
+  font-size: 1rem;
+  color: #1f2937;
+  border-top: 1px solid #1f2937;
+  padding-top: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.receipt-content .receipt-summary .paid {
+  color: #16a34a;
+}
+
+.receipt-content .receipt-summary .change {
+  color: #2563eb;
+}
+
+.receipt-content .receipt-summary .balance {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.receipt-content .receipt-footer {
+  text-align: center;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px dashed #d1d5db;
+}
+
+.receipt-content .receipt-footer p {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 0.15rem 0;
+}
+
+.receipt-modal-actions {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.btn-print-receipt {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #1f2937;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-print-receipt:hover {
+  background: #374151;
+}
+
+.btn-close-receipt {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: #f3f4f6;
+  color: #1f2937;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-close-receipt:hover {
+  background: #e5e7eb;
+}

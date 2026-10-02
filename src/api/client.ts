@@ -160,6 +160,8 @@ export const api = {
     status?: string;
     paymentStatus?: string;
     orderChannel?: string;
+    dateFrom?: string;
+    dateTo?: string;
   }) => {
     const query = new URLSearchParams();
     if (params.page) query.set("page", params.page.toString());
@@ -168,6 +170,8 @@ export const api = {
     if (params.status) query.set("status", params.status);
     if (params.paymentStatus) query.set("paymentStatus", params.paymentStatus);
     if (params.orderChannel) query.set("orderChannel", params.orderChannel);
+    if (params.dateFrom) query.set("dateFrom", params.dateFrom);
+    if (params.dateTo) query.set("dateTo", params.dateTo);
     return request<ApiResponse<any[]>>(`/orders?${query}`);
   },
   getOrder: (id: string) => request<any>(`/orders/${id}`),

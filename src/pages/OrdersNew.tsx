@@ -5,6 +5,7 @@ import "../styles/orders-new.css";
 
 type OrderStatus = "all" | "pending" | "confirmed" | "processing" | "packaging" | "shipped" | "out_for_delivery" | "delivered" | "returned" | "failed_to_deliver" | "cancelled";
 type OrderChannel = "all" | "online" | "pos";
+type PaymentStatusFilter = "all" | "paid" | "unpaid" | "partial";
 
 interface OrderItem {
   id: string;
@@ -142,6 +143,8 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
   const [showInvoice, setShowInvoice] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [loadingInvoice, setLoadingInvoice] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);
+  const receiptRef = useRef<HTMLDivElement>(null);
   const [statusCounts, setStatusCounts] = useState<StatusCounts>({
     all: 0,
     pending: 0,
@@ -155,6 +158,13 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     failed_to_deliver: 0,
     cancelled: 0,
   });
+
+  // Filter modal state
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
+  const [filterPaymentStatus, setFilterPaymentStatus] = useState<PaymentStatusFilter>("all");
+  const [activeFiltersCount, setActiveFiltersCount] = useState(0);
 
   // Sync statusFilter prop with currentStatus state when route changes
   useEffect(() => {
@@ -171,6 +181,9 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
         search: searchQuery || undefined,
         status: currentStatus !== "all" ? currentStatus : undefined,
         orderChannel: channelFilter !== "all" ? channelFilter : undefined,
+        paymentStatus: filterPaymentStatus !== "all" ? filterPaymentStatus : undefined,
+        dateFrom: filterDateFrom || undefined,
+        dateTo: filterDateTo || undefined,
       });
       setOrders(response.data || []);
       setTotalPages(response.pagination?.totalPages || 1);
@@ -373,6 +386,167 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     setSelectedOrder(null);
   }
 
+  // Receipt (POS Bill) functions
+  async function handleViewReceipt(order: Order) {
+    setLoadingInvoice(true);
+    try {
+      const fullOrder = await api.getOrder(order.id);
+      setSelectedOrder(fullOrder);
+      setShowReceipt(true);
+    } catch (error) {
+      console.error("Failed to load order details:", error);
+      alert("Failed to load receipt");
+    } finally {
+      setLoadingInvoice(false);
+    }
+  }
+
+  function closeReceiptModal() {
+    setShowReceipt(false);
+    setSelectedOrder(null);
+  }
+
+  function printReceipt() {
+    if (!receiptRef.current || !selectedOrder) return;
+
+    const printContent = receiptRef.current.innerHTML;
+    const printWindow = window.open("", "_blank", "width=400,height=600");
+    
+    if (printWindow) {
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Receipt - ${selectedOrder.orderNumber}</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+              font-family: 'Courier New', monospace; 
+              padding: 10px;
+              font-size: 12px;
+              max-width: 300px;
+              margin: 0 auto;
+            }
+            .receipt-header { text-align: center; margin-bottom: 15px; border-bottom: 1px dashed #000; padding-bottom: 10px; }
+            .receipt-header h1 { font-size: 18px; margin-bottom: 5px; }
+            .receipt-header p { font-size: 11px; color: #333; }
+            .receipt-info { margin-bottom: 15px; border-bottom: 1px dashed #000; padding-bottom: 10px; }
+            .receipt-info p { display: flex; justify-content: space-between; margin-bottom: 3px; }
+            .receipt-items { margin-bottom: 15px; border-bottom: 1px dashed #000; padding-bottom: 10px; }
+            .receipt-item { margin-bottom: 8px; }
+            .receipt-item-name { font-weight: bold; }
+            .receipt-item-details { display: flex; justify-content: space-between; font-size: 11px; }
+            .receipt-summary { margin-bottom: 15px; }
+            .receipt-summary p { display: flex; justify-content: space-between; margin-bottom: 3px; }
+            .receipt-summary .total { font-weight: bold; font-size: 14px; border-top: 1px solid #000; padding-top: 5px; margin-top: 5px; }
+            .receipt-footer { text-align: center; margin-top: 15px; font-size: 11px; }
+            @media print {
+              body { padding: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          ${printContent}
+          <script>
+            window.onload = function() {
+              window.print();
+              window.onafterprint = function() { window.close(); }
+            }
+          </script>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+  }
+
+  // Filter functions
+  function openFilterModal() {
+    setShowFilterModal(true);
+  }
+
+  function closeFilterModal() {
+    setShowFilterModal(false);
+  }
+
+  function applyFilters() {
+    let count = 0;
+    if (filterDateFrom) count++;
+    if (filterDateTo) count++;
+    if (filterPaymentStatus !== "all") count++;
+    setActiveFiltersCount(count);
+    setPage(1);
+    loadOrders();
+    closeFilterModal();
+  }
+
+  function clearFilters() {
+    setFilterDateFrom("");
+    setFilterDateTo("");
+    setFilterPaymentStatus("all");
+    setActiveFiltersCount(0);
+    setPage(1);
+    loadOrders();
+    closeFilterModal();
+  }
+
+  // Export function
+  function exportOrders() {
+    if (orders.length === 0) {
+      alert("No orders to export");
+      return;
+    }
+
+    // Prepare CSV data
+    const headers = [
+      "Order ID",
+      "Order Date",
+      "Customer Name",
+      "Customer Phone",
+      "Channel",
+      "Subtotal",
+      "Discount",
+      "Total",
+      "Paid Amount",
+      "Payment Status",
+      "Order Status",
+    ];
+
+    const rows = orders.map(order => {
+      const paymentStatus = getPaymentStatusDisplay(order);
+      return [
+        order.orderNumber,
+        formatDateTime(order.createdAt),
+        order.shippingAddress?.fullName || "Walk-in",
+        order.shippingAddress?.phone || "",
+        order.orderChannel.toUpperCase(),
+        (order.subtotalPaise / 100).toFixed(2),
+        ((order.discountPaise + (order.extraDiscountPaise || 0)) / 100).toFixed(2),
+        (order.totalPaise / 100).toFixed(2),
+        ((order.paidAmountPaise || 0) / 100).toFixed(2),
+        paymentStatus.label,
+        getStatusLabel(order.status),
+      ];
+    });
+
+    // Create CSV content
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+    ].join("\n");
+
+    // Download file
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `orders_${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="orders-new-container">
       {currentStatus === "all" && (
@@ -445,7 +619,7 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
               <option value="online">Online</option>
               <option value="pos">POS</option>
             </select>
-            <button className="btn-export">
+            <button className="btn-export" onClick={exportOrders}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7,10 12,15 17,10" />
@@ -453,7 +627,7 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
               </svg>
               Export
             </button>
-            <button className="btn-filter">
+            <button className="btn-filter" onClick={openFilterModal}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
                 <line x1="4" y1="21" x2="4" y2="14" />
                 <line x1="4" y1="10" x2="4" y2="3" />
@@ -463,6 +637,7 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
                 <line x1="20" y1="12" x2="20" y2="3" />
               </svg>
               Filter
+              {activeFiltersCount > 0 && <span className="filter-badge">{activeFiltersCount}</span>}
             </button>
           </div>
         </div>
@@ -535,6 +710,18 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#4f46e5" strokeWidth="2"/>
                             <circle cx="12" cy="12" r="3" stroke="#4f46e5" strokeWidth="2"/>
+                          </svg>
+                        </button>
+                        <button 
+                          className="btn-action btn-icon-receipt" 
+                          title="Print Receipt"
+                          onClick={() => handleViewReceipt(order)}
+                          disabled={loadingInvoice}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" stroke="#f59e0b" strokeWidth="2"/>
+                            <line x1="3" y1="6" x2="21" y2="6" stroke="#f59e0b" strokeWidth="2"/>
+                            <path d="M16 10a4 4 0 0 1-8 0" stroke="#f59e0b" strokeWidth="2"/>
                           </svg>
                         </button>
                         <button 
@@ -720,14 +907,6 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
             </div>
 
             <div className="invoice-modal-actions">
-              <button className="btn-print" onClick={() => printInvoice(true)}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-                Download PDF
-              </button>
               <button className="btn-print-only" onClick={() => printInvoice(false)}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
                   <polyline points="6 9 6 2 18 2 18 9" />
@@ -737,6 +916,165 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
                 Print
               </button>
               <button className="btn-close" onClick={closeInvoiceModal}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Filter Modal */}
+      {showFilterModal && (
+        <div className="filter-modal-overlay" onClick={closeFilterModal}>
+          <div className="filter-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="filter-modal-header">
+              <h2>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+                  <line x1="4" y1="21" x2="4" y2="14" />
+                  <line x1="4" y1="10" x2="4" y2="3" />
+                  <line x1="12" y1="21" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12" y2="3" />
+                  <line x1="20" y1="21" x2="20" y2="16" />
+                  <line x1="20" y1="12" x2="20" y2="3" />
+                </svg>
+                Filter Orders
+              </h2>
+              <button className="filter-close-btn" onClick={closeFilterModal}>×</button>
+            </div>
+
+            <div className="filter-modal-content">
+              <div className="filter-group">
+                <label>Date Range</label>
+                <div className="filter-date-row">
+                  <div className="filter-date-field">
+                    <span>From</span>
+                    <input
+                      type="date"
+                      value={filterDateFrom}
+                      onChange={(e) => setFilterDateFrom(e.target.value)}
+                    />
+                  </div>
+                  <div className="filter-date-field">
+                    <span>To</span>
+                    <input
+                      type="date"
+                      value={filterDateTo}
+                      onChange={(e) => setFilterDateTo(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="filter-group">
+                <label>Payment Status</label>
+                <div className="filter-options">
+                  {["all", "paid", "unpaid", "partial"].map((status) => (
+                    <button
+                      key={status}
+                      className={`filter-option ${filterPaymentStatus === status ? "active" : ""}`}
+                      onClick={() => setFilterPaymentStatus(status as PaymentStatusFilter)}
+                    >
+                      {status === "all" ? "All" : status.charAt(0).toUpperCase() + status.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="filter-modal-actions">
+              <button className="btn-clear-filter" onClick={clearFilters}>
+                Clear All
+              </button>
+              <button className="btn-apply-filter" onClick={applyFilters}>
+                Apply Filters
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Receipt Modal (POS Bill Style) */}
+      {showReceipt && selectedOrder && (
+        <div className="receipt-modal-overlay" onClick={closeReceiptModal}>
+          <div className="receipt-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="receipt-modal-header">
+              <h2>Receipt</h2>
+              <button className="receipt-close-btn" onClick={closeReceiptModal}>×</button>
+            </div>
+            
+            <div className="receipt-content" ref={receiptRef}>
+              {/* Receipt Header */}
+              <div className="receipt-header">
+                <h1>ARAFINE</h1>
+                <p>Premium Silver Jewellery</p>
+                <p>GST: 36AABCA1234C1ZE</p>
+              </div>
+
+              {/* Receipt Info */}
+              <div className="receipt-info">
+                <p><span>Order #:</span><span>{selectedOrder.orderNumber}</span></p>
+                <p><span>Date:</span><span>{formatDateTime(selectedOrder.createdAt)}</span></p>
+                <p><span>Customer:</span><span>{selectedOrder.shippingAddress?.fullName || "Walk-in"}</span></p>
+                {selectedOrder.shippingAddress?.phone && selectedOrder.shippingAddress.phone !== "0000000000" && (
+                  <p><span>Phone:</span><span>{selectedOrder.shippingAddress.phone}</span></p>
+                )}
+                <p><span>Payment:</span><span>{selectedOrder.paymentMethod?.toUpperCase() || "CASH"}</span></p>
+              </div>
+
+              {/* Receipt Items */}
+              <div className="receipt-items">
+                <div className="receipt-items-header">
+                  <span>Item</span>
+                  <span>Qty</span>
+                  <span>Amount</span>
+                </div>
+                {selectedOrder.items?.map((item, idx) => (
+                  <div key={item.id || idx} className="receipt-item">
+                    <div className="receipt-item-name">{item.productName}</div>
+                    <div className="receipt-item-details">
+                      <span>{formatPrice(Number(item.unitPricePaise))} x {item.quantity}</span>
+                      <span>{formatPrice(Number(item.totalPricePaise))}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Receipt Summary */}
+              <div className="receipt-summary">
+                <p><span>Subtotal:</span><span>{formatPrice(Number(selectedOrder.subtotalPaise))}</span></p>
+                {Number(selectedOrder.discountPaise) > 0 && (
+                  <p><span>Discount:</span><span>-{formatPrice(Number(selectedOrder.discountPaise))}</span></p>
+                )}
+                {Number(selectedOrder.extraDiscountPaise || 0) > 0 && (
+                  <p><span>Extra Discount:</span><span>-{formatPrice(Number(selectedOrder.extraDiscountPaise || 0))}</span></p>
+                )}
+                <p className="total"><span>Total:</span><span>{formatPrice(Number(selectedOrder.totalPaise))}</span></p>
+                <p className="paid"><span>Paid:</span><span>{formatPrice(Number(selectedOrder.paidAmountPaise || 0))}</span></p>
+                {Number(selectedOrder.paidAmountPaise || 0) > Number(selectedOrder.totalPaise) && (
+                  <p className="change"><span>Change:</span><span>{formatPrice(Number(selectedOrder.paidAmountPaise || 0) - Number(selectedOrder.totalPaise))}</span></p>
+                )}
+                {Number(selectedOrder.paidAmountPaise || 0) < Number(selectedOrder.totalPaise) && (
+                  <p className="balance"><span>Balance:</span><span>{formatPrice(Number(selectedOrder.totalPaise) - Number(selectedOrder.paidAmountPaise || 0))}</span></p>
+                )}
+              </div>
+
+              {/* Receipt Footer */}
+              <div className="receipt-footer">
+                <p>Thank you for shopping with us!</p>
+                <p>Visit again</p>
+              </div>
+            </div>
+
+            <div className="receipt-modal-actions">
+              <button className="btn-print-receipt" onClick={printReceipt}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                  <polyline points="6 9 6 2 18 2 18 9" />
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                  <rect x="6" y="14" width="12" height="8" />
+                </svg>
+                Print Receipt
+              </button>
+              <button className="btn-close-receipt" onClick={closeReceiptModal}>
                 Close
               </button>
             </div>
