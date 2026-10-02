@@ -11,6 +11,7 @@ export default function Orders() {
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [channelFilter, setChannelFilter] = useState("");
 
   async function loadOrders() {
     setLoading(true);
@@ -20,6 +21,7 @@ export default function Orders() {
         limit: 20,
         search: search || undefined,
         status: statusFilter || undefined,
+        orderChannel: channelFilter || undefined,
       });
       setOrders(response.data || []);
       setTotalPages(response.pagination?.totalPages || 1);
@@ -34,7 +36,7 @@ export default function Orders() {
 
   useEffect(() => {
     loadOrders();
-  }, [page, statusFilter]);
+  }, [page, statusFilter, channelFilter]);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -85,6 +87,14 @@ export default function Orders() {
             <option value="delivered">Delivered</option>
             <option value="cancelled">Cancelled</option>
           </select>
+          <select
+            value={channelFilter}
+            onChange={e => { setChannelFilter(e.target.value); setPage(1); }}
+          >
+            <option value="">All Channels</option>
+            <option value="online">Online</option>
+            <option value="pos">POS</option>
+          </select>
         </div>
 
         {/* Orders Table */}
@@ -119,6 +129,20 @@ export default function Orders() {
                         <Link to={`/orders/${order.id}`} style={{ fontWeight: 500 }}>
                           {order.orderNumber}
                         </Link>
+                        {order.orderChannel === "pos" && (
+                          <span
+                            className="badge"
+                            style={{
+                              marginLeft: "0.5rem",
+                              background: "#fef3c7",
+                              color: "#d97706",
+                              fontSize: "0.625rem",
+                              padding: "0.125rem 0.375rem",
+                            }}
+                          >
+                            POS
+                          </span>
+                        )}
                       </td>
                       <td>
                         <div>

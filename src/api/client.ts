@@ -159,6 +159,7 @@ export const api = {
     search?: string;
     status?: string;
     paymentStatus?: string;
+    orderChannel?: string;
   }) => {
     const query = new URLSearchParams();
     if (params.page) query.set("page", params.page.toString());
@@ -166,6 +167,7 @@ export const api = {
     if (params.search) query.set("search", params.search);
     if (params.status) query.set("status", params.status);
     if (params.paymentStatus) query.set("paymentStatus", params.paymentStatus);
+    if (params.orderChannel) query.set("orderChannel", params.orderChannel);
     return request<ApiResponse<any[]>>(`/orders?${query}`);
   },
   getOrder: (id: string) => request<any>(`/orders/${id}`),
@@ -180,6 +182,23 @@ export const api = {
   ) =>
     request<any>(`/orders/${id}/tracking`, {
       method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  // POS Orders
+  createPOSOrder: (data: {
+    items: { productId: string; quantity: number; unitPricePaise: number }[];
+    customerId?: string;
+    customerName?: string;
+    customerPhone?: string;
+    paymentMethod: "cash" | "card";
+    couponCode?: string;
+    couponDiscountPaise?: number;
+    extraDiscountPaise?: number;
+    paidAmountPaise: number;
+  }) =>
+    request<{ message: string; data: any }>("/pos/orders", {
+      method: "POST",
       body: JSON.stringify(data),
     }),
 

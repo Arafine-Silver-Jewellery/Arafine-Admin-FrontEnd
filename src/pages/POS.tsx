@@ -200,40 +200,51 @@ export default function POS() {
   
   const total = subTotal - (couponDiscount * 100) - (extraDiscount * 100);
 
-  function generateOrderNumber(): string {
-    const now = new Date();
-    const datePart = now.toISOString().slice(0, 10).replace(/-/g, "");
-    const timePart = now.getTime().toString().slice(-6);
-    return `POS-${datePart}-${timePart}`;
-  }
-
   async function handlePlaceOrder() {
     if (cart.length === 0) return;
     
     setIsPlacingOrder(true);
     
     try {
-      // Create bill data
-      const paidAmountPaise = (Number(paidAmount) || 0) * 100;
-      const finalTotal = Math.max(0, total);
-      const change = Math.max(0, paidAmountPaise - finalTotal);
+      // Prepare items for API - ensure all values are numbers
+      const items = cart.map(item => ({
+        productId: item.product.id,
+        quantity: Number(item.quantity),
+        unitPricePaise: Number(item.product.pricePaise),
+      }));
+
+      // Calculate amounts - ensure all values are numbers
+      const paidAmountPaise = Math.round((Number(paidAmount) || 0) * 100);
+      const couponDiscountPaise = Math.round(Number(couponDiscount) * 100);
+      const extraDiscountPaise = Math.round(Number(extraDiscount) * 100);
+
+      // Call API to create POS order
+      const response = await api.createPOSOrder({
+        items,
+        paymentMethod,
+        couponDiscountPaise,
+        extraDiscountPaise,
+        paidAmountPaise,
+      });
+
+      // Create bill data from response
+      const order = response.data;
+      const finalTotal = Number(order.totalPaise);
+      const changeAmount = Math.max(0, paidAmountPaise - finalTotal);
 
       const bill: OrderBill = {
-        orderNumber: generateOrderNumber(),
-        date: new Date(),
+        orderNumber: order.orderNumber,
+        date: new Date(order.createdAt),
         items: [...cart],
-        subTotal,
+        subTotal: Number(order.subtotalPaise),
         productDiscount,
-        couponDiscount: couponDiscount * 100,
-        extraDiscount: extraDiscount * 100,
+        couponDiscount: couponDiscountPaise,
+        extraDiscount: extraDiscountPaise,
         total: finalTotal,
         paymentMethod,
         paidAmount: paidAmountPaise,
-        change,
+        change: changeAmount,
       };
-
-      // TODO: Save order to backend
-      // await api.createPOSOrder(bill);
 
       setCurrentBill(bill);
       setShowBill(true);
@@ -245,7 +256,7 @@ export default function POS() {
       setExtraDiscount(0);
     } catch (error) {
       console.error("Failed to place order:", error);
-      alert("Failed to place order. Please try again.");
+      alert(error instanceof Error ? error.message : "Failed to place order. Please try again.");
     } finally {
       setIsPlacingOrder(false);
     }

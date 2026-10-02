@@ -63,11 +63,15 @@ export interface Order {
   items: OrderItem[];
   status: OrderStatus;
   paymentStatus: PaymentStatus;
+  orderChannel: OrderChannel;
   subtotalPaise: number;
   discountPaise: number;
+  extraDiscountPaise: number;
   shippingPaise: number;
   taxPaise: number;
   totalPaise: number;
+  paidAmountPaise: number | null;
+  changeAmountPaise: number | null;
   couponCode: string | null;
   paymentMethod: string | null;
   shippingAddress: ShippingAddress;
@@ -77,6 +81,7 @@ export interface Order {
   shippedAt: string | null;
   deliveredAt: string | null;
   adminNote: string | null;
+  processedById: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -120,6 +125,8 @@ export type OrderStatus =
   | "refunded";
 
 export type PaymentStatus = "pending" | "paid" | "failed" | "refunded" | "partially_refunded";
+
+export type OrderChannel = "online" | "pos";
 
 export interface User {
   id: string;
