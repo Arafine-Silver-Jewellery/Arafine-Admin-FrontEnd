@@ -34,6 +34,7 @@ interface Order {
   shippingPaise: number;
   taxPaise: number;
   totalPaise: number;
+  paidAmountPaise?: number;
   paymentStatus: "pending" | "paid" | "failed" | "refunded" | "partially_refunded";
   paymentMethod?: string;
   status: string;
@@ -155,6 +156,12 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     cancelled: 0,
   });
 
+  // Sync statusFilter prop with currentStatus state when route changes
+  useEffect(() => {
+    setCurrentStatus(statusFilter);
+    setPage(1); // Reset to first page when filter changes
+  }, [statusFilter]);
+
   async function loadOrders() {
     setLoading(true);
     try {
@@ -253,6 +260,19 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     return colors[status] || "#6b7280";
   }
 
+  function getPaymentStatusDisplay(order: Order): { label: string; className: string } {
+    const paidAmount = Number(order.paidAmountPaise || 0);
+    const totalAmount = Number(order.totalPaise);
+    
+    if (paidAmount >= totalAmount) {
+      return { label: "Paid", className: "paid" };
+    } else if (paidAmount > 0) {
+      return { label: "Partial", className: "partial" };
+    } else {
+      return { label: "Unpaid", className: "pending" };
+    }
+  }
+
   async function handleViewInvoice(order: Order) {
     setLoadingInvoice(true);
     try {
@@ -320,7 +340,8 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
             .invoice-footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 12px; }
             .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; }
             .badge-paid { background: #dcfce7; color: #16a34a; }
-            .badge-unpaid { background: #fef3c7; color: #d97706; }
+            .badge-partial { background: #fef3c7; color: #d97706; }
+            .badge-unpaid { background: #fee2e2; color: #dc2626; }
             .badge-pos { background: #fef3c7; color: #d97706; }
             .badge-online { background: #dbeafe; color: #2563eb; }
             @media print {
@@ -362,7 +383,21 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
               <div 
                 key={item.key} 
                 className="summary-card"
-                onClick={() => { setCurrentStatus(item.key as OrderStatus); setPage(1); }}
+                onClick={() => { 
+                  const routeMap: Record<string, string> = {
+                    pending: "/orders-management/pending",
+                    confirmed: "/orders-management/confirmed",
+                    packaging: "/orders-management/packaging",
+                    out_for_delivery: "/orders-management/out-for-delivery",
+                    delivered: "/orders-management/delivered",
+                    cancelled: "/orders-management/canceled",
+                    returned: "/orders-management/returned",
+                    failed_to_deliver: "/orders-management/failed-to-deliver",
+                  };
+                  if (routeMap[item.key]) {
+                    navigate(routeMap[item.key]);
+                  }
+                }}
                 style={{ cursor: "pointer" }}
               >
                 <span className="summary-icon">
@@ -476,8 +511,8 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
                     <td>
                       <div className="amount-info">
                         <span className="amount">{formatPrice(order.totalPaise)}</span>
-                        <span className={`payment-status ${order.paymentStatus}`}>
-                          {order.paymentStatus === "paid" ? "Paid" : "Unpaid"}
+                        <span className={`payment-status ${getPaymentStatusDisplay(order).className}`}>
+                          {getPaymentStatusDisplay(order).label}
                         </span>
                       </div>
                     </td>
@@ -591,7 +626,7 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
                   </div>
                   <div className="invoice-meta-block">
                     <h3>Payment Details</h3>
-                    <p><strong>Status:</strong> <span className={`badge ${selectedOrder.paymentStatus === "paid" ? "badge-paid" : "badge-unpaid"}`}>{selectedOrder.paymentStatus === "paid" ? "Paid" : "Unpaid"}</span></p>
+                    <p><strong>Status:</strong> <span className={`badge ${getPaymentStatusDisplay(selectedOrder).className === "paid" ? "badge-paid" : getPaymentStatusDisplay(selectedOrder).className === "partial" ? "badge-partial" : "badge-unpaid"}`}>{getPaymentStatusDisplay(selectedOrder).label}</span></p>
                     {selectedOrder.paymentMethod && <p><strong>Method:</strong> {selectedOrder.paymentMethod.toUpperCase()}</p>}
                     <p><strong>Order Status:</strong> {getStatusLabel(selectedOrder.status)}</p>
                   </div>
@@ -659,6 +694,19 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
                         <td>Total</td>
                         <td>{formatPrice(Number(selectedOrder.totalPaise))}</td>
                       </tr>
+                      {/* Payment Summary */}
+                      <tr style={{ borderTop: "1px solid #e5e7eb" }}>
+                        <td style={{ color: "#16a34a" }}>Paid Amount</td>
+                        <td style={{ color: "#16a34a" }}>{formatPrice(Number(selectedOrder.paidAmountPaise || 0))}</td>
+                      </tr>
+                      {Number(selectedOrder.paidAmountPaise || 0) < Number(selectedOrder.totalPaise) && (
+                        <tr>
+                          <td style={{ color: "#dc2626", fontWeight: "bold" }}>Balance Due</td>
+                          <td style={{ color: "#dc2626", fontWeight: "bold" }}>
+                            {formatPrice(Number(selectedOrder.totalPaise) - Number(selectedOrder.paidAmountPaise || 0))}
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>

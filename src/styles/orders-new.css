@@ -254,6 +254,14 @@
   color: #22c55e;
 }
 
+.payment-status.partial {
+  color: #f59e0b;
+}
+
+.payment-status.pending {
+  color: #ef4444;
+}
+
 .payment-status.unpaid {
   color: #ef4444;
 }
@@ -558,9 +566,14 @@
   color: #16a34a;
 }
 
-.badge-unpaid {
+.badge-partial {
   background: #fef3c7;
   color: #d97706;
+}
+
+.badge-unpaid {
+  background: #fee2e2;
+  color: #dc2626;
 }
 
 .badge-pos {
