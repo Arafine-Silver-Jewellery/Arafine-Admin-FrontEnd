@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { api } from "../api/client";
 import "../styles/pos.css";
 
@@ -26,6 +26,20 @@ interface Pagination {
   totalPages: number;
 }
 
+interface OrderBill {
+  orderNumber: string;
+  date: Date;
+  items: CartItem[];
+  subTotal: number;
+  productDiscount: number;
+  couponDiscount: number;
+  extraDiscount: number;
+  total: number;
+  paymentMethod: "cash" | "card";
+  paidAmount: number;
+  change: number;
+}
+
 export default function POS() {
   const [activeTab, setActiveTab] = useState<"physical" | "digital">("physical");
   const [searchQuery, setSearchQuery] = useState("");
@@ -42,6 +56,10 @@ export default function POS() {
   const [paidAmount, setPaidAmount] = useState("");
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [extraDiscount, setExtraDiscount] = useState(0);
+  const [showBill, setShowBill] = useState(false);
+  const [currentBill, setCurrentBill] = useState<OrderBill | null>(null);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const billRef = useRef<HTMLDivElement>(null);
 
   // Fetch products when tab, search, or page changes
   useEffect(() => {
@@ -181,6 +199,116 @@ export default function POS() {
   }, 0);
   
   const total = subTotal - (couponDiscount * 100) - (extraDiscount * 100);
+
+  function generateOrderNumber(): string {
+    const now = new Date();
+    const datePart = now.toISOString().slice(0, 10).replace(/-/g, "");
+    const timePart = now.getTime().toString().slice(-6);
+    return `POS-${datePart}-${timePart}`;
+  }
+
+  async function handlePlaceOrder() {
+    if (cart.length === 0) return;
+    
+    setIsPlacingOrder(true);
+    
+    try {
+      // Create bill data
+      const paidAmountPaise = (Number(paidAmount) || 0) * 100;
+      const finalTotal = Math.max(0, total);
+      const change = Math.max(0, paidAmountPaise - finalTotal);
+
+      const bill: OrderBill = {
+        orderNumber: generateOrderNumber(),
+        date: new Date(),
+        items: [...cart],
+        subTotal,
+        productDiscount,
+        couponDiscount: couponDiscount * 100,
+        extraDiscount: extraDiscount * 100,
+        total: finalTotal,
+        paymentMethod,
+        paidAmount: paidAmountPaise,
+        change,
+      };
+
+      // TODO: Save order to backend
+      // await api.createPOSOrder(bill);
+
+      setCurrentBill(bill);
+      setShowBill(true);
+      
+      // Clear cart after successful order
+      setCart([]);
+      setPaidAmount("");
+      setCouponDiscount(0);
+      setExtraDiscount(0);
+    } catch (error) {
+      console.error("Failed to place order:", error);
+      alert("Failed to place order. Please try again.");
+    } finally {
+      setIsPlacingOrder(false);
+    }
+  }
+
+  function handlePrintBill() {
+    if (!billRef.current) return;
+
+    const printContent = billRef.current.innerHTML;
+    const printWindow = window.open("", "_blank", "width=400,height=600");
+    
+    if (printWindow) {
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Receipt - ${currentBill?.orderNumber}</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+              font-family: 'Courier New', monospace; 
+              padding: 10px;
+              font-size: 12px;
+              max-width: 300px;
+              margin: 0 auto;
+            }
+            .receipt-header { text-align: center; margin-bottom: 15px; border-bottom: 1px dashed #000; padding-bottom: 10px; }
+            .receipt-header h1 { font-size: 18px; margin-bottom: 5px; }
+            .receipt-header p { font-size: 11px; color: #333; }
+            .receipt-info { margin-bottom: 15px; border-bottom: 1px dashed #000; padding-bottom: 10px; }
+            .receipt-info p { display: flex; justify-content: space-between; margin-bottom: 3px; }
+            .receipt-items { margin-bottom: 15px; border-bottom: 1px dashed #000; padding-bottom: 10px; }
+            .receipt-item { margin-bottom: 8px; }
+            .receipt-item-name { font-weight: bold; }
+            .receipt-item-details { display: flex; justify-content: space-between; font-size: 11px; }
+            .receipt-summary { margin-bottom: 15px; }
+            .receipt-summary p { display: flex; justify-content: space-between; margin-bottom: 3px; }
+            .receipt-summary .total { font-weight: bold; font-size: 14px; border-top: 1px solid #000; padding-top: 5px; margin-top: 5px; }
+            .receipt-footer { text-align: center; margin-top: 15px; font-size: 11px; }
+            @media print {
+              body { padding: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          ${printContent}
+          <script>
+            window.onload = function() {
+              window.print();
+              window.onafterprint = function() { window.close(); }
+            }
+          </script>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+  }
+
+  function closeBillModal() {
+    setShowBill(false);
+    setCurrentBill(null);
+  }
 
   // Generate pagination buttons
   function renderPaginationButtons() {
@@ -423,11 +551,96 @@ export default function POS() {
             Clear Cart
           </button>
           <button className="btn-hold">Hold</button>
-          <button className="btn-place-order" disabled={cart.length === 0}>
-            Place Order
+          <button 
+            className="btn-place-order" 
+            disabled={cart.length === 0 || isPlacingOrder}
+            onClick={handlePlaceOrder}
+          >
+            {isPlacingOrder ? "Processing..." : "Place Order"}
           </button>
         </div>
       </div>
+
+      {/* Bill/Receipt Modal */}
+      {showBill && currentBill && (
+        <div className="bill-modal-overlay" onClick={closeBillModal}>
+          <div className="bill-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="bill-modal-header">
+              <h2>Order Receipt</h2>
+              <button className="bill-close-btn" onClick={closeBillModal}>×</button>
+            </div>
+            
+            <div className="bill-content" ref={billRef}>
+              <div className="receipt-header">
+                <h1>ARAFINE</h1>
+                <p>Premium Jewelry Store</p>
+                <p>Thank you for shopping with us!</p>
+              </div>
+
+              <div className="receipt-info">
+                <p><span>Order No:</span> <span>{currentBill.orderNumber}</span></p>
+                <p><span>Date:</span> <span>{currentBill.date.toLocaleDateString("en-IN")}</span></p>
+                <p><span>Time:</span> <span>{currentBill.date.toLocaleTimeString("en-IN")}</span></p>
+                <p><span>Payment:</span> <span>{currentBill.paymentMethod.toUpperCase()}</span></p>
+              </div>
+
+              <div className="receipt-items">
+                <p className="receipt-items-header">
+                  <span>Item</span>
+                  <span>Qty</span>
+                  <span>Price</span>
+                </p>
+                {currentBill.items.map((item) => (
+                  <div key={item.product.id} className="receipt-item">
+                    <div className="receipt-item-name">{item.product.name}</div>
+                    <div className="receipt-item-details">
+                      <span>{item.quantity} x {formatPrice(item.product.pricePaise)}</span>
+                      <span>{formatPrice(item.product.pricePaise * item.quantity)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="receipt-summary">
+                <p><span>Sub Total:</span> <span>{formatPrice(currentBill.subTotal)}</span></p>
+                {currentBill.productDiscount > 0 && (
+                  <p><span>Product Discount:</span> <span>-{formatPrice(currentBill.productDiscount)}</span></p>
+                )}
+                {currentBill.couponDiscount > 0 && (
+                  <p><span>Coupon Discount:</span> <span>-{formatPrice(currentBill.couponDiscount)}</span></p>
+                )}
+                {currentBill.extraDiscount > 0 && (
+                  <p><span>Extra Discount:</span> <span>-{formatPrice(currentBill.extraDiscount)}</span></p>
+                )}
+                <p className="total"><span>Total:</span> <span>{formatPrice(currentBill.total)}</span></p>
+                <p><span>Paid:</span> <span>{formatPrice(currentBill.paidAmount)}</span></p>
+                {currentBill.change > 0 && (
+                  <p><span>Change:</span> <span>{formatPrice(currentBill.change)}</span></p>
+                )}
+              </div>
+
+              <div className="receipt-footer">
+                <p>*** Thank You! Visit Again ***</p>
+                <p>www.arafine.com</p>
+              </div>
+            </div>
+
+            <div className="bill-modal-actions">
+              <button className="btn-print" onClick={handlePrintBill}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                  <polyline points="6 9 6 2 18 2 18 9" />
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                  <rect x="6" y="14" width="12" height="8" />
+                </svg>
+                Print Receipt
+              </button>
+              <button className="btn-done" onClick={closeBillModal}>
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
