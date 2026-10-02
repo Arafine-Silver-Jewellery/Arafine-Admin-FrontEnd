@@ -202,6 +202,48 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  // POS Hold Orders
+  getHoldOrders: () =>
+    request<{ data: any[]; count: number }>("/pos/hold"),
+  
+  getHoldOrdersCount: () =>
+    request<{ count: number }>("/pos/hold/count"),
+  
+  getHoldOrder: (id: string) =>
+    request<{ data: any }>(`/pos/hold/${id}`),
+  
+  createHoldOrder: (data: {
+    customerName?: string;
+    customerPhone?: string;
+    items: {
+      productId: string;
+      productName: string;
+      productSku: string;
+      productImage: string;
+      quantity: number;
+      unitPricePaise: number;
+      stockQuantity: number;
+    }[];
+    couponDiscount?: number;
+    extraDiscount?: number;
+    note?: string;
+  }) =>
+    request<{ message: string; data: any }>("/pos/hold", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  
+  updateHoldOrder: (id: string, data: { note?: string; customerName?: string; customerPhone?: string }) =>
+    request<{ message: string; data: any }>(`/pos/hold/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  
+  deleteHoldOrder: (id: string) =>
+    request<{ message: string; data: any }>(`/pos/hold/${id}`, {
+      method: "DELETE",
+    }),
+
   // Users
   getUsers: (params: { page?: number; limit?: number; search?: string; status?: string }) => {
     const query = new URLSearchParams();

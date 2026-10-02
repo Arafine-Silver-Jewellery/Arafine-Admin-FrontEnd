@@ -40,6 +40,30 @@ interface OrderBill {
   change: number;
 }
 
+interface HoldOrderItem {
+  productId: string;
+  productName: string;
+  productSku: string;
+  productImage: string;
+  quantity: number;
+  unitPricePaise: number;
+  stockQuantity: number;
+}
+
+interface HoldOrder {
+  id: string;
+  customerName: string;
+  customerPhone?: string;
+  items: HoldOrderItem[];
+  couponDiscount: number;
+  extraDiscount: number;
+  note?: string;
+  heldAt: string;
+  heldBy?: string;
+  subTotalPaise: number;
+  totalPaise: number;
+}
+
 export default function POS() {
   const [activeTab, setActiveTab] = useState<"physical" | "digital">("physical");
   const [searchQuery, setSearchQuery] = useState("");
@@ -61,10 +85,135 @@ export default function POS() {
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const billRef = useRef<HTMLDivElement>(null);
 
+  // Hold orders state
+  const [holdOrders, setHoldOrders] = useState<HoldOrder[]>([]);
+  const [holdOrdersCount, setHoldOrdersCount] = useState(0);
+  const [showHoldOrdersModal, setShowHoldOrdersModal] = useState(false);
+  const [isHolding, setIsHolding] = useState(false);
+  const [holdNote, setHoldNote] = useState("");
+
+  // Toast notification state
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "warning" } | null>(null);
+
+  // Product quick view modal state
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [quickViewQty, setQuickViewQty] = useState(1);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
+  // Confirmation modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    show: boolean;
+    title: string;
+    message: string;
+    type: "warning" | "danger" | "info";
+    onConfirm: () => void;
+    confirmText?: string;
+    cancelText?: string;
+  } | null>(null);
+
   // Fetch products when tab, search, or page changes
   useEffect(() => {
     fetchProducts();
   }, [activeTab, pagination.page]);
+
+  // Fetch hold orders count on mount
+  useEffect(() => {
+    fetchHoldOrdersCount();
+  }, []);
+
+  // Auto-hide toast after 3 seconds
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
+  function showToast(message: string, type: "success" | "error" | "warning" = "success") {
+    setToast({ message, type });
+  }
+
+  function showConfirm(
+    title: string,
+    message: string,
+    onConfirm: () => void,
+    options?: { type?: "warning" | "danger" | "info"; confirmText?: string; cancelText?: string }
+  ) {
+    setConfirmModal({
+      show: true,
+      title,
+      message,
+      type: options?.type || "warning",
+      onConfirm,
+      confirmText: options?.confirmText || "OK",
+      cancelText: options?.cancelText || "Cancel",
+    });
+  }
+
+  function closeConfirmModal() {
+    setConfirmModal(null);
+  }
+
+  function openProductQuickView(product: Product) {
+    setSelectedProduct(product);
+    setSelectedImageIndex(0);
+    // Set default qty to 1, or max available stock
+    const maxQty = product.productType === "physical" ? product.stockQuantity : 99;
+    setQuickViewQty(Math.min(1, maxQty));
+  }
+
+  function closeProductQuickView() {
+    setSelectedProduct(null);
+    setQuickViewQty(1);
+    setSelectedImageIndex(0);
+  }
+
+  function handleQuickViewAddToCart() {
+    if (!selectedProduct) return;
+
+    // Check stock for physical products
+    if (selectedProduct.productType === "physical") {
+      const existingItem = cart.find(item => item.product.id === selectedProduct.id);
+      const currentQty = existingItem ? existingItem.quantity : 0;
+      if (currentQty + quickViewQty > selectedProduct.stockQuantity) {
+        showToast("Not enough stock available", "warning");
+        return;
+      }
+    }
+
+    // Add to cart with selected quantity
+    setCart((prev) => {
+      const existing = prev.find((item) => item.product.id === selectedProduct.id);
+      if (existing) {
+        return prev.map((item) =>
+          item.product.id === selectedProduct.id
+            ? { ...item, quantity: item.quantity + quickViewQty }
+            : item
+        );
+      }
+      return [...prev, { product: selectedProduct, quantity: quickViewQty }];
+    });
+
+    showToast(`${selectedProduct.name} added to cart`, "success");
+    closeProductQuickView();
+  }
+
+  function getDiscountPercentage(product: Product): number | null {
+    if (product.compareAtPricePaise && product.compareAtPricePaise > product.pricePaise) {
+      return Math.round(((product.compareAtPricePaise - product.pricePaise) / product.compareAtPricePaise) * 100);
+    }
+    return null;
+  }
+
+  function getProductImages(product: Product): string[] {
+    if (product.images && product.images.length > 0) {
+      // Sort by sortOrder and return URLs
+      return [...product.images]
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map(img => img.url);
+    }
+    return ["https://via.placeholder.com/300?text=No+Image"];
+  }
 
   // Debounced search
   useEffect(() => {
@@ -131,7 +280,7 @@ export default function POS() {
       const existingItem = cart.find(item => item.product.id === product.id);
       const currentQty = existingItem ? existingItem.quantity : 0;
       if (currentQty >= product.stockQuantity) {
-        alert("Not enough stock available");
+        showToast("Not enough stock available", "warning");
         return;
       }
     }
@@ -160,7 +309,7 @@ export default function POS() {
           // Check stock for physical products
           if (delta > 0 && item.product.productType === "physical") {
             if (newQty > item.product.stockQuantity) {
-              alert("Not enough stock available");
+              showToast("Not enough stock available", "warning");
               return item;
             }
           }
@@ -180,6 +329,221 @@ export default function POS() {
     setPaidAmount("");
     setCouponDiscount(0);
     setExtraDiscount(0);
+  }
+
+  // Hold Orders Functions
+  async function fetchHoldOrdersCount() {
+    try {
+      const response = await api.getHoldOrdersCount();
+      setHoldOrdersCount(response.count);
+    } catch (error) {
+      console.error("Failed to fetch hold orders count:", error);
+    }
+  }
+
+  async function fetchHoldOrders() {
+    try {
+      const response = await api.getHoldOrders();
+      setHoldOrders(response.data || []);
+      setHoldOrdersCount(response.count || 0);
+    } catch (error) {
+      console.error("Failed to fetch hold orders:", error);
+    }
+  }
+
+  async function handleHoldOrder() {
+    if (cart.length === 0) {
+      showToast("Cart is empty", "warning");
+      return;
+    }
+
+    setIsHolding(true);
+    try {
+      const items = cart.map(item => ({
+        productId: item.product.id,
+        productName: item.product.name,
+        productSku: item.product.sku,
+        productImage: getProductImage(item.product),
+        quantity: item.quantity,
+        unitPricePaise: item.product.pricePaise,
+        stockQuantity: item.product.stockQuantity,
+      }));
+
+      await api.createHoldOrder({
+        customerName: "Walk In Customer",
+        items,
+        couponDiscount,
+        extraDiscount,
+        note: holdNote || undefined,
+      });
+
+      // Clear cart and note
+      clearCart();
+      setHoldNote("");
+      
+      // Update hold orders count
+      await fetchHoldOrdersCount();
+      
+      showToast("Order held successfully!", "success");
+    } catch (error) {
+      console.error("Failed to hold order:", error);
+      showToast("Failed to hold order. Please try again.", "error");
+    } finally {
+      setIsHolding(false);
+    }
+  }
+
+  async function handleResumeHoldOrder(holdOrder: HoldOrder) {
+    try {
+      // Build cart from hold order items
+      const newCart: CartItem[] = [];
+      const stockIssues: { name: string; had: number; now: number }[] = [];
+      const outOfStock: string[] = [];
+      
+      for (const item of holdOrder.items) {
+        // Fetch current product data
+        try {
+          const product = await api.getProduct(item.productId);
+          
+          // Check stock availability
+          if (product.productType === "physical") {
+            if (product.stockQuantity === 0) {
+              // Completely out of stock - skip and notify
+              outOfStock.push(item.productName);
+            } else if (product.stockQuantity < item.quantity) {
+              // Partial stock available
+              stockIssues.push({
+                name: item.productName,
+                had: item.quantity,
+                now: product.stockQuantity,
+              });
+              newCart.push({
+                product,
+                quantity: product.stockQuantity,
+              });
+            } else {
+              // Full stock available
+              newCart.push({
+                product,
+                quantity: item.quantity,
+              });
+            }
+          } else {
+            // Digital product - no stock check needed
+            newCart.push({
+              product,
+              quantity: item.quantity,
+            });
+          }
+        } catch (err) {
+          console.error(`Failed to fetch product ${item.productId}:`, err);
+          outOfStock.push(item.productName);
+        }
+      }
+
+      // If all items are out of stock
+      if (newCart.length === 0) {
+        showConfirm(
+          "All Items Out of Stock",
+          `All items in this hold order are now out of stock:\n\n${outOfStock.map(n => `• ${n}`).join('\n')}\n\nThis hold order cannot be resumed.`,
+          () => closeConfirmModal(),
+          { type: "danger", confirmText: "OK", cancelText: "Close" }
+        );
+        return;
+      }
+
+      // Build message for issues
+      let message = "";
+      
+      if (outOfStock.length > 0) {
+        message += `Out of stock (will be skipped):\n${outOfStock.map(n => `• ${n}`).join('\n')}\n\n`;
+      }
+      
+      if (stockIssues.length > 0) {
+        message += `Reduced quantity:\n${stockIssues.map(s => `• ${s.name}: ${s.had} → ${s.now}`).join('\n')}\n\n`;
+      }
+
+      // If there are any issues, show confirmation
+      if (outOfStock.length > 0 || stockIssues.length > 0) {
+        showConfirm(
+          "Stock Changed",
+          `${message}Continue with available items?`,
+          async () => {
+            await completeResumeOrder(holdOrder, newCart);
+          },
+          { type: "warning", confirmText: "Continue", cancelText: "Cancel" }
+        );
+        return;
+      }
+
+      // No issues - resume directly
+      await completeResumeOrder(holdOrder, newCart);
+    } catch (error) {
+      console.error("Failed to resume hold order:", error);
+      showToast("Failed to resume order. Please try again.", "error");
+    }
+  }
+
+  async function completeResumeOrder(holdOrder: HoldOrder, newCart: CartItem[]) {
+    if (newCart.length === 0) {
+      showToast("No items to restore", "error");
+      return;
+    }
+
+    // Set cart with held items
+    setCart(newCart);
+    setCouponDiscount(holdOrder.couponDiscount);
+    setExtraDiscount(holdOrder.extraDiscount);
+
+    // Delete the hold order
+    await api.deleteHoldOrder(holdOrder.id);
+    
+    // Refresh hold orders
+    await fetchHoldOrders();
+    
+    // Close modal and show success
+    setShowHoldOrdersModal(false);
+    closeConfirmModal();
+    showToast("Order resumed successfully", "success");
+  }
+
+  async function handleDeleteHoldOrder(holdId: string) {
+    showConfirm(
+      "Delete Hold Order",
+      "Are you sure you want to delete this held order? This action cannot be undone.",
+      async () => {
+        try {
+          await api.deleteHoldOrder(holdId);
+          await fetchHoldOrders();
+          closeConfirmModal();
+          showToast("Hold order deleted", "success");
+        } catch (error) {
+          console.error("Failed to delete hold order:", error);
+          showToast("Failed to delete hold order", "error");
+        }
+      },
+      { type: "danger", confirmText: "Delete", cancelText: "Keep" }
+    );
+  }
+
+  function openHoldOrdersModal() {
+    fetchHoldOrders();
+    setShowHoldOrdersModal(true);
+  }
+
+  function formatHeldTime(heldAt: string): string {
+    const held = new Date(heldAt);
+    const now = new Date();
+    const diffMs = now.getTime() - held.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins} min ago`;
+    
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours} hr ago`;
+    
+    return held.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
   }
 
   function handlePageChange(newPage: number) {
@@ -256,7 +620,7 @@ export default function POS() {
       setExtraDiscount(0);
     } catch (error) {
       console.error("Failed to place order:", error);
-      alert(error instanceof Error ? error.message : "Failed to place order. Please try again.");
+      showToast(error instanceof Error ? error.message : "Failed to place order. Please try again.", "error");
     } finally {
       setIsPlacingOrder(false);
     }
@@ -418,7 +782,7 @@ export default function POS() {
               <div
                 key={product.id}
                 className={`pos-product-card ${product.stockQuantity === 0 && product.productType === "physical" ? "out-of-stock" : ""}`}
-                onClick={() => addToCart(product)}
+                onClick={() => openProductQuickView(product)}
               >
                 <img src={getProductImage(product)} alt={product.name} />
                 <div className="pos-product-info">
@@ -452,9 +816,9 @@ export default function POS() {
       <div className="pos-billing">
         <div className="pos-billing-header">
           <h2>Billing Section</h2>
-          <button className="hold-orders-btn">
+          <button className="hold-orders-btn" onClick={openHoldOrdersModal}>
             View All Hold Orders
-            <span className="hold-count">0</span>
+            <span className="hold-count">{holdOrdersCount}</span>
           </button>
         </div>
 
@@ -561,7 +925,13 @@ export default function POS() {
           <button className="btn-clear" onClick={clearCart}>
             Clear Cart
           </button>
-          <button className="btn-hold">Hold</button>
+          <button 
+            className="btn-hold" 
+            onClick={handleHoldOrder}
+            disabled={cart.length === 0 || isHolding}
+          >
+            {isHolding ? "Holding..." : "Hold"}
+          </button>
           <button 
             className="btn-place-order" 
             disabled={cart.length === 0 || isPlacingOrder}
@@ -650,6 +1020,323 @@ export default function POS() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Hold Orders Modal */}
+      {showHoldOrdersModal && (
+        <div className="hold-modal-overlay" onClick={() => setShowHoldOrdersModal(false)}>
+          <div className="hold-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="hold-modal-header">
+              <h2>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+                Hold Orders
+                <span className="hold-badge">{holdOrders.length}</span>
+              </h2>
+              <button className="hold-close-btn" onClick={() => setShowHoldOrdersModal(false)}>×</button>
+            </div>
+
+            <div className="hold-modal-content">
+              {holdOrders.length === 0 ? (
+                <div className="hold-empty">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" width="48" height="48">
+                    <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                  </svg>
+                  <p>No hold orders</p>
+                  <span>Orders you hold will appear here</span>
+                </div>
+              ) : (
+                <div className="hold-orders-list">
+                  {holdOrders.map((order) => (
+                    <div key={order.id} className="hold-order-card">
+                      <div className="hold-order-header">
+                        <div className="hold-order-customer">
+                          <span className="customer-name">{order.customerName}</span>
+                          {order.customerPhone && (
+                            <span className="customer-phone">{order.customerPhone}</span>
+                          )}
+                        </div>
+                        <div className="hold-order-time">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                          </svg>
+                          {formatHeldTime(order.heldAt)}
+                        </div>
+                      </div>
+
+                      <div className="hold-order-items">
+                        {order.items.slice(0, 3).map((item, idx) => (
+                          <div key={idx} className="hold-item">
+                            <img src={item.productImage} alt={item.productName} />
+                            <div className="hold-item-info">
+                              <span className="item-name">{item.productName}</span>
+                              <span className="item-qty">{item.quantity} × {formatPrice(item.unitPricePaise)}</span>
+                            </div>
+                          </div>
+                        ))}
+                        {order.items.length > 3 && (
+                          <div className="hold-items-more">
+                            +{order.items.length - 3} more items
+                          </div>
+                        )}
+                      </div>
+
+                      {order.note && (
+                        <div className="hold-order-note">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                          </svg>
+                          {order.note}
+                        </div>
+                      )}
+
+                      <div className="hold-order-footer">
+                        <div className="hold-order-total">
+                          <span>Total:</span>
+                          <strong>{formatPrice(order.totalPaise)}</strong>
+                        </div>
+                        <div className="hold-order-actions">
+                          <button 
+                            className="btn-delete-hold"
+                            onClick={() => handleDeleteHoldOrder(order.id)}
+                            title="Delete"
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                              <polyline points="3 6 5 6 21 6"/>
+                              <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                            </svg>
+                          </button>
+                          <button 
+                            className="btn-resume-hold"
+                            onClick={() => handleResumeHoldOrder(order)}
+                          >
+                            Resume
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Product Quick View Modal */}
+      {selectedProduct && (
+        <div className="quickview-overlay" onClick={closeProductQuickView}>
+          <div className="quickview-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="quickview-close" onClick={closeProductQuickView}>×</button>
+            
+            <div className="quickview-content">
+              {/* Left - Product Images */}
+              <div className="quickview-images">
+                <div className="quickview-main-image">
+                  <img 
+                    src={getProductImages(selectedProduct)[selectedImageIndex]} 
+                    alt={selectedProduct.name} 
+                  />
+                </div>
+                {getProductImages(selectedProduct).length > 1 && (
+                  <div className="quickview-thumbnails">
+                    {getProductImages(selectedProduct).map((imgUrl, idx) => (
+                      <div 
+                        key={idx} 
+                        className={`quickview-thumb ${idx === selectedImageIndex ? 'active' : ''}`}
+                        onClick={() => setSelectedImageIndex(idx)}
+                      >
+                        <img src={imgUrl} alt={`${selectedProduct.name} ${idx + 1}`} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="quickview-meta">
+                  <p><strong>SKU:</strong> {selectedProduct.sku}</p>
+                  {selectedProduct.category && (
+                    <p><strong>Category:</strong> {selectedProduct.category.name}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Right - Product Details */}
+              <div className="quickview-details">
+                <div className="quickview-stock-row">
+                  <span className="quickview-stock-label">Stock: <strong>{selectedProduct.stockQuantity}</strong></span>
+                  {selectedProduct.stockQuantity > 0 ? (
+                    <span className="quickview-stock-badge in-stock">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                      </svg>
+                      In Stock
+                    </span>
+                  ) : (
+                    <span className="quickview-stock-badge out-of-stock">Out of Stock</span>
+                  )}
+                  {getDiscountPercentage(selectedProduct) && (
+                    <span className="quickview-discount-badge">{getDiscountPercentage(selectedProduct)}% Off</span>
+                  )}
+                </div>
+
+                <h2 className="quickview-title">{selectedProduct.name}</h2>
+
+                <div className="quickview-price">
+                  {selectedProduct.compareAtPricePaise && selectedProduct.compareAtPricePaise > selectedProduct.pricePaise && (
+                    <span className="quickview-original-price">{formatPrice(selectedProduct.compareAtPricePaise)}</span>
+                  )}
+                  <span className="quickview-current-price">{formatPrice(selectedProduct.pricePaise)}</span>
+                </div>
+
+                {/* Stock Warning */}
+                {selectedProduct.productType === "physical" && selectedProduct.stockQuantity > 0 && selectedProduct.stockQuantity <= 5 && (
+                  <div className="quickview-warning">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                      <line x1="12" y1="9" x2="12" y2="13"/>
+                      <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    <div>
+                      <strong>Warning</strong>
+                      <p>Only {selectedProduct.stockQuantity} items left in stock</p>
+                    </div>
+                    <button className="quickview-warning-close" onClick={(e) => e.currentTarget.parentElement?.remove()}>×</button>
+                  </div>
+                )}
+
+                {/* Quantity Selector */}
+                <div className="quickview-qty-row">
+                  <span className="quickview-qty-label">Qty</span>
+                  <div className="quickview-qty-control">
+                    <button 
+                      onClick={() => setQuickViewQty(q => Math.max(1, q - 1))}
+                      disabled={quickViewQty <= 1}
+                    >
+                      −
+                    </button>
+                    <input 
+                      type="number" 
+                      value={quickViewQty}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value) || 1;
+                        const max = selectedProduct.productType === "physical" ? selectedProduct.stockQuantity : 99;
+                        setQuickViewQty(Math.min(Math.max(1, val), max));
+                      }}
+                      min={1}
+                      max={selectedProduct.productType === "physical" ? selectedProduct.stockQuantity : 99}
+                    />
+                    <button 
+                      onClick={() => {
+                        const max = selectedProduct.productType === "physical" ? selectedProduct.stockQuantity : 99;
+                        setQuickViewQty(q => Math.min(max, q + 1));
+                      }}
+                      disabled={selectedProduct.productType === "physical" && quickViewQty >= selectedProduct.stockQuantity}
+                    >
+                      +
+                    </button>
+                  </div>
+                  <div className="quickview-total">
+                    <span>Total Price:</span>
+                    <strong>{formatPrice(selectedProduct.pricePaise * quickViewQty)}</strong>
+                  </div>
+                </div>
+
+                {/* Add to Cart Button */}
+                <button 
+                  className="quickview-add-btn"
+                  onClick={handleQuickViewAddToCart}
+                  disabled={selectedProduct.productType === "physical" && selectedProduct.stockQuantity === 0}
+                >
+                  {selectedProduct.stockQuantity === 0 && selectedProduct.productType === "physical" 
+                    ? "Out of Stock" 
+                    : "Add to Cart"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {confirmModal && confirmModal.show && (
+        <div className="confirm-modal-overlay" onClick={closeConfirmModal}>
+          <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <div className={`confirm-modal-icon confirm-icon-${confirmModal.type}`}>
+              {confirmModal.type === "warning" && (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="32" height="32">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              )}
+              {confirmModal.type === "danger" && (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="32" height="32">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="15" y1="9" x2="9" y2="15"/>
+                  <line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+              )}
+              {confirmModal.type === "info" && (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="32" height="32">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="16" x2="12" y2="12"/>
+                  <line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+              )}
+            </div>
+            <h3 className="confirm-modal-title">{confirmModal.title}</h3>
+            <p className="confirm-modal-message">{confirmModal.message}</p>
+            <div className="confirm-modal-actions">
+              <button className="confirm-btn-cancel" onClick={closeConfirmModal}>
+                {confirmModal.cancelText}
+              </button>
+              <button 
+                className={`confirm-btn-confirm confirm-btn-${confirmModal.type}`}
+                onClick={() => {
+                  confirmModal.onConfirm();
+                }}
+              >
+                {confirmModal.confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`pos-toast pos-toast-${toast.type}`}>
+          <div className="pos-toast-icon">
+            {toast.type === "success" && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+            )}
+            {toast.type === "error" && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="15" y1="9" x2="9" y2="15"/>
+                <line x1="9" y1="9" x2="15" y2="15"/>
+              </svg>
+            )}
+            {toast.type === "warning" && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            )}
+          </div>
+          <span className="pos-toast-message">{toast.message}</span>
+          <button className="pos-toast-close" onClick={() => setToast(null)}>×</button>
         </div>
       )}
     </div>
