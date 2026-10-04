@@ -28,7 +28,7 @@ function EyeOffIcon() {
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login, verifyOtp } = useAuth();
+  const { login, verifyOtp, isAuthenticated, isLoading: authLoading } = useAuth();
 
   const [step, setStep] = useState<Step>("credentials");
   const [email, setEmail] = useState("");
@@ -39,6 +39,13 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(0);
   const [isResending, setIsResending] = useState(false);
+
+  // Redirect to dashboard if already logged in
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      navigate("/", { replace: true });
+    }
+  }, [isAuthenticated, authLoading, navigate]);
 
   // Countdown timer for resend OTP
   useEffect(() => {
@@ -55,6 +62,25 @@ export default function Login() {
   const startResendCountdown = useCallback(() => {
     setResendCountdown(RESEND_COOLDOWN_SECONDS);
   }, []);
+
+  // Show loading while checking auth status
+  if (authLoading) {
+    return (
+      <div className="login-container">
+        <div className="login-card">
+          <div className="login-header">
+            <h1>Arafine Admin</h1>
+            <p>Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render login form if authenticated (redirect will happen)
+  if (isAuthenticated) {
+    return null;
+  }
 
   async function handleCredentialsSubmit(e: React.FormEvent) {
     e.preventDefault();
