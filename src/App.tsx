@@ -121,7 +121,7 @@ function App() {
             <Route path="promotions" element={<RequirePermission permission="offers-deals"><Promotions /></RequirePermission>} />
             
             {/* Settings */}
-            <Route path="storage" element={<RequirePermission permission="storage"><StorageProviders /></RequirePermission>} />
+            <Route path="storage" element={<RequirePermission permission="storage-settings"><StorageProviders /></RequirePermission>} />
             
             {/* Employee Management - requires employees permission */}
             <Route path="employees" element={<RequirePermission permission="employees"><Employees /></RequirePermission>} />

@@ -459,4 +459,85 @@ export const api = {
       method: "PUT",
       body: JSON.stringify({ permissions: permissionKeys }),
     }),
+
+  // ============================================
+  // FILE EXPLORER API
+  // ============================================
+  explorerListFolder: (path: string = "", maxKeys: number = 1000) =>
+    request<{ data: { items: any[]; path: string; hasMore: boolean } }>("/storage-providers/explorer/list", {
+      method: "POST",
+      body: JSON.stringify({ path, maxKeys }),
+    }),
+
+  explorerCreateFolder: (path: string) =>
+    request<any>("/storage-providers/explorer/folder", {
+      method: "POST",
+      body: JSON.stringify({ path }),
+    }),
+
+  explorerCopy: (sourceKey: string, destinationKey: string, isFolder: boolean = false) =>
+    request<any>("/storage-providers/explorer/copy", {
+      method: "POST",
+      body: JSON.stringify({ sourceKey, destinationKey, isFolder }),
+    }),
+
+  explorerMove: (sourceKey: string, destinationKey: string, isFolder: boolean = false) =>
+    request<any>("/storage-providers/explorer/move", {
+      method: "POST",
+      body: JSON.stringify({ sourceKey, destinationKey, isFolder }),
+    }),
+
+  explorerRename: (key: string, newName: string, isFolder: boolean = false) =>
+    request<any>("/storage-providers/explorer/rename", {
+      method: "POST",
+      body: JSON.stringify({ key, newName, isFolder }),
+    }),
+
+  explorerDeleteFolder: (path: string) =>
+    request<any>("/storage-providers/explorer/folder", {
+      method: "DELETE",
+      body: JSON.stringify({ path }),
+    }),
+
+  explorerBulkDelete: (items: { key: string; isFolder: boolean }[]) =>
+    request<any>("/storage-providers/explorer/bulk-delete", {
+      method: "POST",
+      body: JSON.stringify({ items }),
+    }),
+
+  explorerGetFileInfo: (key: string) =>
+    request<any>("/storage-providers/explorer/info", {
+      method: "POST",
+      body: JSON.stringify({ key }),
+    }),
+
+  explorerGetStats: () =>
+    request<any>("/storage-providers/explorer/stats"),
+
+  explorerUpload: async (file: File, path: string = ""): Promise<{
+    url: string;
+    key: string;
+    filename: string;
+    size: number;
+    contentType: string;
+  }> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("path", path);
+
+    const url = `${API_BASE_URL}/storage-providers/explorer/upload`;
+    const response = await fetch(url, {
+      method: "POST",
+      body: formData,
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.message || `Upload failed: HTTP ${response.status}`);
+    }
+
+    const result = await response.json();
+    return result.data;
+  },
 };
