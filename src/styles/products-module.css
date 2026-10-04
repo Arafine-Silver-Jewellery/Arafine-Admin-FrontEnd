@@ -1397,3 +1397,181 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+
+/* ==========================================
+   BULK ACTION BAR & SELECTION STYLES
+   ========================================== */
+
+/* Bulk Action Bar */
+.bulk-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+  color: #fff;
+  padding: 0.875rem 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bulk-action-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9375rem;
+}
+
+.bulk-action-info svg {
+  opacity: 0.9;
+}
+
+.bulk-action-info strong {
+  font-weight: 600;
+}
+
+.bulk-action-buttons {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.btn-bulk-deselect {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-bulk-deselect:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.btn-bulk-delete {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #dc2626;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-bulk-delete:hover {
+  background: #b91c1c;
+}
+
+.btn-bulk-delete svg,
+.btn-bulk-deselect svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Selected Row Highlight */
+.products-table tbody tr.selected-row {
+  background: #eff6ff;
+}
+
+.products-table tbody tr.selected-row:hover {
+  background: #dbeafe;
+}
+
+/* Checkbox styling in table */
+.products-table th:first-child,
+.products-table td:first-child {
+  width: 48px;
+  text-align: center;
+}
+
+.products-table input[type="checkbox"] {
+  cursor: pointer;
+  accent-color: #3b82f6;
+}
+
+/* Bulk Delete Modal */
+.bulk-delete-modal {
+  max-width: 480px;
+}
+
+.bulk-delete-modal .delete-modal-icon.bulk {
+  background: #fef2f2;
+}
+
+.bulk-delete-modal .delete-modal-icon.bulk svg {
+  stroke: #dc2626;
+}
+
+.bulk-delete-list {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  max-height: 200px;
+  overflow-y: auto;
+  text-align: left;
+}
+
+.bulk-delete-item {
+  color: #475569;
+  font-size: 0.875rem;
+  padding: 0.25rem 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bulk-delete-more {
+  color: #64748b;
+  font-size: 0.8125rem;
+  font-style: italic;
+  padding-top: 0.5rem;
+  margin-top: 0.5rem;
+  border-top: 1px dashed #e2e8f0;
+}
+
+/* Responsive adjustments for bulk action bar */
+@media (max-width: 640px) {
+  .bulk-action-bar {
+    flex-direction: column;
+    gap: 0.75rem;
+    text-align: center;
+  }
+
+  .bulk-action-buttons {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .btn-bulk-deselect,
+  .btn-bulk-delete {
+    flex: 1;
+    justify-content: center;
+  }
+}

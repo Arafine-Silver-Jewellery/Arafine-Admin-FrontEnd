@@ -118,6 +118,16 @@ export const api = {
       }
     ),
 
+  // Bulk delete products
+  bulkDeleteProducts: (ids: string[]) =>
+    request<{ message: string; deletedCount: number; errors: { id: string; error: string }[] }>(
+      "/products/bulk-delete",
+      {
+        method: "POST",
+        body: JSON.stringify({ ids }),
+      }
+    ),
+
   // Categories
   getCategories: (params?: { page?: number; limit?: number; search?: string }) => {
     const query = new URLSearchParams();

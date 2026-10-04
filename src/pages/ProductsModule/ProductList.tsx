@@ -50,6 +50,11 @@ export default function ProductList() {
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
   const [deleting, setDeleting] = useState(false);
   
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  
   // Export dropdown state
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -88,6 +93,11 @@ export default function ProductList() {
     loadProducts();
   }, [currentPage, itemsPerPage, debouncedSearch]);
 
+  // Clear selection when page changes
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [currentPage, itemsPerPage, debouncedSearch]);
+
   async function loadProducts() {
     setLoading(true);
     try {
@@ -108,6 +118,35 @@ export default function ProductList() {
 
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+
+  // Bulk selection functions
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  }
+
+  function selectAll() {
+    setSelectedIds(new Set(products.map(p => p.id)));
+  }
+
+  function deselectAll() {
+    setSelectedIds(new Set());
+  }
+
+  function isAllSelected() {
+    return products.length > 0 && products.every(p => selectedIds.has(p.id));
+  }
+
+  function isSomeSelected() {
+    return products.some(p => selectedIds.has(p.id)) && !isAllSelected();
+  }
 
   async function toggleStatus(product: Product) {
     try {
@@ -151,11 +190,44 @@ export default function ProductList() {
       await api.deleteProduct(deletingProduct.id);
       await loadProducts();
       closeDeleteModal();
+      toast.success("Product deleted successfully");
     } catch (error: any) {
       console.error("Failed to delete product:", error);
       toast.error(error.message || "Failed to delete product");
     } finally {
       setDeleting(false);
+    }
+  }
+
+  // Bulk delete modal functions
+  function openBulkDeleteModal() {
+    setShowBulkDeleteModal(true);
+  }
+
+  function closeBulkDeleteModal() {
+    setShowBulkDeleteModal(false);
+  }
+
+  async function handleConfirmBulkDelete() {
+    if (selectedIds.size === 0) return;
+
+    setBulkDeleting(true);
+    try {
+      const result = await api.bulkDeleteProducts(Array.from(selectedIds));
+      await loadProducts();
+      setSelectedIds(new Set());
+      closeBulkDeleteModal();
+      
+      if (result.errors && result.errors.length > 0) {
+        toast.warning(`Deleted ${result.deletedCount} products. ${result.errors.length} failed.`);
+      } else {
+        toast.success(`Successfully deleted ${result.deletedCount} products`);
+      }
+    } catch (error: any) {
+      console.error("Failed to bulk delete products:", error);
+      toast.error(error.message || "Failed to delete products");
+    } finally {
+      setBulkDeleting(false);
     }
   }
 
@@ -276,8 +348,44 @@ export default function ProductList() {
     XLSX.writeFile(workbook, `${filenamePrefix}-${date}.xlsx`);
   }
 
+  // Get selected product names for confirmation modal
+  function getSelectedProductNames(): string[] {
+    return products
+      .filter(p => selectedIds.has(p.id))
+      .map(p => p.name);
+  }
+
   return (
     <div className="products-module-container">
+      {/* Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="bulk-action-bar">
+          <div className="bulk-action-info">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+              <polyline points="9 11 12 14 22 4" />
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+            </svg>
+            <span><strong>{selectedIds.size}</strong> {selectedIds.size === 1 ? "product" : "products"} selected</span>
+          </div>
+          <div className="bulk-action-buttons">
+            <button className="btn-bulk-deselect" onClick={deselectAll}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+              Clear Selection
+            </button>
+            <button className="btn-bulk-delete" onClick={openBulkDeleteModal}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                <polyline points="3,6 5,6 21,6" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              </svg>
+              Delete Selected
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="products-card">
         <div className="products-toolbar">
           <div className="search-box">
@@ -385,6 +493,20 @@ export default function ProductList() {
           <table className="products-table">
             <thead>
               <tr>
+                <th style={{ width: 48, textAlign: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected()}
+                    ref={(el) => {
+                      if (el) {
+                        el.indeterminate = isSomeSelected();
+                      }
+                    }}
+                    onChange={() => isAllSelected() ? deselectAll() : selectAll()}
+                    style={{ cursor: "pointer", width: 18, height: 18 }}
+                    title={isAllSelected() ? "Deselect all" : "Select all"}
+                  />
+                </th>
                 <th>SL</th>
                 <th>Product Name</th>
                 <th>Category</th>
@@ -397,7 +519,18 @@ export default function ProductList() {
             </thead>
             <tbody>
               {products.map((product, index) => (
-                <tr key={product.id}>
+                <tr 
+                  key={product.id} 
+                  className={selectedIds.has(product.id) ? "selected-row" : ""}
+                >
+                  <td style={{ textAlign: "center" }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(product.id)}
+                      onChange={() => toggleSelect(product.id)}
+                      style={{ cursor: "pointer", width: 18, height: 18 }}
+                    />
+                  </td>
                   <td>{startIndex + index + 1}</td>
                   <td>
                     <div className="product-name-cell">
@@ -495,7 +628,7 @@ export default function ProductList() {
               ))}
               {products.length === 0 && (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: "center", padding: "2rem" }}>
+                  <td colSpan={9} style={{ textAlign: "center", padding: "2rem" }}>
                     {debouncedSearch ? "No products found" : "No products yet. Click 'Add New Product' to create one."}
                   </td>
                 </tr>
@@ -644,7 +777,7 @@ export default function ProductList() {
         )}
       </div>
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Confirmation Modal (Single) */}
       {showDeleteModal && deletingProduct && (
         <div className="modal-overlay" onClick={closeDeleteModal}>
           <div className="delete-modal" onClick={(e) => e.stopPropagation()}>
@@ -664,6 +797,41 @@ export default function ProductList() {
               </button>
               <button className="btn-delete" onClick={handleConfirmDelete} disabled={deleting}>
                 {deleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      {showBulkDeleteModal && (
+        <div className="modal-overlay" onClick={closeBulkDeleteModal}>
+          <div className="delete-modal bulk-delete-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="delete-modal-icon bulk">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="3,6 5,6 21,6" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                <line x1="10" y1="11" x2="10" y2="17" />
+                <line x1="14" y1="11" x2="14" y2="17" />
+              </svg>
+            </div>
+            <h3>Delete {selectedIds.size} {selectedIds.size === 1 ? "Product" : "Products"}</h3>
+            <p>Are you sure you want to delete the following products?</p>
+            <div className="bulk-delete-list">
+              {getSelectedProductNames().slice(0, 5).map((name, idx) => (
+                <div key={idx} className="bulk-delete-item">• {name}</div>
+              ))}
+              {selectedIds.size > 5 && (
+                <div className="bulk-delete-more">...and {selectedIds.size - 5} more</div>
+              )}
+            </div>
+            <p className="delete-warning">This action cannot be undone. All product images will be moved to trash.</p>
+            <div className="delete-modal-actions">
+              <button className="btn-cancel" onClick={closeBulkDeleteModal} disabled={bulkDeleting}>
+                Cancel
+              </button>
+              <button className="btn-delete" onClick={handleConfirmBulkDelete} disabled={bulkDeleting}>
+                {bulkDeleting ? "Deleting..." : `Delete ${selectedIds.size} Products`}
               </button>
             </div>
           </div>
