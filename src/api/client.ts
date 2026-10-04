@@ -108,6 +108,16 @@ export const api = {
     return request<{ data: any[]; total: number }>(`/products/export${queryString ? `?${queryString}` : ""}`);
   },
 
+  // Bulk import products
+  bulkImportProducts: (products: any[]) =>
+    request<{ message: string; success: number; failed: number; errors: { row: number; error: string }[] }>(
+      "/products/bulk-import",
+      {
+        method: "POST",
+        body: JSON.stringify({ products }),
+      }
+    ),
+
   // Categories
   getCategories: (params?: { page?: number; limit?: number; search?: string }) => {
     const query = new URLSearchParams();
