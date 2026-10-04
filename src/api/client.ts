@@ -94,6 +94,20 @@ export const api = {
       body: JSON.stringify({ quantity }),
     }),
 
+  // Export all products (no pagination limit)
+  exportProducts: (params?: {
+    search?: string;
+    categoryId?: string;
+    status?: string;
+  }) => {
+    const query = new URLSearchParams();
+    if (params?.search) query.set("search", params.search);
+    if (params?.categoryId) query.set("categoryId", params.categoryId);
+    if (params?.status) query.set("status", params.status);
+    const queryString = query.toString();
+    return request<{ data: any[]; total: number }>(`/products/export${queryString ? `?${queryString}` : ""}`);
+  },
+
   // Categories
   getCategories: (params?: { page?: number; limit?: number; search?: string }) => {
     const query = new URLSearchParams();

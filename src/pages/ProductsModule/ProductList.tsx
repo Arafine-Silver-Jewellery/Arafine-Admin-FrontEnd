@@ -190,20 +190,66 @@ export default function ProductList() {
   async function handleExportAll() {
     setExporting(true);
     try {
-      const response = await api.getProducts({ page: 1, limit: 10000 });
+      const response = await api.exportProducts();
       const allProducts = response.data || [];
       
-      const exportData = allProducts.map((product: Product, index: number) => ({
-        "SL": index + 1,
-        "Product Name": product.name,
-        "SKU": product.sku,
-        "Category": product.category?.name || "",
-        "Unit Price": formatPrice(product.pricePaise),
-        "Stock": product.stockQuantity,
-        "Status": product.status,
-        "Featured": product.isFeatured ? "Yes" : "No",
-        "Created At": new Date(product.createdAt).toLocaleDateString(),
-      }));
+      const exportData = allProducts.map((product: any, index: number) => {
+        // Get all image URLs
+        const imageUrls = product.images?.map((img: any) => img.url).join(" | ") || "";
+        const primaryImage = product.images?.find((img: any) => img.isPrimary)?.url || product.images?.[0]?.url || "";
+        
+        // Get color info
+        const colors = product.colors?.map((c: any) => `${c.name} (${c.hexCode})`).join(", ") || "";
+        const colorImages = product.colors?.flatMap((c: any) => c.images?.map((img: any) => img.url) || []).join(" | ") || "";
+        
+        // Get attributes
+        const attributes = product.productAttributes?.map((a: any) => `${a.name}: ${a.values?.join(", ")}`).join(" | ") || "";
+        
+        return {
+          "SL": index + 1,
+          "Product Name": product.name,
+          "SKU": product.sku,
+          "Category": product.category?.name || "",
+          "Description": product.description || "",
+          "Short Description": product.shortDescription || "",
+          "Price (₹)": (product.pricePaise / 100).toFixed(2),
+          "Compare At Price (₹)": product.compareAtPricePaise ? (product.compareAtPricePaise / 100).toFixed(2) : "",
+          "Cost Price (₹)": product.costPricePaise ? (product.costPricePaise / 100).toFixed(2) : "",
+          "Stock Quantity": product.stockQuantity,
+          "Low Stock Threshold": product.lowStockThreshold,
+          "Track Inventory": product.trackInventory ? "Yes" : "No",
+          "Status": product.status,
+          "Is Visible": product.isVisible ? "Yes" : "No",
+          "Is Featured": product.isFeatured ? "Yes" : "No",
+          "Product Type": product.productType || "physical",
+          "Unit": product.unit || "pc",
+          "Min Order Qty": product.minOrderQty || 1,
+          "Shipping Cost (₹)": product.shippingCost || 0,
+          "Discount Amount": product.discountAmount || 0,
+          "Discount Type": product.discountType || "flat",
+          "Color": product.color || "",
+          "Material": product.material || "",
+          "Weight (grams)": product.weightGrams || "",
+          "Has Variations": product.hasVariations ? "Yes" : "No",
+          "Colors": colors,
+          "Product Attributes": attributes,
+          "Search Tags": product.searchTags?.join(", ") || "",
+          "Average Rating": product.averageRating || 0,
+          "Review Count": product.reviewCount || 0,
+          "Sort Order": product.sortOrder || 0,
+          "Meta Title": product.metaTitle || "",
+          "Meta Description": product.metaDescription || "",
+          "Meta Index": product.metaIndex || "index",
+          "YouTube Video URL": product.youtubeVideoUrl || "",
+          "Primary Image URL": primaryImage,
+          "All Image URLs": imageUrls,
+          "Color Image URLs": colorImages,
+          "Meta Image URL": product.metaImageUrl || "",
+          "Created By": product.createdBy?.name || product.createdBy?.email || "",
+          "Created At": product.createdAt ? new Date(product.createdAt).toLocaleString() : "",
+          "Updated At": product.updatedAt ? new Date(product.updatedAt).toLocaleString() : "",
+        };
+      });
       downloadExcel(exportData, "products-all");
     } catch (error) {
       console.error("Failed to export:", error);
@@ -215,17 +261,15 @@ export default function ProductList() {
 
   function downloadExcel(data: any[], filenamePrefix: string) {
     const worksheet = XLSX.utils.json_to_sheet(data);
-    worksheet["!cols"] = [
-      { wch: 5 },
-      { wch: 35 },
-      { wch: 15 },
-      { wch: 20 },
-      { wch: 12 },
-      { wch: 8 },
-      { wch: 10 },
-      { wch: 10 },
-      { wch: 15 },
-    ];
+    // Auto-fit columns based on content
+    const colWidths = Object.keys(data[0] || {}).map(key => {
+      const maxLength = Math.max(
+        key.length,
+        ...data.map(row => String(row[key] || "").length)
+      );
+      return { wch: Math.min(maxLength + 2, 50) }; // Cap at 50 chars width
+    });
+    worksheet["!cols"] = colWidths;
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Products");
     const date = new Date().toISOString().split("T")[0];
