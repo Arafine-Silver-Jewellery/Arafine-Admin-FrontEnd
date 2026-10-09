@@ -444,7 +444,7 @@ export default function StorageProviders() {
     setShowDeleteConfirm(false);
 
     try {
-      const result = await api.explorerBulkDelete(selected.map(i => ({ key: i.key, isFolder: i.type === "folder" })));
+      await api.explorerBulkDelete(selected.map(i => ({ key: i.key, isFolder: i.type === "folder" })));
       // Show appropriate message based on whether items were moved to trash or permanently deleted
       if (isInTrash) {
         toast.success(`${selected.length} item(s) permanently deleted`);
