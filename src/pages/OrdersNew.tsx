@@ -126,6 +126,18 @@ const summaryItems = [
   { key: "failed_to_deliver", label: "Failed to Deliver", color: "#dc2626" },
 ];
 
+const orderStatusOptions = [
+  { value: "all", label: "All", path: "/orders-management" },
+  { value: "pending", label: "Pending", path: "/orders-management/pending" },
+  { value: "confirmed", label: "Confirmed", path: "/orders-management/confirmed" },
+  { value: "packaging", label: "Packaging", path: "/orders-management/packaging" },
+  { value: "out_for_delivery", label: "Out for Delivery", path: "/orders-management/out-for-delivery" },
+  { value: "delivered", label: "Delivered", path: "/orders-management/delivered" },
+  { value: "returned", label: "Returned", path: "/orders-management/returned" },
+  { value: "failed_to_deliver", label: "Failed to Deliver", path: "/orders-management/failed-to-deliver" },
+  { value: "cancelled", label: "Cancelled", path: "/orders-management/canceled" },
+];
+
 interface OrdersNewProps {
   statusFilter?: OrderStatus;
 }
@@ -156,8 +168,10 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     delivered: 0,
     returned: 0,
     failed_to_deliver: 0,
-    cancelled: 0,
   });
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+
+  const currentStatusLabel = orderStatusOptions.find(o => o.value === currentStatus)?.label ?? "All";
 
   // Filter modal state
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -216,6 +230,19 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
   useEffect(() => {
     loadOrders();
   }, [page, currentStatus, channelFilter]);
+
+  // Close status dropdown when clicking outside
+  useEffect(() => {
+    if (!statusDropdownOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".status-dropdown")) {
+        setStatusDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [statusDropdownOpen]);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -549,48 +576,39 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
 
   return (
     <div className="orders-new-container">
-      {currentStatus === "all" && (
-        <div className="order-summary">
-          <h2>Current Order Summary</h2>
-          <div className="summary-grid">
-            {summaryItems.map(item => (
-              <div 
-                key={item.key} 
-                className="summary-card"
-                onClick={() => { 
-                  const routeMap: Record<string, string> = {
-                    pending: "/orders-management/pending",
-                    confirmed: "/orders-management/confirmed",
-                    packaging: "/orders-management/packaging",
-                    out_for_delivery: "/orders-management/out-for-delivery",
-                    delivered: "/orders-management/delivered",
-                    cancelled: "/orders-management/canceled",
-                    returned: "/orders-management/returned",
-                    failed_to_deliver: "/orders-management/failed-to-deliver",
-                  };
-                  if (routeMap[item.key]) {
-                    navigate(routeMap[item.key]);
-                  }
-                }}
-                style={{ cursor: "pointer" }}
-              >
-                <span className="summary-icon">
-                  <SummaryIcon type={item.key} color={item.color} />
-                </span>
-                <span className="summary-label">{item.label}</span>
-                <span className="summary-count" style={{ color: item.color }}>
-                  {statusCounts[item.key as keyof StatusCounts]}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       <div className="orders-list-section">
         <div className="orders-list-header">
           <h2>Order list <span>{orders.length}</span></h2>
           <div className="orders-actions" style={{ width: 'auto' }}>
+            <div className="status-dropdown">
+              <button
+                type="button"
+                className="status-dropdown-trigger"
+                onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+              >
+                <span>{currentStatusLabel}</span>
+                <svg className={`chevron ${statusDropdownOpen ? "expanded" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="6,9 12,15 18,9" />
+                </svg>
+              </button>
+              {statusDropdownOpen && (
+                <div className="status-dropdown-menu">
+                  {orderStatusOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={`status-dropdown-item ${currentStatus === option.value ? "active" : ""}`}
+                      onClick={() => {
+                        navigate(option.path);
+                        setStatusDropdownOpen(false);
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <form onSubmit={handleSearch} className="search-box">
               <input
                 type="text"
@@ -603,7 +621,7 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
                 <path d="M21 21l-4.35-4.35" />
               </svg>
             </form>
-            <select 
+            <select
               value={channelFilter}
               onChange={(e) => { setChannelFilter(e.target.value as OrderChannel); setPage(1); }}
               className="channel-filter"

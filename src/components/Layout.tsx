@@ -3,18 +3,6 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import "../styles/layout.css";
 
-const orderSubmenus = [
-  { path: "/orders-management", label: "All" },
-  { path: "/orders-management/pending", label: "Pending" },
-  { path: "/orders-management/confirmed", label: "Confirmed" },
-  { path: "/orders-management/packaging", label: "Packaging" },
-  { path: "/orders-management/out-for-delivery", label: "Out for delivery" },
-  { path: "/orders-management/delivered", label: "Delivered" },
-  { path: "/orders-management/returned", label: "Returned" },
-  { path: "/orders-management/failed-to-deliver", label: "Failed to Deliver" },
-  { path: "/orders-management/canceled", label: "Canceled" },
-];
-
 const refundSubmenus = [
   { path: "/refund-requests", label: "Pending" },
   { path: "/refund-requests/approved", label: "Approved" },
@@ -127,7 +115,6 @@ export default function Layout() {
   const { employee, logout, hasPermission } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [ordersExpanded, setOrdersExpanded] = useState(location.pathname.startsWith("/orders-management"));
   const [refundsExpanded, setRefundsExpanded] = useState(location.pathname.startsWith("/refund-requests"));
   const [categoryExpanded, setCategoryExpanded] = useState(location.pathname.startsWith("/category-setup"));
   const [productsExpanded, setProductsExpanded] = useState(location.pathname.startsWith("/products-module"));
@@ -143,7 +130,6 @@ export default function Layout() {
     navigate("/login");
   }
 
-  const isOrdersActive = location.pathname.startsWith("/orders-management");
   const isRefundsActive = location.pathname.startsWith("/refund-requests");
   const isCategoryActive = location.pathname.startsWith("/category-setup");
   const isProductsActive = location.pathname.startsWith("/products-module");
@@ -207,10 +193,9 @@ export default function Layout() {
           )}
           
           {hasPermission("orders") && (
-          <div className={`nav-item-with-submenu ${isOrdersActive ? "expanded" : ""}`}>
-            <button 
-              className={`nav-toggle ${isOrdersActive ? "active" : ""}`}
-              onClick={() => setOrdersExpanded(!ordersExpanded)}
+            <NavLink
+              to="/orders-management"
+              end
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
@@ -218,25 +203,7 @@ export default function Layout() {
                 <path d="M16 10a4 4 0 0 1-8 0" />
               </svg>
               <span>Orders</span>
-              <svg className={`chevron ${ordersExpanded ? "expanded" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="6,9 12,15 18,9" />
-              </svg>
-            </button>
-            {ordersExpanded && (
-              <div className="submenu">
-                {orderSubmenus.map((item) => (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    end={item.path === "/orders-management"}
-                    className={({ isActive }) => `submenu-item ${isActive ? "active" : ""}`}
-                  >
-                    <span>{item.label}</span>
-                  </NavLink>
-                ))}
-              </div>
-            )}
-          </div>
+            </NavLink>
           )}
 
           {hasPermission("refund-requests") && (

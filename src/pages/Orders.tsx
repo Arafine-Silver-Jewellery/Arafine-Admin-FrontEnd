@@ -4,6 +4,18 @@ import { api } from "../api/client";
 import { formatPrice, formatDateTime, getOrderStatusColor, getPaymentStatusColor } from "../utils/format";
 import type { Order } from "../types";
 
+const orderStatusOptions = [
+  { value: "", label: "All" },
+  { value: "pending", label: "Pending" },
+  { value: "confirmed", label: "Confirmed" },
+  { value: "packaging", label: "Packaging" },
+  { value: "out_for_delivery", label: "Out for delivery" },
+  { value: "delivered", label: "Delivered" },
+  { value: "returned", label: "Returned" },
+  { value: "failed_to_deliver", label: "Failed to Deliver" },
+  { value: "canceled", label: "Canceled" },
+];
+
 export default function Orders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -12,6 +24,9 @@ export default function Orders() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [channelFilter, setChannelFilter] = useState("");
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+
+  const currentStatusLabel = orderStatusOptions.find(o => o.value === statusFilter)?.label ?? "All";
 
   async function loadOrders() {
     setLoading(true);
@@ -44,6 +59,19 @@ export default function Orders() {
     loadOrders();
   }
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!statusDropdownOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".status-dropdown")) {
+        setStatusDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [statusDropdownOpen]);
+
   async function handleStatusUpdate(orderId: string, newStatus: string) {
     try {
       await api.updateOrderStatus(orderId, newStatus);
@@ -75,18 +103,36 @@ export default function Orders() {
               onChange={e => setSearch(e.target.value)}
             />
           </form>
-          <select
-            value={statusFilter}
-            onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-          >
-            <option value="">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="confirmed">Confirmed</option>
-            <option value="processing">Processing</option>
-            <option value="shipped">Shipped</option>
-            <option value="delivered">Delivered</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
+          <div className="status-dropdown">
+            <button
+              type="button"
+              className="status-dropdown-trigger"
+              onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+            >
+              <span>{currentStatusLabel}</span>
+              <svg className={`chevron ${statusDropdownOpen ? "expanded" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="6,9 12,15 18,9" />
+              </svg>
+            </button>
+            {statusDropdownOpen && (
+              <div className="status-dropdown-menu">
+                {orderStatusOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    className={`status-dropdown-item ${statusFilter === option.value ? "active" : ""}`}
+                    onClick={() => {
+                      setStatusFilter(option.value);
+                      setPage(1);
+                      setStatusDropdownOpen(false);
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <select
             value={channelFilter}
             onChange={e => { setChannelFilter(e.target.value); setPage(1); }}
