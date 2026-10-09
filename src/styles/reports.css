@@ -114,10 +114,26 @@
   font-weight: 500;
   cursor: pointer;
   transition: background 0.2s;
+  height: 40px;
+  align-self: flex-end;
 }
 
-.btn-filter-primary:hover {
+.btn-filter-primary:hover:not(:disabled) {
   background: #0b5ed7;
+}
+
+.btn-filter-primary:disabled {
+  background: #0d6efd;
+  color: white;
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-filter-primary:disabled::before {
+  content: "🔒 ";
+  font-size: 12px;
+  margin-right: 4px;
 }
 
 .btn-filter-secondary {
@@ -130,6 +146,8 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  height: 40px;
+  align-self: flex-end;
 }
 
 .btn-filter-secondary:hover {
@@ -704,7 +722,28 @@
 
 /* Product Report Styles */
 .product-stats {
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.product-stats .stat-card {
+  min-width: 0;
+}
+
+.product-stats .stat-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.product-stats .stat-content h2 {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.product-stats .stat-content p {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @media (max-width: 900px) {

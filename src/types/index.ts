@@ -80,7 +80,12 @@ export interface Order {
   trackingUrl: string | null;
   shippedAt: string | null;
   deliveredAt: string | null;
+  customerNote: string | null;
   adminNote: string | null;
+  returnReason: string | null;
+  returnRequestedAt: string | null;
+  refundAmountPaise: number | null;
+  refundedAt: string | null;
   processedById: string | null;
   createdAt: string;
   updatedAt: string;

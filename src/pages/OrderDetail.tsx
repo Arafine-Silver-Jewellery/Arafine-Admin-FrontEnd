@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
+import { useToast } from "../components/Toast";
 import { formatPrice, formatDateTime, getOrderStatusColor, getPaymentStatusColor } from "../utils/format";
 import type { Order } from "../types";
 
 export default function OrderDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [tracking, setTracking] = useState({
@@ -14,6 +16,8 @@ export default function OrderDetail() {
     trackingNumber: "",
     trackingUrl: "",
   });
+  const [adminNote, setAdminNote] = useState("");
+  const [savingNote, setSavingNote] = useState(false);
 
   useEffect(() => {
     async function loadOrder() {
@@ -26,9 +30,11 @@ export default function OrderDetail() {
           trackingNumber: data.trackingNumber || "",
           trackingUrl: data.trackingUrl || "",
         });
+        setAdminNote(data.adminNote || "");
       }
       catch (error) {
         console.error("Failed to load order:", error);
+        toast.error("Failed to load order");
       }
       finally {
         setLoading(false);
@@ -42,10 +48,11 @@ export default function OrderDetail() {
     try {
       const updated = await api.updateOrderStatus(order.id, newStatus);
       setOrder(updated);
+      toast.success(`Status updated to ${newStatus.replace(/_/g, " ")}`);
     }
     catch (error) {
       console.error("Failed to update status:", error);
-      alert("Failed to update status");
+      toast.error("Failed to update status");
     }
   }
 
@@ -54,11 +61,28 @@ export default function OrderDetail() {
     try {
       const updated = await api.updateOrderTracking(order.id, tracking);
       setOrder(updated);
-      alert("Tracking updated successfully");
+      toast.success("Tracking updated");
     }
     catch (error) {
       console.error("Failed to update tracking:", error);
-      alert("Failed to update tracking");
+      toast.error("Failed to update tracking");
+    }
+  }
+
+  async function handleAdminNoteSave() {
+    if (!order) return;
+    setSavingNote(true);
+    try {
+      const updated = await api.updateOrderAdminNote(order.id, adminNote.trim() || null);
+      setOrder(updated);
+      toast.success("Admin note saved");
+    }
+    catch (error) {
+      console.error("Failed to save admin note:", error);
+      toast.error("Failed to save admin note");
+    }
+    finally {
+      setSavingNote(false);
     }
   }
 
@@ -291,7 +315,7 @@ export default function OrderDetail() {
             </div>
 
             {/* Timeline */}
-            <div className="card">
+            <div className="card" style={{ marginBottom: "1.5rem" }}>
               <div className="card-header">
                 <h2>Timeline</h2>
               </div>
@@ -314,6 +338,41 @@ export default function OrderDetail() {
                     </div>
                   )}
                 </div>
+              </div>
+            </div>
+
+            {/* Admin Note */}
+            <div className="card">
+              <div className="card-header">
+                <h2>Admin Note</h2>
+              </div>
+              <div className="card-body">
+                <div className="form-group">
+                  <label htmlFor="admin-note">Internal note (visible to admins only)</label>
+                  <textarea
+                    id="admin-note"
+                    rows={4}
+                    value={adminNote}
+                    onChange={e => setAdminNote(e.target.value)}
+                    placeholder="Add a note about this order…"
+                    style={{
+                      width: "100%",
+                      padding: "0.625rem 0.75rem",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "6px",
+                      fontSize: "0.875rem",
+                      fontFamily: "inherit",
+                      resize: "vertical",
+                    }}
+                  />
+                </div>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleAdminNoteSave}
+                  disabled={savingNote || adminNote === (order.adminNote || "")}
+                >
+                  {savingNote ? "Saving…" : "Save Note"}
+                </button>
               </div>
             </div>
           </div>

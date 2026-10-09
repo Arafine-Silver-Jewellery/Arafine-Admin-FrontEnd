@@ -1,45 +1,46 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "../components/Toast";
+import { api } from "../api/client";
+import { formatDate, formatPrice } from "../utils/format";
+import type { Order, OrderStatus } from "../types";
 import "../styles/orders-new.css";
 
-type RefundStatus = "pending" | "approved" | "refunded" | "rejected";
-
-interface RefundRequest {
-  id: string;
-  orderId: string;
-  orderDate: string;
-  customerName: string;
-  customerPhone: string;
-  reason: string;
-  amount: number;
-  status: RefundStatus;
-  requestDate: string;
-}
-
-const mockRefunds: RefundRequest[] = [
-  { id: "1", orderId: "100084", orderDate: "29 Aug 2026", customerName: "Karthik Srirangam", customerPhone: "+918978447548", reason: "Product damaged", amount: 3193.00, status: "pending", requestDate: "30 Aug 2026" },
-  { id: "2", orderId: "100075", orderDate: "25 Aug 2026", customerName: "Priya Sharma", customerPhone: "+919876543210", reason: "Wrong item received", amount: 2499.00, status: "approved", requestDate: "26 Aug 2026" },
-  { id: "3", orderId: "100068", orderDate: "20 Aug 2026", customerName: "Rahul Kumar", customerPhone: "+919123456789", reason: "Size doesn't fit", amount: 1850.00, status: "refunded", requestDate: "21 Aug 2026" },
-  { id: "4", orderId: "100055", orderDate: "15 Aug 2026", customerName: "Sneha Reddy", customerPhone: "+918899776655", reason: "Changed mind", amount: 4500.00, status: "rejected", requestDate: "16 Aug 2026" },
-];
-
 interface RefundRequestsProps {
-  statusFilter?: RefundStatus;
+  statusFilter?: "pending" | "approved" | "refunded" | "rejected";
 }
+
+// Map the 4 UI status filters to the backend Order.status enum values they include.
+const BACKEND_STATUSES_BY_FILTER: Record<RefundRequestsProps["statusFilter"] & string, OrderStatus[]> = {
+  pending: ["return_requested"],
+  approved: ["return_approved", "refund_initiated"],
+  refunded: ["refunded"],
+  rejected: ["returned"],
+};
 
 const refundStatusOptions = [
   { value: "pending", label: "Pending", path: "/refund-requests" },
   { value: "approved", label: "Approved", path: "/refund-requests/approved" },
   { value: "refunded", label: "Refunded", path: "/refund-requests/refunded" },
   { value: "rejected", label: "Rejected", path: "/refund-requests/rejected" },
-];
+] as const;
 
 export default function RefundRequests({ statusFilter = "pending" }: RefundRequestsProps) {
+  const navigate = useNavigate();
+  const toast = useToast();
+
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
-  const navigate = useNavigate();
+  const [processing, setProcessing] = useState<string | null>(null);
 
-  const currentStatusLabel = refundStatusOptions.find(o => o.value === statusFilter)?.label ?? "Pending";
+  // Refund modal state
+  const [refundTarget, setRefundTarget] = useState<Order | null>(null);
+  const [refundAmountInr, setRefundAmountInr] = useState<string>("");
+
+  const filterKey = (statusFilter ?? "pending") as keyof typeof BACKEND_STATUSES_BY_FILTER;
+  const currentStatusLabel = refundStatusOptions.find(o => o.value === filterKey)?.label ?? "Pending";
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -54,167 +55,307 @@ export default function RefundRequests({ statusFilter = "pending" }: RefundReque
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [statusDropdownOpen]);
 
-  const filteredRefunds = mockRefunds.filter(refund => {
-    const matchesStatus = refund.status === statusFilter;
-    const matchesSearch = refund.orderId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      refund.customerName.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesStatus && matchesSearch;
-  });
+  async function loadRefunds() {
+    setLoading(true);
+    try {
+      const backendStatuses = BACKEND_STATUSES_BY_FILTER[filterKey];
 
-  function getStatusLabel(status: RefundStatus): string {
-    const labels: Record<RefundStatus, string> = {
-      pending: "Pending",
-      approved: "Approved",
-      refunded: "Refunded",
-      rejected: "Rejected",
-    };
-    return labels[status];
+      // Fetch each backend status in parallel so we can show all matching orders.
+      const responses = await Promise.all(
+        backendStatuses.map(s =>
+          api.getOrders({ status: s, limit: 100 }),
+        ),
+      );
+      const combined: Order[] = responses.flatMap(r => r?.data ?? []);
+      setOrders(combined);
+    }
+    catch (error) {
+      console.error("Failed to load refund requests:", error);
+      toast.error("Failed to load refund requests");
+      setOrders([]);
+    }
+    finally {
+      setLoading(false);
+    }
   }
 
-  function getStatusColor(status: RefundStatus): string {
-    const colors: Record<RefundStatus, string> = {
-      pending: "#f59e0b",
-      approved: "#22c55e",
-      refunded: "#3b82f6",
-      rejected: "#ef4444",
-    };
-    return colors[status];
+  useEffect(() => {
+    loadRefunds();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterKey]);
+
+  const filteredRefunds = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return orders;
+    return orders.filter(o =>
+      o.orderNumber.toLowerCase().includes(q)
+      || o.userId.toLowerCase().includes(q)
+      || (o.shippingAddress?.fullName ?? "").toLowerCase().includes(q),
+    );
+  }, [orders, searchQuery]);
+
+  function openRefundModal(order: Order) {
+    setRefundTarget(order);
+    setRefundAmountInr((order.totalPaise / 100).toFixed(2));
+  }
+
+  function closeRefundModal() {
+    setRefundTarget(null);
+    setRefundAmountInr("");
+  }
+
+  async function approveRefund(order: Order) {
+    setProcessing(order.id);
+    try {
+      // Move from return_requested to return_approved by setting status directly.
+      await api.updateOrderStatus(order.id, "return_approved");
+      toast.success(`Refund approved for ${order.orderNumber}`);
+      await loadRefunds();
+    }
+    catch (error) {
+      console.error("Failed to approve refund:", error);
+      toast.error("Failed to approve refund");
+    }
+    finally {
+      setProcessing(null);
+    }
+  }
+
+  async function rejectRefund(order: Order) {
+    setProcessing(order.id);
+    try {
+      await api.updateOrderStatus(order.id, "returned");
+      toast.success(`Refund rejected for ${order.orderNumber}`);
+      await loadRefunds();
+    }
+    catch (error) {
+      console.error("Failed to reject refund:", error);
+      toast.error("Failed to reject refund");
+    }
+    finally {
+      setProcessing(null);
+    }
+  }
+
+  async function confirmRefund() {
+    if (!refundTarget) return;
+    const amountInr = Number.parseFloat(refundAmountInr);
+    if (!Number.isFinite(amountInr) || amountInr < 0) {
+      toast.error("Please enter a valid refund amount");
+      return;
+    }
+    setProcessing(refundTarget.id);
+    try {
+      await api.processOrderRefund(refundTarget.id, Math.round(amountInr * 100));
+      toast.success(`Refunded ${formatPrice(Math.round(amountInr * 100))} for ${refundTarget.orderNumber}`);
+      closeRefundModal();
+      await loadRefunds();
+    }
+    catch (error) {
+      console.error("Failed to process refund:", error);
+      toast.error("Failed to process refund");
+    }
+    finally {
+      setProcessing(null);
+    }
   }
 
   return (
-    <div className="orders-new-container">
-      <div className="orders-list-section">
-        <div className="orders-list-header">
-          <div className="orders-actions">
-            <div className="orders-actions-left">
-              <div className="search-box">
-                <input
-                  type="text"
-                  placeholder="Search by Order ID"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="M21 21l-4.35-4.35" />
+    <div className="orders-container">
+      <div className="page-header-row">
+        <div>
+          <h1 className="page-title">Refund Requests</h1>
+          <p className="page-subtitle">Manage return and refund requests from customers</p>
+        </div>
+      </div>
+
+      <div className="filter-bar">
+        <div className="status-dropdown">
+          <button
+            type="button"
+            className="status-dropdown-trigger"
+            onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+          >
+            <span>{currentStatusLabel}</span>
+            <svg className={`chevron ${statusDropdownOpen ? "expanded" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="6,9 12,15 18,9" />
+            </svg>
+          </button>
+          {statusDropdownOpen && (
+            <div className="status-dropdown-menu">
+              {refundStatusOptions.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={`status-dropdown-item ${filterKey === option.value ? "active" : ""}`}
+                  onClick={() => {
+                    navigate(option.path);
+                    setStatusDropdownOpen(false);
+                  }}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="search-box" style={{ flex: 1, maxWidth: "320px" }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8" />
+            <path d="M21 21l-4.35-4.35" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Search by order number, customer…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <div className="result-count">
+          {loading ? "Loading…" : `${filteredRefunds.length} request${filteredRefunds.length === 1 ? "" : "s"}`}
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="table-container">
+          {loading ? (
+            <div className="empty-state">Loading refund requests…</div>
+          ) : filteredRefunds.length === 0 ? (
+            <div className="empty-state">
+              <p>No {currentStatusLabel.toLowerCase()} refund requests.</p>
+            </div>
+          ) : (
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>SL</th>
+                  <th>Order ID</th>
+                  <th>Order Date</th>
+                  <th>Customer</th>
+                  <th>Phone</th>
+                  <th>Reason</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRefunds.map((order, index) => {
+                  const reason = order.returnReason || order.customerNote || "—";
+                  const isProcessing = processing === order.id;
+                  return (
+                    <tr key={order.id}>
+                      <td>{index + 1}</td>
+                      <td>
+                        <span className="order-id-link" onClick={() => navigate(`/orders/${order.id}`)}>
+                          {order.orderNumber}
+                        </span>
+                      </td>
+                      <td>{formatDate(order.createdAt)}</td>
+                      <td>{order.shippingAddress?.fullName ?? "—"}</td>
+                      <td>{order.shippingAddress?.phone ?? "—"}</td>
+                      <td className="reason-cell">{reason}</td>
+                      <td>{formatPrice(order.totalPaise)}</td>
+                      <td>
+                        <span className={`refund-status-pill refund-status-${filterKey}`}>
+                          {currentStatusLabel}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="action-buttons">
+                          {filterKey === "pending" && (
+                            <>
+                              <button
+                                className="btn-action btn-approve"
+                                disabled={isProcessing}
+                                onClick={() => approveRefund(order)}
+                                title="Approve"
+                              >
+                                Approve
+                              </button>
+                              <button
+                                className="btn-action btn-reject"
+                                disabled={isProcessing}
+                                onClick={() => rejectRefund(order)}
+                                title="Reject"
+                              >
+                                Reject
+                              </button>
+                            </>
+                          )}
+                          {filterKey === "approved" && (
+                            <button
+                              className="btn-action btn-refund"
+                              disabled={isProcessing}
+                              onClick={() => openRefundModal(order)}
+                              title="Process refund"
+                            >
+                              Refund
+                            </button>
+                          )}
+                          {filterKey === "refunded" && (
+                            <span className="muted-text" style={{ fontSize: "12px" }}>
+                              {order.refundedAt ? `Refunded ${formatDate(order.refundedAt)}` : "—"}
+                            </span>
+                          )}
+                          {filterKey === "rejected" && (
+                            <span className="muted-text" style={{ fontSize: "12px" }}>Closed</span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
+      {refundTarget && (
+        <div className="modal-overlay" onClick={closeRefundModal}>
+          <div className="modal-content modal-confirm" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Process refund</h2>
+              <button className="modal-close" onClick={closeRefundModal} disabled={processing === refundTarget.id}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
+              </button>
+            </div>
+            <div className="modal-body">
+              <p>
+                Process refund for order <strong>{refundTarget.orderNumber}</strong>?
+                Order total is {formatPrice(refundTarget.totalPaise)}.
+              </p>
+              <div className="form-group">
+                <label htmlFor="refund-amount">Refund amount (₹)</label>
+                <input
+                  id="refund-amount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={refundAmountInr}
+                  onChange={e => setRefundAmountInr(e.target.value)}
+                />
               </div>
             </div>
-            <div className="orders-actions-right">
-              <div className="status-dropdown">
-                <button
-                  type="button"
-                  className="status-dropdown-trigger"
-                  onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-                >
-                  <span>{currentStatusLabel}</span>
-                  <svg className={`chevron ${statusDropdownOpen ? "expanded" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="6,9 12,15 18,9" />
-                  </svg>
-                </button>
-                {statusDropdownOpen && (
-                  <div className="status-dropdown-menu">
-                    {refundStatusOptions.map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        className={`status-dropdown-item ${statusFilter === option.value ? "active" : ""}`}
-                        onClick={() => {
-                          navigate(option.path);
-                          setStatusDropdownOpen(false);
-                        }}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <button className="btn-export">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7,10 12,15 17,10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-                Export
+            <div className="modal-footer">
+              <button className="btn-reset" onClick={closeRefundModal} disabled={processing === refundTarget.id}>
+                Cancel
               </button>
-              <button className="btn-filter">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-                  <line x1="4" y1="21" x2="4" y2="14" />
-                  <line x1="4" y1="10" x2="4" y2="3" />
-                  <line x1="12" y1="21" x2="12" y2="12" />
-                  <line x1="12" y1="8" x2="12" y2="3" />
-                  <line x1="20" y1="21" x2="20" y2="16" />
-                  <line x1="20" y1="12" x2="20" y2="3" />
-                </svg>
-                Filter
+              <button
+                className="btn-submit btn-danger"
+                onClick={confirmRefund}
+                disabled={processing === refundTarget.id}
+              >
+                {processing === refundTarget.id ? "Processing…" : "Confirm Refund"}
               </button>
             </div>
           </div>
         </div>
-
-        <div className="orders-table-container">
-          <table className="orders-table">
-            <thead>
-              <tr>
-                <th>SL</th>
-                <th>Order ID</th>
-                <th>Order Date</th>
-                <th>Customer Info</th>
-                <th>Reason</th>
-                <th>Amount</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredRefunds.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="empty-state">No refund requests found</td>
-                </tr>
-              ) : (
-                filteredRefunds.map((refund, index) => (
-                  <tr key={refund.id}>
-                    <td>{index + 1}</td>
-                    <td>
-                      <span className="order-id">{refund.orderId}</span>
-                    </td>
-                    <td>{refund.orderDate}</td>
-                    <td>
-                      <div className="customer-info">
-                        <span className="customer-name">{refund.customerName}</span>
-                        <span className="customer-phone">{refund.customerPhone}</span>
-                      </div>
-                    </td>
-                    <td>{refund.reason}</td>
-                    <td>
-                      <span className="amount">₹{refund.amount.toLocaleString()}</span>
-                    </td>
-                    <td>
-                      <span 
-                        className="status-badge"
-                        style={{ color: getStatusColor(refund.status) }}
-                      >
-                        {getStatusLabel(refund.status)}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="action-buttons">
-                        <button className="btn-action btn-icon-view" title="View">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#4f46e5" strokeWidth="2"/>
-                            <circle cx="12" cy="12" r="3" stroke="#4f46e5" strokeWidth="2"/>
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

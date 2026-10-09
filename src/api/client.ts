@@ -258,6 +258,16 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
+  updateOrderAdminNote: (id: string, adminNote: string | null) =>
+    request<any>(`/orders/${id}/note`, {
+      method: "PATCH",
+      body: JSON.stringify({ adminNote }),
+    }),
+  processOrderRefund: (id: string, refundAmountPaise: number) =>
+    request<any>(`/orders/${id}/refund`, {
+      method: "PATCH",
+      body: JSON.stringify({ refundAmountPaise }),
+    }),
 
   // POS Orders
   createPOSOrder: (data: {

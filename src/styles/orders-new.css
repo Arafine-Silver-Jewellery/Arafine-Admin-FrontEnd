@@ -1138,3 +1138,99 @@
 .btn-close-receipt:hover {
   background: #e5e7eb;
 }
+
+/* ----- Refund Requests screen ----- */
+
+.orders-container {
+  padding: 1.5rem;
+}
+
+.page-header-row {
+  margin-bottom: 1.5rem;
+}
+
+.page-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 0.25rem;
+}
+
+.page-subtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.result-count {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-left: auto;
+}
+
+.order-id-link {
+  color: #2563eb;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.order-id-link:hover {
+  text-decoration: underline;
+}
+
+.reason-cell {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #4b5563;
+}
+
+.refund-status-pill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.refund-status-pill.refund-status-pending {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.refund-status-pill.refund-status-approved {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.refund-status-pill.refund-status-refunded {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.refund-status-pill.refund-status-rejected {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.btn-refund {
+  color: #2563eb;
+}
+
+.btn-refund:hover {
+  background: #eff6ff;
+  border-color: #2563eb;
+}
+
+.muted-text {
+  color: #9ca3af;
+}
