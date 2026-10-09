@@ -3,13 +3,6 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import "../styles/layout.css";
 
-const refundSubmenus = [
-  { path: "/refund-requests", label: "Pending" },
-  { path: "/refund-requests/approved", label: "Approved" },
-  { path: "/refund-requests/refunded", label: "Refunded" },
-  { path: "/refund-requests/rejected", label: "Rejected" },
-];
-
 const categorySubmenus = [
   { path: "/category-setup", label: "Categories" },
   { path: "/category-setup/sub-categories", label: "Sub Categories" },
@@ -59,10 +52,10 @@ const pageTitleMap: Record<string, { title: string; icon: string }> = {
   "/orders-management/returned": { title: "Returned Orders", icon: "orders" },
   "/orders-management/failed-to-deliver": { title: "Failed to Deliver", icon: "orders" },
   "/orders-management/canceled": { title: "Canceled Orders", icon: "orders" },
-  "/refund-requests": { title: "Pending Refunds", icon: "refund" },
-  "/refund-requests/approved": { title: "Approved Refunds", icon: "refund" },
-  "/refund-requests/refunded": { title: "Refunded", icon: "refund" },
-  "/refund-requests/rejected": { title: "Rejected Refunds", icon: "refund" },
+  "/refund-requests": { title: "Refund Requests", icon: "refund" },
+  "/refund-requests/approved": { title: "Refund Requests", icon: "refund" },
+  "/refund-requests/refunded": { title: "Refund Requests", icon: "refund" },
+  "/refund-requests/rejected": { title: "Refund Requests", icon: "refund" },
   "/category-setup": { title: "Categories", icon: "category" },
   "/category-setup/sub-categories": { title: "Sub Categories", icon: "category" },
   "/category-setup/sub-sub-categories": { title: "Sub Sub Categories", icon: "category" },
@@ -115,7 +108,6 @@ export default function Layout() {
   const { employee, logout, hasPermission } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [refundsExpanded, setRefundsExpanded] = useState(location.pathname.startsWith("/refund-requests"));
   const [categoryExpanded, setCategoryExpanded] = useState(location.pathname.startsWith("/category-setup"));
   const [productsExpanded, setProductsExpanded] = useState(location.pathname.startsWith("/products-module"));
   const [offersDealsExpanded, setOffersDealsExpanded] = useState(location.pathname.startsWith("/offers-deals"));
@@ -130,7 +122,6 @@ export default function Layout() {
     navigate("/login");
   }
 
-  const isRefundsActive = location.pathname.startsWith("/refund-requests");
   const isCategoryActive = location.pathname.startsWith("/category-setup");
   const isProductsActive = location.pathname.startsWith("/products-module");
   const isOffersDealsActive = location.pathname.startsWith("/offers-deals");
@@ -207,35 +198,16 @@ export default function Layout() {
           )}
 
           {hasPermission("refund-requests") && (
-          <div className={`nav-item-with-submenu ${isRefundsActive ? "expanded" : ""}`}>
-            <button 
-              className={`nav-toggle ${isRefundsActive ? "active" : ""}`}
-              onClick={() => setRefundsExpanded(!refundsExpanded)}
+            <NavLink
+              to="/refund-requests"
+              end
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polyline points="23,4 23,10 17,10" />
                 <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
               </svg>
               <span>Refund Requests</span>
-              <svg className={`chevron ${refundsExpanded ? "expanded" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="6,9 12,15 18,9" />
-              </svg>
-            </button>
-            {refundsExpanded && (
-              <div className="submenu">
-                {refundSubmenus.map((item) => (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    end={item.path === "/refund-requests"}
-                    className={({ isActive }) => `submenu-item ${isActive ? "active" : ""}`}
-                  >
-                    <span>{item.label}</span>
-                  </NavLink>
-                ))}
-              </div>
-            )}
-          </div>
+            </NavLink>
           )}
           
           {(hasPermission("category-setup") || hasPermission("products-module")) && (

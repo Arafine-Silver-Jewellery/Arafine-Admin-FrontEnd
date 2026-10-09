@@ -18,25 +18,6 @@ export interface MenuSection {
 }
 
 // Submenu items configuration
-export const orderSubmenus: MenuItem[] = [
-  { path: "/orders-management", label: "All", count: 87 },
-  { path: "/orders-management/pending", label: "Pending", count: 0 },
-  { path: "/orders-management/confirmed", label: "Confirmed", count: 50 },
-  { path: "/orders-management/packaging", label: "Packaging", count: 0 },
-  { path: "/orders-management/out-for-delivery", label: "Out for delivery", count: 0 },
-  { path: "/orders-management/delivered", label: "Delivered", count: 17 },
-  { path: "/orders-management/returned", label: "Returned", count: 0 },
-  { path: "/orders-management/failed-to-deliver", label: "Failed to Deliver", count: 0 },
-  { path: "/orders-management/canceled", label: "Canceled", count: 20 },
-];
-
-export const refundSubmenus: MenuItem[] = [
-  { path: "/refund-requests", label: "Pending", count: 0 },
-  { path: "/refund-requests/approved", label: "Approved", count: 0 },
-  { path: "/refund-requests/refunded", label: "Refunded", count: 0 },
-  { path: "/refund-requests/rejected", label: "Rejected", count: 0 },
-];
-
 export const categorySubmenus: MenuItem[] = [
   { path: "/category-setup", label: "Categories" },
   { path: "/category-setup/sub-categories", label: "Sub Categories" },

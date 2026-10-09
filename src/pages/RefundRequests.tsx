@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import "../styles/orders-new.css";
 
 type RefundStatus = "pending" | "approved" | "refunded" | "rejected";
@@ -26,8 +27,32 @@ interface RefundRequestsProps {
   statusFilter?: RefundStatus;
 }
 
+const refundStatusOptions = [
+  { value: "pending", label: "Pending", path: "/refund-requests" },
+  { value: "approved", label: "Approved", path: "/refund-requests/approved" },
+  { value: "refunded", label: "Refunded", path: "/refund-requests/refunded" },
+  { value: "rejected", label: "Rejected", path: "/refund-requests/rejected" },
+];
+
 export default function RefundRequests({ statusFilter = "pending" }: RefundRequestsProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const currentStatusLabel = refundStatusOptions.find(o => o.value === statusFilter)?.label ?? "Pending";
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!statusDropdownOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".status-dropdown")) {
+        setStatusDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [statusDropdownOpen]);
 
   const filteredRefunds = mockRefunds.filter(refund => {
     const matchesStatus = refund.status === statusFilter;
@@ -76,6 +101,35 @@ export default function RefundRequests({ statusFilter = "pending" }: RefundReque
               </div>
             </div>
             <div className="orders-actions-right">
+              <div className="status-dropdown">
+                <button
+                  type="button"
+                  className="status-dropdown-trigger"
+                  onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+                >
+                  <span>{currentStatusLabel}</span>
+                  <svg className={`chevron ${statusDropdownOpen ? "expanded" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="6,9 12,15 18,9" />
+                  </svg>
+                </button>
+                {statusDropdownOpen && (
+                  <div className="status-dropdown-menu">
+                    {refundStatusOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className={`status-dropdown-item ${statusFilter === option.value ? "active" : ""}`}
+                        onClick={() => {
+                          navigate(option.path);
+                          setStatusDropdownOpen(false);
+                        }}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <button className="btn-export">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
