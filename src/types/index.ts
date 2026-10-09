@@ -185,3 +185,22 @@ export interface Promotion {
   createdAt: string;
   updatedAt: string;
 }
+
+export type BannerType = "Carousel" | "2 X 2 Banner" | "Custom Banner";
+export type BannerResourceType = "Custom" | "Category";
+
+export interface Banner {
+  id: string;
+  imageUrl: string;
+  imageKey?: string;
+  bannerType: BannerType;
+  position: string;
+  resourceType: BannerResourceType;
+  /** URL when resourceType is "Custom", category name when "Category" */
+  resource: string;
+  /** Set when resourceType is "Category" */
+  categoryId?: string;
+  published: boolean;
+  createdAt: string;
+  updatedAt: string;
+}

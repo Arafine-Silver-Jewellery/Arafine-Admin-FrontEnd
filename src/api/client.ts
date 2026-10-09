@@ -186,6 +186,42 @@ export const api = {
   deleteCategory: (id: string) =>
     request<any>(`/categories/${id}`, { method: "DELETE" }),
 
+  // Banners
+  getBanners: (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    bannerType?: string;
+    published?: boolean;
+  }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set("page", params.page.toString());
+    if (params?.limit) query.set("limit", params.limit.toString());
+    if (params?.search) query.set("search", params.search);
+    if (params?.bannerType) query.set("bannerType", params.bannerType);
+    if (params?.published !== undefined) query.set("published", String(params.published));
+    const queryString = query.toString();
+    return request<ApiResponse<any[]>>(`/banners${queryString ? `?${queryString}` : ""}`);
+  },
+  getBanner: (id: string) => request<any>(`/banners/${id}`),
+  createBanner: (data: any) =>
+    request<any>("/banners", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  updateBanner: (id: string, data: any) =>
+    request<any>(`/banners/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  deleteBanner: (id: string) =>
+    request<any>(`/banners/${id}`, { method: "DELETE" }),
+  toggleBannerPublished: (id: string, published: boolean) =>
+    request<any>(`/banners/${id}/published`, {
+      method: "PATCH",
+      body: JSON.stringify({ published }),
+    }),
+
   // Orders
   getOrders: (params: {
     page?: number;
