@@ -7,8 +7,8 @@ export default function RequestRestockList() {
   const [category, setCategory] = useState("");
   const [subCategory, setSubCategory] = useState("");
   const [brand, setBrand] = useState("");
-  const [requests, setRequests] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [requests] = useState<any[]>([]);
+  const [loading] = useState(false);
 
   const filteredRequests = requests.filter(r =>
     r.name?.toLowerCase().includes(searchQuery.toLowerCase())

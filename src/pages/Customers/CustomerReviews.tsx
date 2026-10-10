@@ -4,7 +4,7 @@ import "../../styles/customers.css";
 export default function CustomerReviews() {
   const [searchQuery, setSearchQuery] = useState("");
   const [reviews, setReviews] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
 
   const toggleStatus = (reviewId: string) => {
     setReviews(reviews.map(r =>
