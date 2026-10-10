@@ -1,31 +1,17 @@
 import { useState } from "react";
 import "../../styles/products-module.css";
 
-interface RestockRequest {
-  id: string;
-  name: string;
-  variant: string;
-  image: string;
-  sellingPrice: number;
-  lastRequestDate: string;
-  numberOfRequest: number;
-}
-
-const mockRequests: RestockRequest[] = [
-  { id: "1", name: "Concentric Clover Pe...", variant: "RoseGold-Standard", image: "https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=60&h=60&fit=crop", sellingPrice: 3699.00, lastRequestDate: "25 September 2026, 07:00 PM", numberOfRequest: 1 },
-  { id: "2", name: "*Rose Whirl Rose Gol...", variant: "RoseGold-Standard", image: "https://images.unsplash.com/photo-1602751584552-8ba73aad10e1?w=60&h=60&fit=crop", sellingPrice: 3678.85, lastRequestDate: "25 September 2026, 06:58 PM", numberOfRequest: 1 },
-  { id: "3", name: "Iconic Interlocked M...", variant: "RoseGold-Standard", image: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=60&h=60&fit=crop", sellingPrice: 3299.00, lastRequestDate: "25 September 2026, 06:56 PM", numberOfRequest: 1 },
-];
-
 export default function RequestRestockList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [dateRange, setDateRange] = useState("");
   const [category, setCategory] = useState("");
   const [subCategory, setSubCategory] = useState("");
   const [brand, setBrand] = useState("");
+  const [requests, setRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const filteredRequests = mockRequests.filter(r =>
-    r.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredRequests = requests.filter(r =>
+    r.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -110,48 +96,62 @@ export default function RequestRestockList() {
               </tr>
             </thead>
             <tbody>
-              {filteredRequests.map((request, index) => (
-                <tr key={request.id}>
-                  <td>{index + 1}</td>
-                  <td>
-                    <div className="product-name-cell">
-                      <img src={request.image} alt="" className="product-thumb" />
-                      <div className="product-info">
-                        <span className="name link">{request.name}</span>
-                        <span className="variant">Variant: {request.variant}</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td>₹{request.sellingPrice.toLocaleString()}</td>
-                  <td>{request.lastRequestDate}</td>
-                  <td>{request.numberOfRequest}</td>
-                  <td>
-                    <div className="action-buttons">
-                      <button className="btn-action btn-icon-view" title="View">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#4f46e5" strokeWidth="2"/>
-                          <circle cx="12" cy="12" r="3" stroke="#4f46e5" strokeWidth="2"/>
-                        </svg>
-                      </button>
-                      <button className="btn-action btn-icon-share" title="Share">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                          <circle cx="18" cy="5" r="3" stroke="#3b82f6" strokeWidth="2"/>
-                          <circle cx="6" cy="12" r="3" stroke="#3b82f6" strokeWidth="2"/>
-                          <circle cx="18" cy="19" r="3" stroke="#3b82f6" strokeWidth="2"/>
-                          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" stroke="#3b82f6" strokeWidth="2"/>
-                          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" stroke="#3b82f6" strokeWidth="2"/>
-                        </svg>
-                      </button>
-                      <button className="btn-action btn-icon-delete" title="Delete">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                          <polyline points="3,6 5,6 21,6" stroke="#ef4444" strokeWidth="2"/>
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="#ef4444" strokeWidth="2"/>
-                        </svg>
-                      </button>
-                    </div>
-                  </td>
+              {loading ? (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: "center", padding: "32px" }}>Loading...</td>
                 </tr>
-              ))}
+              ) : filteredRequests.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: "center", padding: "32px" }}>No restock requests found</td>
+                </tr>
+              ) : (
+                filteredRequests.map((request, index) => (
+                  <tr key={request.id}>
+                    <td>{index + 1}</td>
+                    <td>
+                      <div className="product-name-cell">
+                        <img
+                          src={request.image || "https://via.placeholder.com/60?text=No+Image"}
+                          alt=""
+                          className="product-thumb"
+                        />
+                        <div className="product-info">
+                          <span className="name link">{request.name}</span>
+                          {request.variant && <span className="variant">Variant: {request.variant}</span>}
+                        </div>
+                      </div>
+                    </td>
+                    <td>{request.sellingPrice != null ? `₹${Number(request.sellingPrice).toLocaleString()}` : "—"}</td>
+                    <td>{request.lastRequestDate || "—"}</td>
+                    <td>{request.numberOfRequest ?? 0}</td>
+                    <td>
+                      <div className="action-buttons">
+                        <button className="btn-action btn-icon-view" title="View">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#4f46e5" strokeWidth="2"/>
+                            <circle cx="12" cy="12" r="3" stroke="#4f46e5" strokeWidth="2"/>
+                          </svg>
+                        </button>
+                        <button className="btn-action btn-icon-share" title="Share">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <circle cx="18" cy="5" r="3" stroke="#3b82f6" strokeWidth="2"/>
+                            <circle cx="6" cy="12" r="3" stroke="#3b82f6" strokeWidth="2"/>
+                            <circle cx="18" cy="19" r="3" stroke="#3b82f6" strokeWidth="2"/>
+                            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" stroke="#3b82f6" strokeWidth="2"/>
+                            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" stroke="#3b82f6" strokeWidth="2"/>
+                          </svg>
+                        </button>
+                        <button className="btn-action btn-icon-delete" title="Delete">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <polyline points="3,6 5,6 21,6" stroke="#ef4444" strokeWidth="2"/>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="#ef4444" strokeWidth="2"/>
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

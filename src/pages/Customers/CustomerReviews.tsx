@@ -1,71 +1,20 @@
 import { useState } from "react";
 import "../../styles/customers.css";
 
-interface Review {
-  sl: number;
-  reviewId: string;
-  product: string;
-  customer: string;
-  rating: number;
-  review: string;
-  reviewImage: string;
-  reply: string;
-  date: string;
-  isActive: boolean;
-}
-
-const mockReviews: Review[] = [
-  {
-    sl: 1,
-    reviewId: "10000501",
-    product: "Product not found",
-    customer: "Janaki Bharath",
-    rating: 5,
-    review: "Very Nice Product",
-    reviewImage: "",
-    reply: "-",
-    date: "28 May 2026",
-    isActive: true,
-  },
-  {
-    sl: 2,
-    reviewId: "10000502",
-    product: "Premium Basmati Rice 5kg",
-    customer: "Priya Sharma",
-    rating: 4,
-    review: "Good quality rice, will buy again",
-    reviewImage: "",
-    reply: "Thank you!",
-    date: "25 May 2026",
-    isActive: true,
-  },
-  {
-    sl: 3,
-    reviewId: "10000503",
-    product: "Organic Coconut Oil 1L",
-    customer: "Amit Kumar",
-    rating: 5,
-    review: "Best coconut oil I've used",
-    reviewImage: "",
-    reply: "-",
-    date: "20 May 2026",
-    isActive: true,
-  },
-];
-
 export default function CustomerReviews() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [reviews, setReviews] = useState(mockReviews);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const toggleStatus = (sl: number) => {
+  const toggleStatus = (reviewId: string) => {
     setReviews(reviews.map(r =>
-      r.sl === sl ? { ...r, isActive: !r.isActive } : r
+      r.reviewId === reviewId ? { ...r, isActive: !r.isActive } : r
     ));
   };
 
   const filteredReviews = reviews.filter(r =>
-    r.product.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    r.reviewId.includes(searchQuery)
+    r.product?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    r.reviewId?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -120,58 +69,68 @@ export default function CustomerReviews() {
               </tr>
             </thead>
             <tbody>
-              {filteredReviews.map((review) => (
-                <tr key={review.sl}>
-                  <td>{review.sl}</td>
-                  <td>{review.reviewId}</td>
-                  <td>
-                    <span className="product-link">{review.product}</span>
-                  </td>
-                  <td>{review.customer}</td>
-                  <td>
-                    <span className="rating-badge">
-                      {review.rating} ⭐
-                    </span>
-                  </td>
-                  <td>
-                    <div className="review-content">
-                      <p>{review.review}</p>
-                      {review.reviewImage && (
-                        <div className="review-image">
-                          <img src={review.reviewImage} alt="Review" />
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td>{review.reply}</td>
-                  <td>{review.date}</td>
-                  <td>
-                    <label className="toggle-switch">
-                      <input
-                        type="checkbox"
-                        checked={review.isActive}
-                        onChange={() => toggleStatus(review.sl)}
-                      />
-                      <span className="toggle-slider"></span>
-                    </label>
-                  </td>
-                  <td>
-                    <div className="action-buttons">
-                      <button className="btn-action btn-icon-view" title="View">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#4f46e5" strokeWidth="2"/>
-                          <circle cx="12" cy="12" r="3" stroke="#4f46e5" strokeWidth="2"/>
-                        </svg>
-                      </button>
-                      <button className="btn-action btn-icon-reply" title="Reply">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="#22c55e" strokeWidth="2"/>
-                        </svg>
-                      </button>
-                    </div>
-                  </td>
+              {loading ? (
+                <tr>
+                  <td colSpan={10} style={{ textAlign: "center", padding: "32px" }}>Loading...</td>
                 </tr>
-              ))}
+              ) : filteredReviews.length === 0 ? (
+                <tr>
+                  <td colSpan={10} style={{ textAlign: "center", padding: "32px" }}>No reviews found</td>
+                </tr>
+              ) : (
+                filteredReviews.map((review, index) => (
+                  <tr key={review.reviewId}>
+                    <td>{index + 1}</td>
+                    <td>{review.reviewId || "—"}</td>
+                    <td>
+                      <span className="product-link">{review.product || "—"}</span>
+                    </td>
+                    <td>{review.customer || "—"}</td>
+                    <td>
+                      <span className="rating-badge">
+                        {review.rating ?? 0} ⭐
+                      </span>
+                    </td>
+                    <td>
+                      <div className="review-content">
+                        <p>{review.review || "—"}</p>
+                        {review.reviewImage && (
+                          <div className="review-image">
+                            <img src={review.reviewImage} alt="Review" />
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td>{review.reply || "—"}</td>
+                    <td>{review.date || "—"}</td>
+                    <td>
+                      <label className="toggle-switch">
+                        <input
+                          type="checkbox"
+                          checked={review.isActive ?? true}
+                          onChange={() => toggleStatus(review.reviewId)}
+                        />
+                        <span className="toggle-slider"></span>
+                      </label>
+                    </td>
+                    <td>
+                      <div className="action-buttons">
+                        <button className="btn-action btn-icon-view" title="View">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#4f46e5" strokeWidth="2"/>
+                            <circle cx="12" cy="12" r="3" stroke="#4f46e5" strokeWidth="2"/>
+                          </svg>
+                        </button>
+                        <button className="btn-action btn-icon-reply" title="Reply">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="#22c55e" strokeWidth="2"/>
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
