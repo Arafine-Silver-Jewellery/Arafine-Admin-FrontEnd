@@ -222,21 +222,12 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     }
   }
 
-  function handleDownloadInvoice(order: Order) {
-    // First view the invoice, then trigger download
-    handleViewInvoice(order).then(() => {
-      setTimeout(() => {
-        printInvoice(true);
-      }, 500);
-    });
-  }
-
-  function printInvoice(download = false) {
+  function printInvoice() {
     if (!invoiceRef.current || !selectedOrder) return;
 
     const printContent = invoiceRef.current.innerHTML;
     const printWindow = window.open("", "_blank", "width=800,height=600");
-    
+
     if (printWindow) {
       printWindow.document.write(`
         <!DOCTYPE html>
@@ -245,8 +236,8 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
           <title>Invoice - ${selectedOrder.orderNumber}</title>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { 
-              font-family: 'Segoe UI', Arial, sans-serif; 
+            body {
+              font-family: 'Segoe UI', Arial, sans-serif;
               padding: 20px;
               font-size: 14px;
               color: #333;
@@ -286,19 +277,10 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
         </head>
         <body>
           ${printContent}
-          <script>
-            window.onload = function() {
-              ${download ? 'window.print(); window.onafterprint = function() { window.close(); }' : ''}
-            }
-          </script>
         </body>
         </html>
       `);
       printWindow.document.close();
-      
-      if (!download) {
-        // If just viewing, don't auto-print
-      }
     }
   }
 
