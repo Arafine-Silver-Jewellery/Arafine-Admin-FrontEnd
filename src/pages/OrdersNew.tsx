@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import "../styles/orders-new.css";
@@ -220,6 +222,18 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     } finally {
       setLoadingInvoice(false);
     }
+  }
+
+  async function downloadInvoicePdf() {
+    if (!invoiceRef.current || !selectedOrder) return;
+    const element = invoiceRef.current;
+    const canvas = await html2canvas(element, { scale: 2, useCORS: true });
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF({ orientation: "portrait", unit: "px", format: "a4" });
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+    pdf.save(`invoice_${selectedOrder.orderNumber}.pdf`);
   }
 
   function printInvoice() {
@@ -618,18 +632,6 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
                             <path d="M16 10a4 4 0 0 1-8 0" stroke="#f59e0b" strokeWidth="2"/>
                           </svg>
                         </button>
-                        <button 
-                          className="btn-action btn-icon-download" 
-                          title="Download Invoice"
-                          onClick={() => handleDownloadInvoice(order)}
-                          disabled={loadingInvoice}
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="#22c55e" strokeWidth="2"/>
-                            <polyline points="7 10 12 15 17 10" stroke="#22c55e" strokeWidth="2"/>
-                            <line x1="12" y1="15" x2="12" y2="3" stroke="#22c55e" strokeWidth="2"/>
-                          </svg>
-                        </button>
                       </div>
                     </td>
                   </tr>
@@ -801,7 +803,15 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
             </div>
 
             <div className="invoice-modal-actions">
-              <button className="btn-print-only" onClick={() => printInvoice(false)}>
+              <button className="btn-download-pdf" onClick={() => downloadInvoicePdf()}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Download PDF
+              </button>
+              <button className="btn-print-only" onClick={() => printInvoice()}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
                   <polyline points="6 9 6 2 18 2 18 9" />
                   <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />

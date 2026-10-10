@@ -626,6 +626,16 @@
   background: #2563eb;
 }
 
+.btn-download-pdf {
+  background: #22c55e;
+  border: none;
+  color: #fff;
+}
+
+.btn-download-pdf:hover {
+  background: #16a34a;
+}
+
 .btn-close {
   background: #fff;
   border: 1px solid #e5e7eb;
