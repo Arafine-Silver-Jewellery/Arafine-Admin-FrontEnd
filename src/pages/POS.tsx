@@ -400,14 +400,10 @@ export default function POS() {
         limit: pagination.limit,
         search: searchQuery || undefined,
         status: "active",
+        productType: activeTab,
       });
 
-      // Filter by product type (physical/digital)
-      const filtered = (response.data || []).filter(
-        (p: Product) => p.productType === activeTab
-      );
-      
-      setProducts(filtered);
+      setProducts(response.data || []);
       if (response.pagination) {
         setPagination(prev => ({
           ...prev,

@@ -21,6 +21,7 @@ export interface Product {
   weightGrams: number | null;
   metaTitle: string | null;
   metaDescription: string | null;
+  metaImageUrl: string | null;
   searchTags: string[];
   status: "active" | "inactive" | "out_of_stock" | "discontinued";
   isVisible: boolean;
@@ -28,6 +29,13 @@ export interface Product {
   reviewCount: number;
   sortOrder: number;
   isFeatured: boolean;
+  productType: "physical" | "digital";
+  unit: string;
+  minOrderQty: number;
+  shippingCost: number;
+  discountAmount: number;
+  discountType: "flat" | "percent";
+  hasVariations: boolean;
   createdAt: string;
   updatedAt: string;
 }

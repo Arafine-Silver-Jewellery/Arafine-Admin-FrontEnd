@@ -13,7 +13,7 @@ interface ApiResponse<T> {
 
 async function request<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit & { signal?: AbortSignal } = {}
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   const config: RequestInit = {
@@ -50,6 +50,7 @@ export const api = {
     search?: string;
     categoryId?: string;
     status?: string;
+    productType?: "physical" | "digital";
   }) => {
     const query = new URLSearchParams();
     if (params.page) query.set("page", params.page.toString());
@@ -57,6 +58,7 @@ export const api = {
     if (params.search) query.set("search", params.search);
     if (params.categoryId) query.set("categoryId", params.categoryId);
     if (params.status) query.set("status", params.status);
+    if (params.productType) query.set("productType", params.productType);
     return request<ApiResponse<any[]>>(`/products?${query}`);
   },
   getProduct: (id: string) => request<any>(`/products/${id}`),
@@ -223,16 +225,19 @@ export const api = {
     }),
 
   // Orders
-  getOrders: (params: {
-    page?: number;
-    limit?: number;
-    search?: string;
-    status?: string;
-    paymentStatus?: string;
-    orderChannel?: string;
-    dateFrom?: string;
-    dateTo?: string;
-  }) => {
+  getOrders: (
+    params: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      status?: string;
+      paymentStatus?: string;
+      orderChannel?: string;
+      dateFrom?: string;
+      dateTo?: string;
+    },
+    signal?: AbortSignal
+  ) => {
     const query = new URLSearchParams();
     if (params.page) query.set("page", params.page.toString());
     if (params.limit) query.set("limit", params.limit.toString());
@@ -242,7 +247,7 @@ export const api = {
     if (params.orderChannel) query.set("orderChannel", params.orderChannel);
     if (params.dateFrom) query.set("dateFrom", params.dateFrom);
     if (params.dateTo) query.set("dateTo", params.dateTo);
-    return request<ApiResponse<any[]>>(`/orders?${query}`);
+    return request<ApiResponse<any[]>>(`/orders?${query}`, { signal });
   },
   getOrder: (id: string) => request<any>(`/orders/${id}`),
   updateOrderStatus: (id: string, status: string) =>

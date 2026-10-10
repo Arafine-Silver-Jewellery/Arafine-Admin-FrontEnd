@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import "../styles/orders-new.css";
@@ -62,6 +62,7 @@ interface OrdersNewProps {
 export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
   const navigate = useNavigate();
   const invoiceRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -91,7 +92,12 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     setPage(1); // Reset to first page when filter changes
   }, [statusFilter]);
 
-  async function loadOrders() {
+  const loadOrders = useCallback(async () => {
+    // Abort any in-flight request so only one runs at a time.
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setLoading(true);
     try {
       const response = await api.getOrders({
@@ -103,19 +109,21 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
         paymentStatus: filterPaymentStatus !== "all" ? filterPaymentStatus : undefined,
         dateFrom: filterDateFrom || undefined,
         dateTo: filterDateTo || undefined,
-      });
+      }, controller.signal);
       setOrders(response.data || []);
       setTotalPages(response.pagination?.totalPages || 1);
     } catch (error) {
+      if ((error as any)?.name === "AbortError") return; // silently ignore cancelled requests
       console.error("Failed to load orders:", error);
     } finally {
       setLoading(false);
     }
-  }
+  }, [page, currentStatus, channelFilter, searchQuery, filterPaymentStatus, filterDateFrom, filterDateTo]);
 
   useEffect(() => {
     loadOrders();
-  }, [page, currentStatus, channelFilter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // loadOrders is useCallback-stable; only runs on mount
 
   // Close status dropdown when clicking outside
   useEffect(() => {
