@@ -104,3 +104,21 @@
   width: 16px;
   height: 16px;
 }
+
+/* ============================================================
+   RESPONSIVE — Toast (added)
+   Keep toasts within the viewport on small screens.
+   ============================================================ */
+@media (max-width: 480px) {
+  .toast-container {
+    top: auto;
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+  }
+  .toast-container > * {
+    width: 100%;
+  }
+}

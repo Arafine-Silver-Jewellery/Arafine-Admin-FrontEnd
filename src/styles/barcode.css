@@ -307,3 +307,12 @@
     width: 100%;
   }
 }
+
+/* ============================================================
+   RESPONSIVE — Barcode (added page-padding alignment)
+   ============================================================ */
+@media (max-width: 1024px) {
+  .barcode-container {
+    padding: var(--page-pad-y) var(--page-pad-x);
+  }
+}

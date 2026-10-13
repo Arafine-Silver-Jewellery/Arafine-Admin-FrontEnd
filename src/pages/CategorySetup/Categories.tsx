@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { api } from "../../api/client";
 import { useToast } from "../../components/Toast";
+import { DataTable, StatusDropdown } from "../../components";
 import * as XLSX from "xlsx";
-import "../../styles/category-setup.css";
+import "../../styles/ui-kit.css";
 
 interface Category {
   id: string;
@@ -26,7 +27,7 @@ interface CategoryFormData {
   priority: string;
   logo1: File | null;
   logo1Preview: string;
-  logo1Url: string; // Existing URL from backend
+  logo1Url: string;
   logo2: File | null;
   logo2Preview: string;
   logo2Url: string;
@@ -54,63 +55,53 @@ const initialFormData: CategoryFormData = {
   metaImageUrl: "",
 };
 
+const statusFilterOptions = [
+  { value: "", label: "All Status", color: "neutral" as const },
+  { value: "active", label: "Active", color: "success" as const },
+  { value: "inactive", label: "Inactive", color: "neutral" as const },
+];
+
 export default function Categories() {
   const toast = useToast();
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [formData, setFormData] = useState<CategoryFormData>(initialFormData);
   const [submitting, setSubmitting] = useState(false);
-  
-  // Delete confirmation modal state
+
+  // Delete confirmation
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
   const [deleting, setDeleting] = useState(false);
-  
-  // Export dropdown state
-  const [showExportDropdown, setShowExportDropdown] = useState(false);
-  const [exporting, setExporting] = useState(false);
-  
-  // Pagination state (server-side)
+
+  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage] = useState(20);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
-  
+
   // Debounced search
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  
+
   // File input refs
   const logo1InputRef = useRef<HTMLInputElement>(null);
-  const logo2InputRef = useRef<HTMLInputElement>(null);
-  const metaImageInputRef = useRef<HTMLInputElement>(null);
 
-  // Close export dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside() {
-      if (showExportDropdown) {
-        setShowExportDropdown(false);
-      }
-    }
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
-  }, [showExportDropdown]);
-
-  // Debounce search input
+  // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery);
-      setCurrentPage(1); // Reset to page 1 on search
+      setCurrentPage(1);
     }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Load categories from API with pagination
+  // Load categories
   useEffect(() => {
     loadCategories();
-  }, [currentPage, itemsPerPage, debouncedSearch]);
+  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter]);
 
   async function loadCategories() {
     setLoading(true);
@@ -120,33 +111,36 @@ export default function Categories() {
         limit: itemsPerPage,
         search: debouncedSearch || undefined,
       });
-      setCategories(response.data || []);
-      setTotalItems(response.pagination.total);
-      setTotalPages(response.pagination.totalPages);
+      let data = response.data || [];
+      
+      // Apply status filter
+      if (statusFilter === "active") {
+        data = data.filter((c: Category) => c.isActive);
+      } else if (statusFilter === "inactive") {
+        data = data.filter((c: Category) => !c.isActive);
+      }
+      
+      setCategories(data);
+      setTotalItems(response.pagination?.total || data.length);
+      setTotalPages(response.pagination?.totalPages || 1);
     } catch (error) {
       console.error("Failed to load categories:", error);
+      toast.error("Failed to load categories");
     } finally {
       setLoading(false);
     }
   }
 
-  // Calculate start/end index for display
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
-
-  async function toggleHomeStatus(id: string) {
-    const category = categories.find(c => c.id === id);
+  async function toggleStatus(id: string) {
+    const category = categories.find((c) => c.id === id);
     if (!category) return;
-    
     try {
       await api.updateCategory(id, { isActive: !category.isActive });
-      setCategories(prev =>
-        prev.map(cat =>
-          cat.id === id ? { ...cat, isActive: !cat.isActive } : cat
-        )
-      );
+      setCategories((prev) => prev.map((cat) => (cat.id === id ? { ...cat, isActive: !cat.isActive } : cat)));
+      toast.success(`Category ${!category.isActive ? "activated" : "deactivated"}`);
     } catch (error) {
       console.error("Failed to update category status:", error);
+      toast.error("Failed to update status");
     }
   }
 
@@ -183,41 +177,30 @@ export default function Categories() {
   }
 
   function handleInputChange(field: keyof CategoryFormData, value: string | boolean) {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   }
 
-  function handleFileUpload(field: 'logo1' | 'logo2' | 'metaImage', file: File | null) {
+  function handleFileUpload(field: "logo1" | "logo2" | "metaImage", file: File | null) {
     if (file) {
-      const previewField = `${field}Preview` as keyof CategoryFormData;
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
           [field]: file,
-          [previewField]: reader.result as string
+          [`${field}Preview`]: reader.result as string,
         }));
       };
       reader.readAsDataURL(file);
     }
   }
 
-  function removeFile(field: 'logo1' | 'logo2' | 'metaImage') {
-    const previewField = `${field}Preview` as keyof CategoryFormData;
-    const urlField = `${field}Url` as keyof CategoryFormData;
-    setFormData(prev => ({
+  function removeFile(field: "logo1" | "logo2" | "metaImage") {
+    setFormData((prev) => ({
       ...prev,
       [field]: null,
-      [previewField]: "",
-      [urlField]: "",
+      [`${field}Preview`]: "",
+      [`${field}Url`]: "",
     }));
-  }
-
-  function handleReset() {
-    if (editingCategory) {
-      openAddModal(editingCategory);
-    } else {
-      setFormData(initialFormData);
-    }
   }
 
   async function handleSubmit() {
@@ -228,7 +211,6 @@ export default function Categories() {
 
     setSubmitting(true);
     try {
-      // Upload images if new files were selected
       let imageUrl = formData.logo1Url;
       let secondaryImageUrl = formData.logo2Url;
       let metaImageUrl = formData.metaImageUrl;
@@ -237,22 +219,16 @@ export default function Categories() {
         const result = await api.uploadFile(formData.logo1, "categories");
         imageUrl = result.url;
       }
-
       if (formData.logo2) {
         const result = await api.uploadFile(formData.logo2, "categories");
         secondaryImageUrl = result.url;
       }
-
       if (formData.metaImage) {
         const result = await api.uploadFile(formData.metaImage, "categories");
         metaImageUrl = result.url;
       }
 
-      // Create slug from name
-      const slug = formData.nameEN
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "");
+      const slug = formData.nameEN.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
       const categoryData = {
         name: formData.nameEN,
@@ -268,15 +244,17 @@ export default function Categories() {
 
       if (editingCategory) {
         await api.updateCategory(editingCategory.id, categoryData);
+        toast.success("Category updated successfully");
       } else {
         await api.createCategory(categoryData);
+        toast.success("Category created successfully");
       }
 
       await loadCategories();
       closeAddModal();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to save category:", error);
-      toast.error(error.message || "Failed to save category");
+      toast.error((error as Error).message || "Failed to save category");
     } finally {
       setSubmitting(false);
     }
@@ -294,739 +272,237 @@ export default function Categories() {
 
   async function handleConfirmDelete() {
     if (!deletingCategory) return;
-
     setDeleting(true);
     try {
       await api.deleteCategory(deletingCategory.id);
+      toast.success("Category deleted successfully");
       await loadCategories();
       closeDeleteModal();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to delete category:", error);
-      toast.error(error.message || "Failed to delete category");
+      toast.error((error as Error).message || "Failed to delete category");
     } finally {
       setDeleting(false);
     }
   }
 
-  function handleExport(exportAll: boolean) {
-    setShowExportDropdown(false);
-    
-    if (exportAll) {
-      handleExportAll();
-    } else {
-      handleExportCurrentPage();
-    }
-  }
-
-  function handleExportCurrentPage() {
-    // Export only current page data (what's visible on screen)
-    const exportData = categories.map((cat, index) => ({
-      "SL": startIndex + index + 1,
-      "Category Name": cat.name,
-      "Slug": cat.slug,
-      "Description": cat.description || "",
-      "Priority": cat.sortOrder,
-      "Status": cat.isActive ? "Active" : "Inactive",
-      "Meta Title": cat.metaTitle || "",
-      "Created At": new Date(cat.createdAt).toLocaleDateString(),
-      "Updated At": new Date(cat.updatedAt).toLocaleDateString(),
-    }));
-
-    downloadExcel(exportData, "categories-page");
-  }
-
-  async function handleExportAll() {
-    setExporting(true);
+  async function handleExport() {
     try {
       const allCategories = await api.getAllCategories();
-      
       const exportData = allCategories.map((cat: Category, index: number) => ({
-        "SL": index + 1,
+        SL: index + 1,
         "Category Name": cat.name,
-        "Slug": cat.slug,
-        "Description": cat.description || "",
-        "Priority": cat.sortOrder,
-        "Status": cat.isActive ? "Active" : "Inactive",
+        Slug: cat.slug,
+        Description: cat.description || "",
+        Priority: cat.sortOrder,
+        Status: cat.isActive ? "Active" : "Inactive",
         "Meta Title": cat.metaTitle || "",
         "Created At": new Date(cat.createdAt).toLocaleDateString(),
-        "Updated At": new Date(cat.updatedAt).toLocaleDateString(),
       }));
 
-      downloadExcel(exportData, "categories-all");
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Categories");
+      XLSX.writeFile(workbook, `categories-${new Date().toISOString().split("T")[0]}.xlsx`);
+      toast.success("Export completed");
     } catch (error) {
-      console.error("Failed to export categories:", error);
+      console.error("Failed to export:", error);
       toast.error("Failed to export categories");
-    } finally {
-      setExporting(false);
     }
   }
 
-  function downloadExcel(data: any[], filenamePrefix: string) {
-    // Create worksheet
-    const worksheet = XLSX.utils.json_to_sheet(data);
-
-    // Set column widths
-    worksheet["!cols"] = [
-      { wch: 5 },   // SL
-      { wch: 25 },  // Category Name
-      { wch: 25 },  // Slug
-      { wch: 40 },  // Description
-      { wch: 10 },  // Priority
-      { wch: 10 },  // Status
-      { wch: 30 },  // Meta Title
-      { wch: 15 },  // Created At
-      { wch: 15 },  // Updated At
-    ];
-
-    // Create workbook
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Categories");
-
-    // Generate filename with date
-    const date = new Date().toISOString().split("T")[0];
-    const filename = `${filenamePrefix}-${date}.xlsx`;
-
-    // Download file
-    XLSX.writeFile(workbook, filename);
-  }
+  const columns = [
+    {
+      key: "name",
+      header: "Category",
+      render: (category: Category) => (
+        <div className="ak-product-cell">
+          {category.imageUrl ? (
+            <img src={category.imageUrl} alt={category.name} className="ak-product-cell__img" style={{ borderRadius: "8px" }} />
+          ) : (
+            <div className="ak-user-cell__initials">{category.name[0].toUpperCase()}</div>
+          )}
+          <div>
+            <span className="ak-product-cell__name">{category.name}</span>
+            <span className="ak-text-muted ak-text-sm" style={{ display: "block" }}>ID: {category.id.slice(0, 8)}</span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "slug",
+      header: "Slug",
+      render: (category: Category) => <code className="ak-code">{category.slug}</code>,
+    },
+    {
+      key: "priority",
+      header: "Priority",
+      width: "100px",
+      render: (category: Category) => <span className="ak-text-muted">{category.sortOrder}</span>,
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (category: Category) => (
+        <label className="ak-toggle" onClick={(e) => e.stopPropagation()}>
+          <input type="checkbox" checked={category.isActive} onChange={() => toggleStatus(category.id)} />
+          <span className="ak-toggle__slider" />
+        </label>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      width: "120px",
+      render: (category: Category) => (
+        <div className="ak-row-actions">
+          <button type="button" className="ak-icon-btn ak-icon-btn--edit" title="Edit" onClick={(e) => { e.stopPropagation(); openAddModal(category); }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+          </button>
+          <button type="button" className="ak-icon-btn ak-icon-btn--delete" title="Delete" onClick={(e) => { e.stopPropagation(); openDeleteModal(category); }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3,6 5,6 21,6" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /></svg>
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   return (
-    <div className="category-setup-container">
-      <div className="category-card">
-        <div className="category-card-header">
-          <div className="category-actions">
-            <div className="category-actions-left">
-              <div className="search-box">
-                <input
-                  type="text"
-                  placeholder="Search by category"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="M21 21l-4.35-4.35" />
-                </svg>
-              </div>
-            </div>
-            <div className="category-actions-right">
-              <div style={{ position: "relative" }} onClick={(e) => e.stopPropagation()}>
-                <button 
-                  className="btn-export" 
-                  onClick={() => setShowExportDropdown(!showExportDropdown)}
-                  disabled={exporting}
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7,10 12,15 17,10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
-                  {exporting ? "Exporting..." : "Export"}
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14, marginLeft: 4 }}>
-                    <polyline points="6,9 12,15 18,9" />
-                  </svg>
-                </button>
-                {showExportDropdown && (
-                  <div style={{
-                    position: "absolute",
-                    top: "100%",
-                    right: 0,
-                    marginTop: 4,
-                    background: "#fff",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: 8,
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                    zIndex: 100,
-                    minWidth: 180,
-                    overflow: "hidden",
-                  }}>
-                    <button
-                      onClick={() => handleExport(false)}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        width: "100%",
-                        padding: "10px 14px",
-                        border: "none",
-                        background: "transparent",
-                        cursor: "pointer",
-                        fontSize: "0.875rem",
-                        color: "#374151",
-                        textAlign: "left",
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = "#f1f5f9"}
-                      onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
-                        <rect x="3" y="3" width="18" height="18" rx="2" />
-                        <path d="M3 9h18" />
-                      </svg>
-                      Current Page ({categories.length})
-                    </button>
-                    <button
-                      onClick={() => handleExport(true)}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        width: "100%",
-                        padding: "10px 14px",
-                        border: "none",
-                        background: "transparent",
-                        cursor: "pointer",
-                        fontSize: "0.875rem",
-                        color: "#374151",
-                        textAlign: "left",
-                        borderTop: "1px solid #e2e8f0",
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = "#f1f5f9"}
-                      onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="17,8 12,3 7,8" />
-                        <line x1="12" y1="3" x2="12" y2="15" />
-                      </svg>
-                      All Data ({totalItems})
-                    </button>
-                  </div>
-                )}
-              </div>
-              <button className="btn-add" onClick={() => openAddModal()}>
-                + Add Category
-              </button>
-            </div>
-          </div>
+    <div className="ak-page">
+      {/* Page Header */}
+      <div className="ak-page-header">
+        <div className="ak-page-header__left">
+          <h1 className="ak-page-header__title">
+            Categories
+            {totalItems > 0 && <span className="ak-page-header__count">{totalItems}</span>}
+          </h1>
+          <p className="ak-page-header__subtitle">Manage product categories for your store</p>
         </div>
-
-        <div className="category-table-container">
-          {loading ? (
-            <div style={{ padding: "2rem", textAlign: "center" }}>Loading categories...</div>
-          ) : (
-          <table className="category-table">
-            <thead>
-              <tr>
-                <th>SL</th>
-                <th>Category Name</th>
-                <th>Priority</th>
-                <th>Home Category Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {categories.map((category, index) => (
-                <tr key={category.id}>
-                  <td>{startIndex + index + 1}</td>
-                  <td>
-                    <div className="category-name-cell">
-                      <div className="category-images">
-                        {category.imageUrl && (
-                          <img src={category.imageUrl} alt="" className="category-thumb" />
-                        )}
-                      </div>
-                      <div className="category-info">
-                        <span className="name">{category.name}</span>
-                        <span className="id">ID #{category.id.slice(0, 8)}</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td>{category.sortOrder}</td>
-                  <td>
-                    <label className="toggle-switch">
-                      <input
-                        type="checkbox"
-                        checked={category.isActive}
-                        onChange={() => toggleHomeStatus(category.id)}
-                      />
-                      <span className="toggle-slider"></span>
-                    </label>
-                  </td>
-                  <td>
-                    <div className="action-buttons">
-                      <button className="btn-action btn-icon-edit" title="Edit" onClick={() => openAddModal(category)}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="#f59e0b" strokeWidth="2"/>
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#f59e0b" strokeWidth="2"/>
-                        </svg>
-                      </button>
-                      <button className="btn-action btn-icon-delete" title="Delete" onClick={() => openDeleteModal(category)}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                          <polyline points="3,6 5,6 21,6" stroke="#ef4444" strokeWidth="2"/>
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="#ef4444" strokeWidth="2"/>
-                        </svg>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {categories.length === 0 && (
-                <tr>
-                  <td colSpan={5} style={{ textAlign: "center", padding: "2rem" }}>
-                    {debouncedSearch ? "No categories found matching your search" : "No categories yet. Click 'Add Category' to create one."}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-          )}
+        <div className="ak-page-header__actions">
+          <button type="button" className="ak-btn ak-btn--ghost" onClick={handleExport}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7,10 12,15 17,10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+            Export
+          </button>
+          <button type="button" className="ak-btn ak-btn--primary" onClick={() => openAddModal()}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+            Add Category
+          </button>
         </div>
-
-        {/* Pagination */}
-        {totalItems > 0 && (
-          <div className="pagination-container" style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "1rem 1.5rem",
-            borderTop: "1px solid #e2e8f0",
-            background: "#f8fafc",
-          }}>
-            <div className="pagination-info" style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "1rem",
-              fontSize: "0.875rem",
-              color: "#64748b",
-            }}>
-              <span>
-                Showing {startIndex + 1} to {endIndex} of {totalItems} entries
-              </span>
-              <select
-                value={itemsPerPage}
-                onChange={(e) => {
-                  setItemsPerPage(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                style={{
-                  padding: "0.375rem 0.75rem",
-                  borderRadius: "6px",
-                  border: "1px solid #e2e8f0",
-                  fontSize: "0.875rem",
-                  cursor: "pointer",
-                }}
-              >
-                <option value={10}>10 per page</option>
-                <option value={25}>25 per page</option>
-                <option value={50}>50 per page</option>
-                <option value={100}>100 per page</option>
-              </select>
-            </div>
-
-            <div className="pagination-buttons" style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.5rem",
-            }}>
-              <button
-                onClick={() => setCurrentPage(1)}
-                disabled={currentPage === 1 || loading}
-                style={{
-                  padding: "0.5rem 0.75rem",
-                  borderRadius: "6px",
-                  border: "1px solid #e2e8f0",
-                  background: currentPage === 1 ? "#f1f5f9" : "#fff",
-                  color: currentPage === 1 ? "#94a3b8" : "#374151",
-                  cursor: currentPage === 1 ? "not-allowed" : "pointer",
-                  fontSize: "0.875rem",
-                }}
-              >
-                First
-              </button>
-              <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1 || loading}
-                style={{
-                  padding: "0.5rem 0.75rem",
-                  borderRadius: "6px",
-                  border: "1px solid #e2e8f0",
-                  background: currentPage === 1 ? "#f1f5f9" : "#fff",
-                  color: currentPage === 1 ? "#94a3b8" : "#374151",
-                  cursor: currentPage === 1 ? "not-allowed" : "pointer",
-                  fontSize: "0.875rem",
-                }}
-              >
-                Previous
-              </button>
-              
-              {/* Page numbers */}
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let pageNum;
-                if (totalPages <= 5) {
-                  pageNum = i + 1;
-                } else if (currentPage <= 3) {
-                  pageNum = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
-                } else {
-                  pageNum = currentPage - 2 + i;
-                }
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => setCurrentPage(pageNum)}
-                    disabled={loading}
-                    style={{
-                      padding: "0.5rem 0.875rem",
-                      borderRadius: "6px",
-                      border: "1px solid",
-                      borderColor: currentPage === pageNum ? "#3b82f6" : "#e2e8f0",
-                      background: currentPage === pageNum ? "#3b82f6" : "#fff",
-                      color: currentPage === pageNum ? "#fff" : "#374151",
-                      cursor: "pointer",
-                      fontSize: "0.875rem",
-                      fontWeight: currentPage === pageNum ? 600 : 400,
-                    }}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
-
-              <button
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages || loading}
-                style={{
-                  padding: "0.5rem 0.75rem",
-                  borderRadius: "6px",
-                  border: "1px solid #e2e8f0",
-                  background: currentPage === totalPages ? "#f1f5f9" : "#fff",
-                  color: currentPage === totalPages ? "#94a3b8" : "#374151",
-                  cursor: currentPage === totalPages ? "not-allowed" : "pointer",
-                  fontSize: "0.875rem",
-                }}
-              >
-                Next
-              </button>
-              <button
-                onClick={() => setCurrentPage(totalPages)}
-                disabled={currentPage === totalPages || loading}
-                style={{
-                  padding: "0.5rem 0.75rem",
-                  borderRadius: "6px",
-                  border: "1px solid #e2e8f0",
-                  background: currentPage === totalPages ? "#f1f5f9" : "#fff",
-                  color: currentPage === totalPages ? "#94a3b8" : "#374151",
-                  cursor: currentPage === totalPages ? "not-allowed" : "pointer",
-                  fontSize: "0.875rem",
-                }}
-              >
-                Last
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Add Category Modal */}
+      {/* Page Body */}
+      <div className="ak-page-body">
+        {/* Toolbar */}
+        <div className="ak-toolbar">
+          <div className="ak-toolbar__search">
+            <div className="ak-searchbar">
+              <div className="ak-searchbar__form">
+                <svg className="ak-searchbar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+                <input type="text" className="ak-searchbar__input" placeholder="Search categories…" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+              </div>
+            </div>
+          </div>
+          <div className="ak-toolbar__filters">
+            <StatusDropdown options={statusFilterOptions} value={statusFilter} onChange={setStatusFilter} placeholder="All Status" size="sm" />
+          </div>
+        </div>
+
+        {/* Data Table */}
+        <DataTable
+          columns={columns}
+          data={categories}
+          loading={loading}
+          loadingText="Loading categories…"
+          emptyIcon="folder"
+          emptyTitle="No categories found"
+          emptyDescription={debouncedSearch || statusFilter ? "Try adjusting your filters." : "Create your first category to get started."}
+          emptyAction={{ label: "Add Category", onClick: () => openAddModal() }}
+          keyExtractor={(category) => category.id}
+          onRowClick={(category) => openAddModal(category)}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+        />
+      </div>
+
+      {/* Add/Edit Modal */}
       {showAddModal && (
-        <div className="modal-overlay" onClick={closeAddModal}>
-          <div className="add-category-modal-wide" onClick={(e) => e.stopPropagation()}>
-            {/* Modal Header */}
-            <div className="modal-header-wide">
-              <div className="modal-title-section">
-                <div className="modal-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                    <path d="M2 17l10 5 10-5" />
-                    <path d="M2 12l10 5 10-5" />
-                  </svg>
-                </div>
-                <div>
-                  <h2>{editingCategory ? "Edit Category" : "Add New Category"}</h2>
-                  <p>{editingCategory ? "Update category details" : "Create a new product category for your store"}</p>
-                </div>
-              </div>
-              <button className="modal-close-btn" onClick={closeAddModal}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
+        <div className="ak-modal-overlay" onClick={closeAddModal}>
+          <div className="ak-modal" style={{ maxWidth: "600px" }} onClick={(e) => e.stopPropagation()}>
+            <div className="ak-modal__header">
+              <h2 className="ak-modal__title">{editingCategory ? "Edit Category" : "Add Category"}</h2>
+              <button type="button" className="ak-modal__close" onClick={closeAddModal}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
               </button>
             </div>
-
-            {/* Modal Body */}
-            <div className="modal-body-wide">
-              {/* Two Column Layout */}
-              <div className="form-grid-two-col">
-                {/* Left Column - Basic Info */}
-                <div className="form-column">
-                  <div className="form-card">
-                    <div className="form-card-header">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                      </svg>
-                      <span>Basic Information</span>
-                    </div>
-                    
-                    {/* Status Toggle */}
-                    <div className="form-row">
-                      <div className="status-toggle-row-wide">
-                        <div className="status-info">
-                          <span className="status-label">Category Status</span>
-                          <span className="status-hint">Enable to make visible on store</span>
-                        </div>
-                        <div className="status-toggle-wrapper">
-                          <label className="toggle-switch">
-                            <input
-                              type="checkbox"
-                              checked={formData.status}
-                              onChange={(e) => handleInputChange('status', e.target.checked)}
-                            />
-                            <span className="toggle-slider"></span>
-                          </label>
-                          <span className={`status-badge ${formData.status ? 'active' : 'inactive'}`}>
-                            {formData.status ? 'Active' : 'Inactive'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Category Name & Priority Row */}
-                    <div className="form-row-inline">
-                      <div className="form-field flex-2">
-                        <label className="form-label">
-                          Category Name <span className="required">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          className="form-input"
-                          placeholder="Enter category name"
-                          value={formData.nameEN}
-                          onChange={(e) => handleInputChange('nameEN', e.target.value)}
-                        />
-                      </div>
-                      <div className="form-field flex-1">
-                        <label className="form-label">
-                          Priority <span className="required">*</span>
-                        </label>
-                        <select
-                          className="form-select"
-                          value={formData.priority}
-                          onChange={(e) => handleInputChange('priority', e.target.value)}
-                        >
-                          <option value="">Select</option>
-                          {[...Array(10)].map((_, i) => (
-                            <option key={i + 1} value={i + 1}>{i + 1}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-
-                  </div>
-
-                  {/* SEO / Meta Section */}
-                  <div className="form-card">
-                    <div className="form-card-header">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="11" cy="11" r="8" />
-                        <path d="M21 21l-4.35-4.35" />
-                      </svg>
-                      <span>SEO Settings</span>
-                      <span className="optional-badge">Optional</span>
-                    </div>
-
-                    <div className="form-row">
-                      <label className="form-label">Meta Title</label>
-                      <div className="input-with-counter">
-                        <input
-                          type="text"
-                          className="form-input"
-                          placeholder="SEO title for search engines"
-                          maxLength={50}
-                          value={formData.metaTitle}
-                          onChange={(e) => handleInputChange('metaTitle', e.target.value)}
-                        />
-                        <span className="char-counter">{formData.metaTitle.length}/50</span>
-                      </div>
-                    </div>
-
-                    <div className="form-row">
-                      <label className="form-label">Meta Description</label>
-                      <div className="input-with-counter">
-                        <textarea
-                          className="form-textarea"
-                          placeholder="Brief description for search results"
-                          maxLength={160}
-                          rows={3}
-                          value={formData.metaDescription}
-                          onChange={(e) => handleInputChange('metaDescription', e.target.value)}
-                        />
-                        <span className="char-counter">{formData.metaDescription.length}/160</span>
-                      </div>
-                    </div>
-                  </div>
+            <div className="ak-modal__body">
+              {/* Status */}
+              <div className="ak-field" style={{ marginBottom: "1rem" }}>
+                <label className="ak-field__label">Status</label>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                  <label className="ak-toggle">
+                    <input type="checkbox" checked={formData.status} onChange={(e) => handleInputChange("status", e.target.checked)} />
+                    <span className="ak-toggle__slider" />
+                  </label>
+                  <span className={`ak-status ak-status--${formData.status ? "success" : "neutral"}`}>
+                    <span className="ak-status__dot" />
+                    {formData.status ? "Active" : "Inactive"}
+                  </span>
                 </div>
+              </div>
 
-                {/* Right Column - Images */}
-                <div className="form-column">
-                  <div className="form-card">
-                    <div className="form-card-header">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                        <circle cx="8.5" cy="8.5" r="1.5" />
-                        <polyline points="21,15 16,10 5,21" />
-                      </svg>
-                      <span>Category Images</span>
+              {/* Name */}
+              <div className="ak-field" style={{ marginBottom: "1rem" }}>
+                <label className="ak-field__label">Category Name *</label>
+                <input type="text" className="ak-input" value={formData.nameEN} onChange={(e) => handleInputChange("nameEN", e.target.value)} placeholder="Enter category name" />
+              </div>
+
+              {/* Priority */}
+              <div className="ak-field" style={{ marginBottom: "1rem" }}>
+                <label className="ak-field__label">Priority</label>
+                <input type="number" className="ak-input" value={formData.priority} onChange={(e) => handleInputChange("priority", e.target.value)} placeholder="0" />
+              </div>
+
+              {/* Image Upload */}
+              <div className="ak-field" style={{ marginBottom: "1rem" }}>
+                <label className="ak-field__label">Category Image</label>
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                  {(formData.logo1Preview || formData.logo1Url) ? (
+                    <div style={{ position: "relative" }}>
+                      <img src={formData.logo1Preview || formData.logo1Url} alt="" style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 8, border: "1px solid var(--border-color)" }} />
+                      <button type="button" onClick={() => removeFile("logo1")} style={{ position: "absolute", top: -8, right: -8, width: 24, height: 24, borderRadius: "50%", background: "var(--color-error)", color: "#fff", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                      </button>
                     </div>
-
-                    <p className="image-specs">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="16" x2="12" y2="12" />
-                        <line x1="12" y1="8" x2="12.01" y2="8" />
-                      </svg>
-                      Recommended: JPG, PNG • Max 2MB • 500×500px (1:1)
-                    </p>
-                    
-                    <div className="image-upload-grid">
-                      {/* Primary Logo */}
-                      <div className="image-upload-card">
-                        <span className="upload-label">Primary Logo</span>
-                        <input
-                          type="file"
-                          ref={logo1InputRef}
-                          className="file-input-hidden"
-                          accept="image/jpeg,image/png,image/gif"
-                          onChange={(e) => handleFileUpload('logo1', e.target.files?.[0] || null)}
-                        />
-                        {formData.logo1Preview || formData.logo1Url ? (
-                          <div className="image-preview-card">
-                            <img src={formData.logo1Preview || formData.logo1Url} alt="Primary Logo" />
-                            <div className="image-actions">
-                              <button type="button" className="btn-change" onClick={() => logo1InputRef.current?.click()}>
-                                Change
-                              </button>
-                              <button type="button" className="btn-remove" onClick={() => removeFile('logo1')}>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <polyline points="3,6 5,6 21,6" />
-                                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                </svg>
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="upload-dropzone" onClick={() => logo1InputRef.current?.click()}>
-                            <div className="dropzone-icon">
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                <polyline points="17,8 12,3 7,8" />
-                                <line x1="12" y1="3" x2="12" y2="15" />
-                              </svg>
-                            </div>
-                            <span className="dropzone-text">Click to upload</span>
-                            <span className="dropzone-hint">or drag and drop</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Secondary Logo */}
-                      <div className="image-upload-card">
-                        <span className="upload-label">Secondary Logo <span className="optional-text">(Optional)</span></span>
-                        <input
-                          type="file"
-                          ref={logo2InputRef}
-                          className="file-input-hidden"
-                          accept="image/jpeg,image/png,image/gif"
-                          onChange={(e) => handleFileUpload('logo2', e.target.files?.[0] || null)}
-                        />
-                        {formData.logo2Preview || formData.logo2Url ? (
-                          <div className="image-preview-card">
-                            <img src={formData.logo2Preview || formData.logo2Url} alt="Secondary Logo" />
-                            <div className="image-actions">
-                              <button type="button" className="btn-change" onClick={() => logo2InputRef.current?.click()}>
-                                Change
-                              </button>
-                              <button type="button" className="btn-remove" onClick={() => removeFile('logo2')}>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <polyline points="3,6 5,6 21,6" />
-                                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                </svg>
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="upload-dropzone" onClick={() => logo2InputRef.current?.click()}>
-                            <div className="dropzone-icon">
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                <polyline points="17,8 12,3 7,8" />
-                                <line x1="12" y1="3" x2="12" y2="15" />
-                              </svg>
-                            </div>
-                            <span className="dropzone-text">Click to upload</span>
-                            <span className="dropzone-hint">or drag and drop</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Meta Image */}
-                    <div className="meta-image-section">
-                      <span className="upload-label">SEO Image <span className="optional-text">(Optional)</span></span>
-                      <p className="image-specs small">Recommended ratio: 2:1 (1200×600px)</p>
-                      <input
-                        type="file"
-                        ref={metaImageInputRef}
-                        className="file-input-hidden"
-                        accept="image/jpeg,image/png,image/gif"
-                        onChange={(e) => handleFileUpload('metaImage', e.target.files?.[0] || null)}
-                      />
-                      {formData.metaImagePreview || formData.metaImageUrl ? (
-                        <div className="meta-image-preview-wide">
-                          <img src={formData.metaImagePreview || formData.metaImageUrl} alt="Meta" />
-                          <div className="image-actions">
-                            <button type="button" className="btn-change" onClick={() => metaImageInputRef.current?.click()}>
-                              Change
-                            </button>
-                            <button type="button" className="btn-remove" onClick={() => removeFile('metaImage')}>
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <polyline points="3,6 5,6 21,6" />
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="upload-dropzone horizontal" onClick={() => metaImageInputRef.current?.click()}>
-                          <div className="dropzone-icon small">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                              <polyline points="17,8 12,3 7,8" />
-                              <line x1="12" y1="3" x2="12" y2="15" />
-                            </svg>
-                          </div>
-                          <span className="dropzone-text">Upload SEO image</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  ) : (
+                    <button type="button" className="ak-btn ak-btn--ghost" onClick={() => logo1InputRef.current?.click()}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21,15 16,10 5,21" /></svg>
+                      Upload Image
+                    </button>
+                  )}
+                  <input ref={logo1InputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => handleFileUpload("logo1", e.target.files?.[0] || null)} />
                 </div>
+              </div>
+
+              {/* Meta Title */}
+              <div className="ak-field" style={{ marginBottom: "1rem" }}>
+                <label className="ak-field__label">Meta Title</label>
+                <input type="text" className="ak-input" value={formData.metaTitle} onChange={(e) => handleInputChange("metaTitle", e.target.value)} placeholder="SEO title" />
+              </div>
+
+              {/* Description */}
+              <div className="ak-field">
+                <label className="ak-field__label">Description</label>
+                <textarea className="ak-input" rows={3} value={formData.metaDescription} onChange={(e) => handleInputChange("metaDescription", e.target.value)} placeholder="Category description" style={{ minHeight: 80, resize: "vertical" }} />
               </div>
             </div>
-
-            {/* Modal Footer */}
-            <div className="modal-footer-wide">
-              <button className="btn-cancel" onClick={closeAddModal}>
-                Cancel
+            <div className="ak-modal__footer">
+              <button type="button" className="ak-btn ak-btn--ghost" onClick={closeAddModal} disabled={submitting}>Cancel</button>
+              <button type="button" className="ak-btn ak-btn--primary" onClick={handleSubmit} disabled={submitting}>
+                {submitting ? "Saving…" : editingCategory ? "Update Category" : "Create Category"}
               </button>
-              <div className="footer-actions">
-                <button className="btn-reset-wide" onClick={handleReset}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                    <path d="M3 3v5h5" />
-                  </svg>
-                  Reset
-                </button>
-                <button className="btn-submit-wide" onClick={handleSubmit} disabled={submitting}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="20,6 9,17 4,12" />
-                  </svg>
-                  {submitting ? "Saving..." : editingCategory ? "Update Category" : "Create Category"}
-                </button>
-              </div>
             </div>
           </div>
         </div>
@@ -1034,125 +510,21 @@ export default function Categories() {
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && deletingCategory && (
-        <div className="modal-overlay" onClick={closeDeleteModal}>
-          <div 
-            className="delete-confirm-modal" 
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: "white",
-              borderRadius: "12px",
-              padding: "0",
-              width: "400px",
-              maxWidth: "90vw",
-              boxShadow: "0 20px 50px rgba(0,0,0,0.15)",
-              overflow: "hidden",
-            }}
-          >
-            {/* Header */}
-            <div style={{
-              padding: "1.5rem",
-              borderBottom: "1px solid #e5e7eb",
-              display: "flex",
-              alignItems: "center",
-              gap: "1rem",
-            }}>
-              <div style={{
-                width: "48px",
-                height: "48px",
-                borderRadius: "50%",
-                background: "#fee2e2",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2">
-                  <polyline points="3,6 5,6 21,6" />
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                  <line x1="10" y1="11" x2="10" y2="17" />
-                  <line x1="14" y1="11" x2="14" y2="17" />
-                </svg>
-              </div>
-              <div>
-                <h3 style={{ margin: 0, fontSize: "1.125rem", fontWeight: 600, color: "#111827" }}>
-                  Delete Category
-                </h3>
-                <p style={{ margin: "0.25rem 0 0", fontSize: "0.875rem", color: "#6b7280" }}>
-                  This action cannot be undone
-                </p>
-              </div>
-            </div>
-
-            {/* Body */}
-            <div style={{ padding: "1.5rem" }}>
-              <p style={{ margin: 0, color: "#374151", lineHeight: 1.6 }}>
-                Are you sure you want to delete <strong>"{deletingCategory.name}"</strong>? 
-                This will permanently remove the category and cannot be recovered.
-              </p>
-            </div>
-
-            {/* Footer */}
-            <div style={{
-              padding: "1rem 1.5rem",
-              background: "#f9fafb",
-              display: "flex",
-              justifyContent: "flex-end",
-              gap: "0.75rem",
-            }}>
-              <button
-                onClick={closeDeleteModal}
-                disabled={deleting}
-                style={{
-                  padding: "0.625rem 1.25rem",
-                  borderRadius: "8px",
-                  border: "1px solid #d1d5db",
-                  background: "white",
-                  color: "#374151",
-                  fontWeight: 500,
-                  cursor: "pointer",
-                  fontSize: "0.875rem",
-                }}
-              >
-                Cancel
+        <div className="ak-modal-overlay" onClick={closeDeleteModal}>
+          <div className="ak-modal" style={{ maxWidth: "400px" }} onClick={(e) => e.stopPropagation()}>
+            <div className="ak-modal__header">
+              <h2 className="ak-modal__title">Delete Category</h2>
+              <button type="button" className="ak-modal__close" onClick={closeDeleteModal}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
               </button>
-              <button
-                onClick={handleConfirmDelete}
-                disabled={deleting}
-                style={{
-                  padding: "0.625rem 1.25rem",
-                  borderRadius: "8px",
-                  border: "none",
-                  background: "#ef4444",
-                  color: "white",
-                  fontWeight: 500,
-                  cursor: deleting ? "not-allowed" : "pointer",
-                  fontSize: "0.875rem",
-                  opacity: deleting ? 0.7 : 1,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                }}
-              >
-                {deleting ? (
-                  <>
-                    <span style={{
-                      width: "14px",
-                      height: "14px",
-                      border: "2px solid rgba(255,255,255,0.3)",
-                      borderTopColor: "white",
-                      borderRadius: "50%",
-                      animation: "spin 0.8s linear infinite",
-                    }} />
-                    Deleting...
-                  </>
-                ) : (
-                  <>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polyline points="3,6 5,6 21,6" />
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                    </svg>
-                    Delete Category
-                  </>
-                )}
+            </div>
+            <div className="ak-modal__body">
+              <p>Are you sure you want to delete <strong>"{deletingCategory.name}"</strong>? This action cannot be undone.</p>
+            </div>
+            <div className="ak-modal__footer">
+              <button type="button" className="ak-btn ak-btn--ghost" onClick={closeDeleteModal} disabled={deleting}>Cancel</button>
+              <button type="button" className="ak-btn ak-btn--danger" onClick={handleConfirmDelete} disabled={deleting}>
+                {deleting ? "Deleting…" : "Delete"}
               </button>
             </div>
           </div>

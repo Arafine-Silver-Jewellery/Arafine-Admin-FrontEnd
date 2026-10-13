@@ -2200,3 +2200,71 @@
     justify-content: center;
   }
 }
+
+/* ============================================================
+   RESPONSIVE — POS (added)
+   The POS is a fixed two-panel grid (products | cart). On
+   tablets/phones it stacks into one column and uses natural
+   height so both panels are fully usable.
+   Breakpoints: 1024 / 768 / 480
+   ============================================================ */
+@media (max-width: 1024px) {
+  .pos-container {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: auto;
+    padding: var(--page-pad-y) var(--page-pad-x);
+  }
+  /* Both panels use natural height when stacked (remove fixed heights
+     + overflow clipping that cut off content on mobile) */
+  .pos-products {
+    overflow: visible;
+  }
+  .pos-billing {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+  /* Cart gets a comfortable scroll area instead of filling the viewport */
+  .pos-cart {
+    flex: none;
+    max-height: none;
+  }
+  .pos-cart-items {
+    max-height: 300px;
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .pos-product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .pos-container {
+    padding: 0.75rem;
+    gap: 1rem;
+  }
+  .pos-products,
+  .pos-billing {
+    padding: 1rem;
+  }
+  .pos-product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+    gap: 0.6rem;
+  }
+  /* Stack the footer action buttons full-width for easy tapping */
+  .pos-actions {
+    flex-direction: column;
+  }
+  .pos-actions > button {
+    width: 100%;
+  }
+  /* Billing header wraps so the Hold Orders button doesn't overflow */
+  .pos-billing-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+}

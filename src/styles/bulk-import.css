@@ -1195,3 +1195,12 @@
     justify-content: center;
   }
 }
+
+/* ============================================================
+   RESPONSIVE — Bulk Import (added page-padding alignment)
+   ============================================================ */
+@media (max-width: 1024px) {
+  .bulk-import-container {
+    padding: var(--page-pad-y) var(--page-pad-x);
+  }
+}

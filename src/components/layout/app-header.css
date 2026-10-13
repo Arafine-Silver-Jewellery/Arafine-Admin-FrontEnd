@@ -1,0 +1,241 @@
+/* ============================================================
+   AppHeader — self-contained, robust top bar
+   ============================================================ */
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  height: var(--header-height, 70px);
+  padding: 0 var(--page-pad-x, 2rem);
+  background: var(--color-white, #fff);
+  border-bottom: 1px solid var(--border-color, #e8e4dc);
+}
+
+/* ── Left: hamburger + title ── */
+.app-header__left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;              /* let the title truncate instead of overflow */
+  flex: 1 1 auto;
+}
+
+.app-header__burger {
+  display: none;             /* shown on mobile/tablet via media query */
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  padding: 0;
+  background: var(--color-white, #fff);
+  border: 1px solid var(--border-color, #e8e4dc);
+  border-radius: var(--radius-md, 8px);
+  color: var(--color-charcoal, #1a1a1a);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.app-header__burger:hover {
+  background: var(--color-ivory, #f5f3ef);
+  border-color: var(--color-champagne-muted, #e8dcc4);
+}
+.app-header__burger svg {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+
+.app-header__title {
+  font-family: var(--font-display, 'Playfair Display', serif);
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--color-charcoal, #1a1a1a);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* ── Right: actions ── */
+.app-header__right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.app-header__icon-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md, 8px);
+  color: var(--color-charcoal-muted, #6b6b6b);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.app-header__icon-btn:hover {
+  background: var(--color-ivory, #f5f3ef);
+  color: var(--color-charcoal, #1a1a1a);
+}
+.app-header__icon-btn svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.app-header__dot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  background: var(--color-champagne, #c9a96e);
+  border: 2px solid var(--color-white, #fff);
+  border-radius: 50%;
+}
+
+/* ── Profile ── */
+.app-header__profile {
+  position: relative;
+}
+
+.app-header__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-champagne, #c9a96e), var(--color-champagne-dark, #b8944d));
+  color: var(--color-white, #fff);
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: box-shadow 0.15s ease;
+}
+.app-header__avatar:hover {
+  box-shadow: 0 0 0 3px rgba(201, 169, 110, 0.25);
+}
+.app-header__avatar--lg {
+  width: 44px;
+  height: 44px;
+  font-size: 0.95rem;
+  cursor: default;
+}
+.app-header__avatar--lg:hover { box-shadow: none; }
+
+.app-header__menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 240px;
+  background: var(--color-white, #fff);
+  border: 1px solid var(--border-color, #e8e4dc);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-lg, 0 8px 24px rgba(0,0,0,0.12));
+  overflow: hidden;
+  z-index: 1000;
+  animation: appHeaderMenuIn 0.18s ease;
+}
+@keyframes appHeaderMenuIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.app-header__menu-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--color-pearl, #f0ede8);
+}
+.app-header__menu-id {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.app-header__menu-name {
+  font-family: var(--font-display, serif);
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--color-charcoal, #1a1a1a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.app-header__menu-email {
+  font-size: 0.75rem;
+  color: var(--color-charcoal-muted, #6b6b6b);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-header__menu-divider {
+  height: 1px;
+  background: var(--border-color-light, #f0ede8);
+}
+
+.app-header__menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: none;
+  text-align: left;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  font-size: 0.875rem;
+  color: var(--color-charcoal-muted, #6b6b6b);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.app-header__menu-item:hover {
+  background: var(--color-ivory, #f5f3ef);
+  color: var(--color-charcoal, #1a1a1a);
+}
+.app-header__menu-item svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.app-header__menu-item--danger { color: var(--color-error, #9e4a4a); }
+.app-header__menu-item--danger:hover { background: var(--color-error-light, #f5eaea); }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+/* Show hamburger on tablet / mobile */
+@media (max-width: 1024px) {
+  .app-header__burger { display: inline-flex; }
+}
+
+@media (max-width: 768px) {
+  .app-header { gap: 0.5rem; }
+  .app-header__title { font-size: 1.1rem; }
+  .app-header__right { gap: 0.25rem; }
+}
+
+@media (max-width: 480px) {
+  .app-header { padding: 0 0.75rem; }
+  .app-header__burger { width: 40px; height: 40px; }
+  .app-header__title { font-size: 1rem; }
+  .app-header__icon-btn { width: 38px; height: 38px; }
+  .app-header__avatar { width: 36px; height: 36px; font-size: 0.78rem; }
+  .app-header__menu { width: min(240px, calc(100vw - 1.5rem)); }
+}

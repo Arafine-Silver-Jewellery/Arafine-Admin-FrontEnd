@@ -330,3 +330,15 @@
   font-size: 0.8125rem;
   color: var(--color-charcoal-muted, #6b6b6b);
 }
+
+/* ============================================================
+   RESPONSIVE — Dashboard (added refinements)
+   Breakpoints: 480
+   ============================================================ */
+@media (max-width: 480px) {
+  .stat-card { padding: 1rem; }
+  .stat-value { font-size: 1.25rem; }
+  .order-stat-value { font-size: 1.5rem; }
+  .dashboard-grid th,
+  .dashboard-grid td { padding: 0.7rem 0.6rem; }
+}

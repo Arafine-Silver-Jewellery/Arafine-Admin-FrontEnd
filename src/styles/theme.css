@@ -12,51 +12,101 @@
  */
 
 :root {
+  /* ============================================================
+     GLOBAL RESPONSIVE SYSTEM — single source of truth
+     ------------------------------------------------------------
+     Breakpoints (use these exact values in every @media query so
+     the whole app behaves consistently across devices):
+       --bp-sm  : 480px   phones
+       --bp-md  : 768px   large phones / portrait tablets
+       --bp-lg  : 1024px  landscape tablets / small laptops
+       --bp-xl  : 1280px  laptops / desktops
+       --bp-2xl : 1536px  large monitors / 4K
+     NOTE: CSS cannot read custom properties inside @media conditions,
+     so these are documentation + used anywhere var() is valid. Always
+     author media queries at: 480 / 768 / 1024 / 1280 / 1536.
+     ============================================================ */
+  --bp-sm: 480px;
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+  --bp-xl: 1280px;
+  --bp-2xl: 1536px;
+
+  /* Shell dimensions (referenced by layout + pages) */
+  --sidebar-width: 264px;
+  --header-height: 68px;
+
+  /* Fluid page padding — shrinks on smaller screens */
+  --page-pad-x: 2rem;
+  --page-pad-y: 1.5rem;
+
   /* Typography */
   --font-display: 'Playfair Display', Georgia, serif;
   --font-serif: 'Cormorant Garamond', Georgia, serif;
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  
-  /* Primary Colors - Champagne/Gold palette */
-  --color-champagne: #c9a96e;
-  --color-champagne-light: #d4b985;
-  --color-champagne-dark: #b8944d;
-  --color-champagne-muted: #e8dcc4;
-  
-  /* Neutral Colors - Charcoal palette */
-  --color-charcoal: #1a1a1a;
-  --color-charcoal-light: #2d2d2d;
-  --color-charcoal-muted: #6b6b6b;
-  
-  /* Background Colors - Cream/Ivory */
-  --color-cream: #faf9f7;
-  --color-ivory: #f5f3ef;
+
+  /* ============================================================
+     PREMIUM COLOR SYSTEM — refined gold + deep ink
+     A luxury, high-contrast palette for a premium admin feel.
+     ============================================================ */
+
+  /* Brand — refined gold (primary accent) */
+  --color-champagne: #b78d3f;        /* primary gold */
+  --color-champagne-light: #d9b878;  /* light gold */
+  --color-champagne-dark: #96722f;   /* deep gold */
+  --color-champagne-muted: #ecdcbf;  /* soft gold tint */
+  --brand: #b78d3f;
+  --brand-weak: #f6edda;             /* subtle gold background */
+  --brand-gradient: linear-gradient(135deg, #c9a24e 0%, #a9803a 100%);
+
+  /* Ink — deep neutral for sidebar + primary surfaces/text */
+  --color-charcoal: #1c2128;         /* near-black ink */
+  --color-charcoal-light: #2b313b;
+  --color-charcoal-muted: #6b7280;   /* secondary text */
+  --ink-900: #12161c;
+  --ink-800: #1c2128;
+  --ink-700: #2b313b;
+  --ink-600: #3a4150;
+  --text-strong: #1c2128;
+  --text: #353b45;
+  --text-muted: #6b7280;
+  --text-faint: #9aa1ad;
+
+  /* Backgrounds — clean, airy neutrals */
+  --color-cream: #f6f7f9;            /* app canvas */
+  --color-ivory: #f1f3f6;            /* subtle hover */
   --color-white: #ffffff;
-  --color-pearl: #f0ede8;
-  
-  /* Accent Colors */
-  --color-success: #4a7c59;
-  --color-success-light: #e8f0ea;
-  --color-warning: #c9a96e;
-  --color-warning-light: #faf5eb;
-  --color-error: #9e4a4a;
-  --color-error-light: #f5eaea;
-  --color-info: #4a6a9e;
-  --color-info-light: #eaf0f5;
-  
+  --color-pearl: #f4f5f7;            /* zebra / headers */
+  --surface: #ffffff;
+  --surface-2: #fbfcfd;
+
+  /* Status */
+  --color-success: #15803d;
+  --color-success-light: #e8f6ee;
+  --color-warning: #b45309;
+  --color-warning-light: #fdf3e3;
+  --color-error: #b4231f;
+  --color-error-light: #fdeceb;
+  --color-info: #1d4ed8;
+  --color-info-light: #eaf0ff;
+
   /* Borders */
-  --border-color: #e8e4dc;
-  --border-color-light: #f0ede8;
-  
-  /* Shadows - Softer, more elegant */
-  --shadow-sm: 0 1px 2px rgba(26, 26, 26, 0.04);
-  --shadow-md: 0 4px 12px rgba(26, 26, 26, 0.06);
-  --shadow-lg: 0 8px 24px rgba(26, 26, 26, 0.08);
-  
+  --border-color: #e4e7ec;
+  --border-color-light: #eef0f3;
+  --border-strong: #d4d8df;
+
+  /* Shadows — layered, premium elevation */
+  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-md: 0 4px 12px rgba(16, 24, 40, 0.08), 0 2px 4px rgba(16, 24, 40, 0.04);
+  --shadow-lg: 0 12px 28px rgba(16, 24, 40, 0.12), 0 4px 10px rgba(16, 24, 40, 0.06);
+  --shadow-xl: 0 24px 48px rgba(16, 24, 40, 0.16), 0 8px 16px rgba(16, 24, 40, 0.08);
+  --ring: 0 0 0 3px rgba(183, 141, 63, 0.18);
+
   /* Transitions */
-  --transition-fast: 150ms ease;
-  --transition-normal: 300ms ease;
-  --transition-slow: 500ms ease;
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
   
   /* Spacing */
   --spacing-xs: 0.25rem;
@@ -67,10 +117,11 @@
   --spacing-2xl: 3rem;
   
   /* Border Radius */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-pill: 999px;
   
   /* Letter Spacing */
   --tracking-tight: -0.025em;
@@ -357,3 +408,88 @@ hr {
 .bg-ivory { background: var(--color-ivory); }
 .bg-white { background: var(--color-white); }
 .bg-pearl { background: var(--color-pearl); }
+
+/* ============================================================
+   GLOBAL RESPONSIVE UTILITIES
+   Reusable, device-agnostic helpers for consistent responsive
+   layouts across every page. Breakpoints: 1024 / 768 / 480.
+   ============================================================ */
+
+/* Horizontal-scroll wrapper for wide data tables.
+   Wrap any <table> that can overflow in <div class="table-scroll">. */
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.table-scroll > table {
+  min-width: 640px; /* keep columns readable; scroll below this */
+}
+
+/* Page toolbar: title on the left, actions on the right, wraps on small screens */
+.ui-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+  margin-bottom: var(--spacing-lg);
+}
+.ui-toolbar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+/* Responsive filter grid — auto-fits, collapses to 1 column on phones */
+.ui-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-md);
+}
+
+/* Responsive stat/card grid */
+.ui-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--spacing-md);
+}
+
+/* Generic responsive form grid (two columns → one on mobile) */
+.ui-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--spacing-md);
+}
+
+/* Visibility helpers */
+.hide-mobile { display: initial; }
+.show-mobile { display: none; }
+
+@media (max-width: 1024px) {
+  :root {
+    --page-pad-x: 1.25rem;
+    --page-pad-y: 1.25rem;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --page-pad-x: 1rem;
+    --page-pad-y: 1rem;
+  }
+  .ui-filter-grid { grid-template-columns: 1fr; }
+  .ui-stat-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .hide-mobile { display: none !important; }
+  .show-mobile { display: initial; }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --page-pad-x: 0.875rem;
+    --page-pad-y: 0.875rem;
+  }
+  .ui-stat-grid { grid-template-columns: 1fr 1fr; }
+  .ui-toolbar__actions { width: 100%; }
+}

@@ -1,160 +1,258 @@
-import { useState } from "react";
-import "../../styles/products-module.css";
+import { useState, useEffect } from "react";
+import { DataTable, StatusDropdown } from "../../components";
+import * as XLSX from "xlsx";
+import "../../styles/ui-kit.css";
+
+interface RestockRequest {
+  id: string;
+  name: string;
+  image: string;
+  variant?: string;
+  sellingPrice: number;
+  lastRequestDate: string;
+  numberOfRequest: number;
+}
+
+const categoryOptions = [
+  { value: "", label: "All Categories", color: "neutral" as const },
+  { value: "rings", label: "Rings", color: "neutral" as const },
+  { value: "necklaces", label: "Necklaces", color: "neutral" as const },
+  { value: "bracelets", label: "Bracelets", color: "neutral" as const },
+  { value: "earrings", label: "Earrings", color: "neutral" as const },
+];
 
 export default function RequestRestockList() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [dateRange, setDateRange] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [category, setCategory] = useState("");
-  const [subCategory, setSubCategory] = useState("");
-  const [brand, setBrand] = useState("");
-  const [requests] = useState<any[]>([]);
+  const [requests] = useState<RestockRequest[]>([]);
   const [loading] = useState(false);
 
-  const filteredRequests = requests.filter(r =>
-    r.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const filteredRequests = requests.filter((r) => {
+    const matchesSearch = r.name?.toLowerCase().includes(debouncedSearch.toLowerCase());
+    return matchesSearch;
+  });
+
+  // Paginated data
+  const totalItems = filteredRequests.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const paginatedRequests = filteredRequests.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
   );
 
-  return (
-    <div className="products-module-container">
-      <div className="filter-section">
-        <h3>Filter Products</h3>
-        <div className="filter-grid">
-          <div className="filter-group">
-            <label>Request Restock Date</label>
-            <input
-              type="text"
-              placeholder="DD MMM YYYY - DD MMM YYYY"
-              value={dateRange}
-              onChange={(e) => setDateRange(e.target.value)}
-            />
-          </div>
-          <div className="filter-group">
-            <label>Category</label>
-            <select value={category} onChange={(e) => setCategory(e.target.value)}>
-              <option value="">Select category</option>
-              <option value="rings">Rings</option>
-              <option value="necklaces">Necklaces</option>
-              <option value="bracelets">Bracelets</option>
-            </select>
-          </div>
-          <div className="filter-group">
-            <label>Sub Category</label>
-            <select value={subCategory} onChange={(e) => setSubCategory(e.target.value)}>
-              <option value="">Select Sub Category</option>
-            </select>
-          </div>
-          <div className="filter-group">
-            <label>Brand</label>
-            <select value={brand} onChange={(e) => setBrand(e.target.value)}>
-              <option value="">Select brand</option>
-            </select>
+  function handleExport() {
+    const exportData = filteredRequests.map((request, index) => ({
+      SL: index + 1,
+      "Product Name": request.name,
+      Variant: request.variant || "",
+      "Selling Price (₹)": request.sellingPrice?.toLocaleString() || "",
+      "Last Request Date": request.lastRequestDate,
+      "Number of Requests": request.numberOfRequest,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Restock Requests");
+    XLSX.writeFile(workbook, `restock-requests-${new Date().toISOString().split("T")[0]}.xlsx`);
+  }
+
+  function handleReset() {
+    setSearchQuery("");
+    setCategory("");
+  }
+
+  const columns = [
+    {
+      key: "sl",
+      header: "SL",
+      width: "60px",
+      render: (_: RestockRequest, index: number) => (currentPage - 1) * itemsPerPage + index + 1,
+    },
+    {
+      key: "product",
+      header: "Product Name",
+      render: (request: RestockRequest) => (
+        <div className="ak-product-cell">
+          {request.image ? (
+            <img src={request.image} alt={request.name} className="ak-product-cell__img" />
+          ) : (
+            <div className="ak-product-cell__placeholder">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21,15 16,10 5,21" />
+              </svg>
+            </div>
+          )}
+          <div>
+            <span className="ak-product-cell__name ak-text-link">{request.name}</span>
+            {request.variant && (
+              <span className="ak-text-muted ak-text-sm" style={{ display: "block" }}>
+                Variant: {request.variant}
+              </span>
+            )}
           </div>
         </div>
-        <div className="filter-actions">
-          <button className="btn-reset">Reset</button>
-          <button className="btn-submit">Show data</button>
+      ),
+    },
+    {
+      key: "sellingPrice",
+      header: "Selling Price",
+      width: "130px",
+      render: (request: RestockRequest) => (
+        <span style={{ fontWeight: 500 }}>
+          {request.sellingPrice != null ? `₹${Number(request.sellingPrice).toLocaleString()}` : "—"}
+        </span>
+      ),
+    },
+    {
+      key: "lastRequestDate",
+      header: "Last Request Date",
+      width: "150px",
+      render: (request: RestockRequest) => (
+        <span className="ak-text-muted">{request.lastRequestDate || "—"}</span>
+      ),
+    },
+    {
+      key: "numberOfRequest",
+      header: "Requests",
+      width: "100px",
+      align: "center" as const,
+      render: (request: RestockRequest) => (
+        <span
+          className={`ak-status ak-status--${request.numberOfRequest > 10 ? "danger" : request.numberOfRequest > 5 ? "warning" : "info"}`}
+        >
+          <span className="ak-status__dot" />
+          {request.numberOfRequest ?? 0}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Action",
+      width: "120px",
+      render: (_request: RestockRequest) => (
+        <div className="ak-row-actions">
+          <button type="button" className="ak-icon-btn ak-icon-btn--view" title="View">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </button>
+          <button type="button" className="ak-icon-btn" title="Share">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="18" cy="5" r="3" />
+              <circle cx="6" cy="12" r="3" />
+              <circle cx="18" cy="19" r="3" />
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+            </svg>
+          </button>
+          <button type="button" className="ak-icon-btn ak-icon-btn--delete" title="Delete">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="3,6 5,6 21,6" />
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            </svg>
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <div className="ak-page">
+      {/* Page Header */}
+      <div className="ak-page-header">
+        <div className="ak-page-header__left">
+          <h1 className="ak-page-header__title">
+            Restock Requests
+            {totalItems > 0 && <span className="ak-page-header__count">{totalItems}</span>}
+          </h1>
+          <p className="ak-page-header__subtitle">Track products customers want restocked</p>
+        </div>
+        <div className="ak-page-header__actions">
+          <button type="button" className="ak-btn ak-btn--ghost" onClick={handleExport}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7,10 12,15 17,10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Export
+          </button>
         </div>
       </div>
 
-      <div className="products-card">
-        <div className="products-toolbar">
-          <h3>Request list <span className="count">{filteredRequests.length}</span></h3>
-          <div className="toolbar-actions">
-            <div className="search-box small">
-              <input
-                type="text"
-                placeholder="Search by Product Name"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8" />
-                <path d="M21 21l-4.35-4.35" />
-              </svg>
+      {/* Page Body */}
+      <div className="ak-page-body">
+        {/* Toolbar */}
+        <div className="ak-toolbar">
+          <div className="ak-toolbar__search">
+            <div className="ak-searchbar">
+              <div className="ak-searchbar__form">
+                <svg
+                  className="ak-searchbar__icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <input
+                  type="text"
+                  className="ak-searchbar__input"
+                  placeholder="Search by Product Name…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
             </div>
-            <button className="btn-export">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7,10 12,15 17,10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-              Export
+          </div>
+          <div className="ak-toolbar__filters">
+            <StatusDropdown
+              options={categoryOptions}
+              value={category}
+              onChange={setCategory}
+              placeholder="All Categories"
+              size="sm"
+            />
+            <button type="button" className="ak-btn ak-btn--ghost ak-btn--sm" onClick={handleReset}>
+              Reset
             </button>
           </div>
         </div>
 
-        <div className="products-table-container">
-          <table className="products-table">
-            <thead>
-              <tr>
-                <th>SL</th>
-                <th>Product Name</th>
-                <th>Selling Price</th>
-                <th>Last Request Date</th>
-                <th>Number Of Request</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={6} style={{ textAlign: "center", padding: "32px" }}>Loading...</td>
-                </tr>
-              ) : filteredRequests.length === 0 ? (
-                <tr>
-                  <td colSpan={6} style={{ textAlign: "center", padding: "32px" }}>No restock requests found</td>
-                </tr>
-              ) : (
-                filteredRequests.map((request, index) => (
-                  <tr key={request.id}>
-                    <td>{index + 1}</td>
-                    <td>
-                      <div className="product-name-cell">
-                        <img
-                          src={request.image || "https://via.placeholder.com/60?text=No+Image"}
-                          alt=""
-                          className="product-thumb"
-                        />
-                        <div className="product-info">
-                          <span className="name link">{request.name}</span>
-                          {request.variant && <span className="variant">Variant: {request.variant}</span>}
-                        </div>
-                      </div>
-                    </td>
-                    <td>{request.sellingPrice != null ? `₹${Number(request.sellingPrice).toLocaleString()}` : "—"}</td>
-                    <td>{request.lastRequestDate || "—"}</td>
-                    <td>{request.numberOfRequest ?? 0}</td>
-                    <td>
-                      <div className="action-buttons">
-                        <button className="btn-action btn-icon-view" title="View">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#4f46e5" strokeWidth="2"/>
-                            <circle cx="12" cy="12" r="3" stroke="#4f46e5" strokeWidth="2"/>
-                          </svg>
-                        </button>
-                        <button className="btn-action btn-icon-share" title="Share">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <circle cx="18" cy="5" r="3" stroke="#3b82f6" strokeWidth="2"/>
-                            <circle cx="6" cy="12" r="3" stroke="#3b82f6" strokeWidth="2"/>
-                            <circle cx="18" cy="19" r="3" stroke="#3b82f6" strokeWidth="2"/>
-                            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" stroke="#3b82f6" strokeWidth="2"/>
-                            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" stroke="#3b82f6" strokeWidth="2"/>
-                          </svg>
-                        </button>
-                        <button className="btn-action btn-icon-delete" title="Delete">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <polyline points="3,6 5,6 21,6" stroke="#ef4444" strokeWidth="2"/>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="#ef4444" strokeWidth="2"/>
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        {/* Data Table */}
+        <DataTable
+          columns={columns}
+          data={paginatedRequests}
+          loading={loading}
+          loadingText="Loading restock requests…"
+          emptyIcon="box"
+          emptyTitle="No restock requests"
+          emptyDescription="When customers request product restocks, they will appear here."
+          keyExtractor={(request) => request.id}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+        />
       </div>
     </div>
   );

@@ -43,11 +43,13 @@
 .employees-toolbar .search-box svg {
   position: absolute;
   right: 12px;
+  left: auto;             /* cancel any leaked left-icon rule from other pages */
   top: 50%;
   transform: translateY(-50%);
   width: 16px;
   height: 16px;
   stroke: var(--color-charcoal-muted);
+  pointer-events: none;
 }
 
 .employees-container .card {
@@ -457,4 +459,103 @@
   padding: 2rem;
   color: var(--color-charcoal-muted);
   font-family: var(--font-sans);
+}
+
+/* ============================================================
+   RESPONSIVE — Employees (added)
+   Breakpoints: 768 / 480
+   ============================================================ */
+@media (max-width: 768px) {
+  .employees-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  .employees-toolbar .search-box {
+    width: 100%;
+  }
+  .employees-toolbar .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Modal: full-width form fields, reduced padding */
+  .modal-overlay { padding: 1rem; }
+  .modal-body .form-row {
+    grid-template-columns: 1fr;
+  }
+  .modal-footer {
+    flex-direction: column-reverse;
+  }
+  .modal-footer .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .permission-actions {
+    flex-wrap: wrap;
+  }
+  .permission-count { margin-left: 0; width: 100%; }
+}
+
+/* ── Mobile: transform the employees table into stacked cards ── */
+@media (max-width: 768px) {
+  .employees-container thead {
+    position: absolute;
+    width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
+  .employees-container table,
+  .employees-container tbody,
+  .employees-container tr,
+  .employees-container td {
+    display: block;
+    width: 100%;
+  }
+  .employees-container tr {
+    margin-bottom: 0.85rem;
+    border: 1px solid var(--border-color, #e8e4dc);
+    border-radius: 10px;
+    background: var(--color-white, #fff);
+    padding: 0.4rem 0.9rem;
+    box-shadow: var(--shadow-sm);
+  }
+  .employees-container td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    text-align: right;
+    padding: 0.6rem 0;
+    border: none;
+    border-bottom: 1px solid var(--border-color-light, #f0ede8);
+  }
+  .employees-container tr td:last-child { border-bottom: none; }
+  .employees-container td::before {
+    content: attr(data-label);
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-charcoal-muted, #6b6b6b);
+    text-align: left;
+    flex-shrink: 0;
+  }
+  .employees-container td .action-buttons { justify-content: flex-end; }
+  .employees-container td.loading,
+  .employees-container td.empty-state {
+    justify-content: center;
+    text-align: center;
+  }
+  .employees-container td.loading::before,
+  .employees-container td.empty-state::before { content: none; }
+}
+
+@media (max-width: 480px) {
+  .modal-header,
+  .modal-body { padding: 1rem; }
+  .permission-list {
+    grid-template-columns: 1fr;
+  }
+  .action-buttons { flex-wrap: wrap; }
 }

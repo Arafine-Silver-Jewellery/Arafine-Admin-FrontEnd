@@ -210,3 +210,35 @@
 .btn-icon-activate:hover {
   background: #bbf7d0;
 }
+
+/* ============================================================
+   RESPONSIVE — Settings / Storage providers (added)
+   Breakpoints: 1024 / 768 / 480
+   ============================================================ */
+@media (max-width: 1024px) {
+  .settings-container {
+    padding: var(--page-pad-y) var(--page-pad-x);
+  }
+}
+
+@media (max-width: 768px) {
+  .settings-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  .settings-toolbar .search-box {
+    width: 100%;
+  }
+  .settings-toolbar .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .settings-container .card { padding: 1rem; }
+  .settings-container th,
+  .settings-container td { padding: 10px 8px; }
+  .action-buttons { flex-wrap: wrap; }
+}

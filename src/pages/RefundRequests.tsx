@@ -3,14 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "../components/Toast";
 import { api } from "../api/client";
 import { formatDate, formatPrice } from "../utils/format";
+import { DataTable, StatusDropdown, FilterDrawer } from "../components";
 import type { Order, OrderStatus } from "../types";
-import "../styles/orders-new.css";
+import "../styles/ui-kit.css";
 
 interface RefundRequestsProps {
   statusFilter?: "pending" | "approved" | "refunded" | "rejected";
 }
 
-// Map the 4 UI status filters to the backend Order.status enum values they include.
 const BACKEND_STATUSES_BY_FILTER: Record<RefundRequestsProps["statusFilter"] & string, OrderStatus[]> = {
   pending: ["return_requested"],
   approved: ["return_approved", "refund_initiated"],
@@ -19,11 +19,11 @@ const BACKEND_STATUSES_BY_FILTER: Record<RefundRequestsProps["statusFilter"] & s
 };
 
 const refundStatusOptions = [
-  { value: "pending", label: "Pending", path: "/refund-requests" },
-  { value: "approved", label: "Approved", path: "/refund-requests/approved" },
-  { value: "refunded", label: "Refunded", path: "/refund-requests/refunded" },
-  { value: "rejected", label: "Rejected", path: "/refund-requests/rejected" },
-] as const;
+  { value: "pending", label: "Pending", color: "warning" as const, path: "/refund-requests" },
+  { value: "approved", label: "Approved", color: "info" as const, path: "/refund-requests/approved" },
+  { value: "refunded", label: "Refunded", color: "success" as const, path: "/refund-requests/refunded" },
+  { value: "rejected", label: "Rejected", color: "danger" as const, path: "/refund-requests/rejected" },
+];
 
 export default function RefundRequests({ statusFilter = "pending" }: RefundRequestsProps) {
   const navigate = useNavigate();
@@ -32,67 +32,48 @@ export default function RefundRequests({ statusFilter = "pending" }: RefundReque
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [processing, setProcessing] = useState<string | null>(null);
-
-  // Refund modal state
+  const [showFilterDrawer, setShowFilterDrawer] = useState(false);
   const [refundTarget, setRefundTarget] = useState<Order | null>(null);
   const [refundAmountInr, setRefundAmountInr] = useState<string>("");
 
   const filterKey = (statusFilter ?? "pending") as keyof typeof BACKEND_STATUSES_BY_FILTER;
-  const currentStatusLabel = refundStatusOptions.find(o => o.value === filterKey)?.label ?? "Pending";
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    if (!statusDropdownOpen) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest(".status-dropdown")) {
-        setStatusDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [statusDropdownOpen]);
+  const currentStatusOption = refundStatusOptions.find((o) => o.value === filterKey);
 
   async function loadRefunds() {
     setLoading(true);
     try {
       const backendStatuses = BACKEND_STATUSES_BY_FILTER[filterKey];
-
-      // Fetch each backend status in parallel so we can show all matching orders.
-      const responses = await Promise.all(
-        backendStatuses.map(s =>
-          api.getOrders({ status: s, limit: 100 }),
-        ),
-      );
-      const combined: Order[] = responses.flatMap(r => r?.data ?? []);
+      const responses = await Promise.all(backendStatuses.map((s) => api.getOrders({ status: s, limit: 100 })));
+      const combined: Order[] = responses.flatMap((r) => r?.data ?? []);
       setOrders(combined);
-    }
-    catch (error) {
+    } catch (error) {
       console.error("Failed to load refund requests:", error);
       toast.error("Failed to load refund requests");
       setOrders([]);
-    }
-    finally {
+    } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
     loadRefunds();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterKey]);
 
   const filteredRefunds = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return orders;
-    return orders.filter(o =>
-      o.orderNumber.toLowerCase().includes(q)
-      || o.userId.toLowerCase().includes(q)
-      || (o.shippingAddress?.fullName ?? "").toLowerCase().includes(q),
-    );
+    return orders.filter((o) => o.orderNumber.toLowerCase().includes(q) || o.userId.toLowerCase().includes(q) || (o.shippingAddress?.fullName ?? "").toLowerCase().includes(q));
   }, [orders, searchQuery]);
+
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+  }
+
+  function handleStatusChange(value: string) {
+    const option = refundStatusOptions.find((o) => o.value === value);
+    if (option) navigate(option.path);
+  }
 
   function openRefundModal(order: Order) {
     setRefundTarget(order);
@@ -107,16 +88,13 @@ export default function RefundRequests({ statusFilter = "pending" }: RefundReque
   async function approveRefund(order: Order) {
     setProcessing(order.id);
     try {
-      // Move from return_requested to return_approved by setting status directly.
       await api.updateOrderStatus(order.id, "return_approved");
       toast.success(`Refund approved for ${order.orderNumber}`);
       await loadRefunds();
-    }
-    catch (error) {
+    } catch (error) {
       console.error("Failed to approve refund:", error);
       toast.error("Failed to approve refund");
-    }
-    finally {
+    } finally {
       setProcessing(null);
     }
   }
@@ -127,12 +105,10 @@ export default function RefundRequests({ statusFilter = "pending" }: RefundReque
       await api.updateOrderStatus(order.id, "returned");
       toast.success(`Refund rejected for ${order.orderNumber}`);
       await loadRefunds();
-    }
-    catch (error) {
+    } catch (error) {
       console.error("Failed to reject refund:", error);
       toast.error("Failed to reject refund");
-    }
-    finally {
+    } finally {
       setProcessing(null);
     }
   }
@@ -150,208 +126,150 @@ export default function RefundRequests({ statusFilter = "pending" }: RefundReque
       toast.success(`Refunded ${formatPrice(Math.round(amountInr * 100))} for ${refundTarget.orderNumber}`);
       closeRefundModal();
       await loadRefunds();
-    }
-    catch (error) {
+    } catch (error) {
       console.error("Failed to process refund:", error);
       toast.error("Failed to process refund");
-    }
-    finally {
+    } finally {
       setProcessing(null);
     }
   }
 
+  const statusVariantMap: Record<string, string> = { pending: "warning", approved: "info", refunded: "success", rejected: "danger" };
+
+  const columns = [
+    { key: "sl", header: "#", width: "50px", render: (_: Order, index: number) => <span className="ak-text-muted">{index + 1}</span> },
+    { key: "orderNumber", header: "Order ID", render: (order: Order) => <span className="ak-order-id" onClick={() => navigate(`/orders/${order.id}`)}>{order.orderNumber}</span> },
+    { key: "createdAt", header: "Order Date", render: (order: Order) => <div className="ak-date-cell"><span className="ak-date-cell__date">{formatDate(order.createdAt)}</span></div> },
+    {
+      key: "customer",
+      header: "Customer",
+      render: (order: Order) => (
+        <div className="ak-user-cell">
+          <div className="ak-user-cell__initials">{(order.shippingAddress?.fullName ?? "?")[0].toUpperCase()}</div>
+          <div className="ak-user-cell__info">
+            <span className="ak-user-cell__name">{order.shippingAddress?.fullName ?? "—"}</span>
+            <span className="ak-user-cell__email">{order.shippingAddress?.phone ?? "—"}</span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "reason",
+      header: "Reason",
+      render: (order: Order) => {
+        const reason = order.returnReason || order.customerNote || "—";
+        return <span className="ak-text-truncate" title={reason} style={{ maxWidth: "180px" }}>{reason}</span>;
+      },
+    },
+    { key: "amount", header: "Amount", align: "right" as const, render: (order: Order) => <span className="ak-amount">{formatPrice(order.totalPaise)}</span> },
+    {
+      key: "status",
+      header: "Status",
+      render: () => (
+        <span className={`ak-status ak-status--${statusVariantMap[filterKey]}`}>
+          <span className="ak-status__dot" />
+          {currentStatusOption?.label}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Action",
+      width: "160px",
+      render: (order: Order) => {
+        const isProcessing = processing === order.id;
+        return (
+          <div className="ak-row-actions">
+            {filterKey === "pending" && (
+              <>
+                <button type="button" className="ak-btn ak-btn--sm ak-btn--success" disabled={isProcessing} onClick={(e) => { e.stopPropagation(); approveRefund(order); }}>Approve</button>
+                <button type="button" className="ak-btn ak-btn--sm ak-btn--danger" disabled={isProcessing} onClick={(e) => { e.stopPropagation(); rejectRefund(order); }}>Reject</button>
+              </>
+            )}
+            {filterKey === "approved" && <button type="button" className="ak-btn ak-btn--sm ak-btn--primary" disabled={isProcessing} onClick={(e) => { e.stopPropagation(); openRefundModal(order); }}>Process Refund</button>}
+            {filterKey === "refunded" && <span className="ak-text-muted ak-text-sm">{order.refundedAt ? `Refunded ${formatDate(order.refundedAt)}` : "Completed"}</span>}
+            {filterKey === "rejected" && <span className="ak-text-muted ak-text-sm">Closed</span>}
+          </div>
+        );
+      },
+    },
+  ];
+
   return (
-    <div className="orders-container">
-      <div className="page-header-row">
-        <div>
-          <h1 className="page-title">Refund Requests</h1>
-          <p className="page-subtitle">Manage return and refund requests from customers</p>
+    <div className="ak-page">
+      {/* Page Header */}
+      <div className="ak-page-header">
+        <div className="ak-page-header__left">
+          <h1 className="ak-page-header__title">
+            Refund Requests
+            {filteredRefunds.length > 0 && <span className="ak-page-header__count">{filteredRefunds.length}</span>}
+          </h1>
+          <p className="ak-page-header__subtitle">Manage return and refund requests from customers</p>
         </div>
       </div>
 
-      <div className="filter-bar">
-        <div className="status-dropdown">
-          <button
-            type="button"
-            className="status-dropdown-trigger"
-            onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-          >
-            <span>{currentStatusLabel}</span>
-            <svg className={`chevron ${statusDropdownOpen ? "expanded" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="6,9 12,15 18,9" />
-            </svg>
-          </button>
-          {statusDropdownOpen && (
-            <div className="status-dropdown-menu">
-              {refundStatusOptions.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={`status-dropdown-item ${filterKey === option.value ? "active" : ""}`}
-                  onClick={() => {
-                    navigate(option.path);
-                    setStatusDropdownOpen(false);
-                  }}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-        <div className="search-box" style={{ flex: 1, maxWidth: "320px" }}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8" />
-            <path d="M21 21l-4.35-4.35" />
-          </svg>
-          <input
-            type="text"
-            placeholder="Search by order number, customer…"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <div className="result-count">
-          {loading ? "Loading…" : `${filteredRefunds.length} request${filteredRefunds.length === 1 ? "" : "s"}`}
-        </div>
-      </div>
-
-      <div className="card">
-        <div className="table-container">
-          {loading ? (
-            <div className="empty-state">Loading refund requests…</div>
-          ) : filteredRefunds.length === 0 ? (
-            <div className="empty-state">
-              <p>No {currentStatusLabel.toLowerCase()} refund requests.</p>
-            </div>
-          ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>SL</th>
-                  <th>Order ID</th>
-                  <th>Order Date</th>
-                  <th>Customer</th>
-                  <th>Phone</th>
-                  <th>Reason</th>
-                  <th>Amount</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredRefunds.map((order, index) => {
-                  const reason = order.returnReason || order.customerNote || "—";
-                  const isProcessing = processing === order.id;
-                  return (
-                    <tr key={order.id}>
-                      <td>{index + 1}</td>
-                      <td>
-                        <span className="order-id-link" onClick={() => navigate(`/orders/${order.id}`)}>
-                          {order.orderNumber}
-                        </span>
-                      </td>
-                      <td>{formatDate(order.createdAt)}</td>
-                      <td>{order.shippingAddress?.fullName ?? "—"}</td>
-                      <td>{order.shippingAddress?.phone ?? "—"}</td>
-                      <td className="reason-cell">{reason}</td>
-                      <td>{formatPrice(order.totalPaise)}</td>
-                      <td>
-                        <span className={`refund-status-pill refund-status-${filterKey}`}>
-                          {currentStatusLabel}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="action-buttons">
-                          {filterKey === "pending" && (
-                            <>
-                              <button
-                                className="btn-action btn-approve"
-                                disabled={isProcessing}
-                                onClick={() => approveRefund(order)}
-                                title="Approve"
-                              >
-                                Approve
-                              </button>
-                              <button
-                                className="btn-action btn-reject"
-                                disabled={isProcessing}
-                                onClick={() => rejectRefund(order)}
-                                title="Reject"
-                              >
-                                Reject
-                              </button>
-                            </>
-                          )}
-                          {filterKey === "approved" && (
-                            <button
-                              className="btn-action btn-refund"
-                              disabled={isProcessing}
-                              onClick={() => openRefundModal(order)}
-                              title="Process refund"
-                            >
-                              Refund
-                            </button>
-                          )}
-                          {filterKey === "refunded" && (
-                            <span className="muted-text" style={{ fontSize: "12px" }}>
-                              {order.refundedAt ? `Refunded ${formatDate(order.refundedAt)}` : "—"}
-                            </span>
-                          )}
-                          {filterKey === "rejected" && (
-                            <span className="muted-text" style={{ fontSize: "12px" }}>Closed</span>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </div>
-
-      {refundTarget && (
-        <div className="modal-overlay" onClick={closeRefundModal}>
-          <div className="modal-content modal-confirm" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Process refund</h2>
-              <button className="modal-close" onClick={closeRefundModal} disabled={processing === refundTarget.id}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </div>
-            <div className="modal-body">
-              <p>
-                Process refund for order <strong>{refundTarget.orderNumber}</strong>?
-                Order total is {formatPrice(refundTarget.totalPaise)}.
-              </p>
-              <div className="form-group">
-                <label htmlFor="refund-amount">Refund amount (₹)</label>
-                <input
-                  id="refund-amount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={refundAmountInr}
-                  onChange={e => setRefundAmountInr(e.target.value)}
-                />
+      {/* Page Body */}
+      <div className="ak-page-body">
+        {/* Toolbar */}
+        <div className="ak-toolbar">
+          <form onSubmit={handleSearch} className="ak-toolbar__search">
+            <div className="ak-searchbar">
+              <div className="ak-searchbar__form">
+                <svg className="ak-searchbar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /></svg>
+                <input type="text" className="ak-searchbar__input" placeholder="Search by order number, customer…" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
               </div>
             </div>
-            <div className="modal-footer">
-              <button className="btn-reset" onClick={closeRefundModal} disabled={processing === refundTarget.id}>
-                Cancel
-              </button>
-              <button
-                className="btn-submit btn-danger"
-                onClick={confirmRefund}
-                disabled={processing === refundTarget.id}
-              >
-                {processing === refundTarget.id ? "Processing…" : "Confirm Refund"}
-              </button>
+          </form>
+
+          <div className="ak-toolbar__filters">
+            <StatusDropdown options={refundStatusOptions} value={filterKey} onChange={handleStatusChange} placeholder="Status" size="sm" />
+          </div>
+
+          <div className="ak-toolbar__actions">
+            <button type="button" className="ak-btn ak-btn--ghost ak-btn--sm" onClick={() => setShowFilterDrawer(true)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><circle cx="4" cy="12" r="2" /><circle cx="12" cy="10" r="2" /><circle cx="20" cy="14" r="2" /></svg>
+              Filters
+            </button>
+          </div>
+        </div>
+
+        {/* Data Table */}
+        <DataTable
+          columns={columns}
+          data={filteredRefunds}
+          loading={loading}
+          loadingText="Loading refund requests…"
+          emptyIcon="cart"
+          emptyTitle={`No ${currentStatusOption?.label.toLowerCase()} refund requests`}
+          emptyDescription="When customers request refunds, they'll appear here."
+          keyExtractor={(order) => order.id}
+          onRowClick={(order) => navigate(`/orders/${order.id}`)}
+        />
+      </div>
+
+      {/* Filter Drawer */}
+      <FilterDrawer isOpen={showFilterDrawer} onClose={() => setShowFilterDrawer(false)} title="Filter Refunds" onApply={() => setShowFilterDrawer(false)} onReset={() => setShowFilterDrawer(false)}>
+        <div className="ak-filter-field">
+          <label className="ak-filter-field__label">Refund Status</label>
+          <StatusDropdown options={refundStatusOptions} value={filterKey} onChange={handleStatusChange} placeholder="Status" />
+        </div>
+      </FilterDrawer>
+
+      {/* Refund Modal */}
+      {refundTarget && (
+        <div className="ak-modal-overlay" onClick={closeRefundModal}>
+          <div className="ak-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="ak-modal__header">
+              <h2 className="ak-modal__title">Process Refund</h2>
+              <button type="button" className="ak-modal__close" onClick={closeRefundModal} disabled={processing === refundTarget.id}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg></button>
+            </div>
+            <div className="ak-modal__body">
+              <p>Process refund for order <strong>{refundTarget.orderNumber}</strong>?<br />Order total is <strong>{formatPrice(refundTarget.totalPaise)}</strong>.</p>
+              <div className="ak-field" style={{ marginTop: "1rem" }}><label className="ak-field__label" htmlFor="refund-amount">Refund Amount (₹)</label><input id="refund-amount" className="ak-input" type="number" step="0.01" min="0" value={refundAmountInr} onChange={(e) => setRefundAmountInr(e.target.value)} /></div>
+            </div>
+            <div className="ak-modal__footer">
+              <button type="button" className="ak-btn ak-btn--ghost" onClick={closeRefundModal} disabled={processing === refundTarget.id}>Cancel</button>
+              <button type="button" className="ak-btn ak-btn--primary" onClick={confirmRefund} disabled={processing === refundTarget.id}>{processing === refundTarget.id ? "Processing…" : "Confirm Refund"}</button>
             </div>
           </div>
         </div>

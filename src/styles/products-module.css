@@ -111,16 +111,16 @@
   font-weight: 400;
 }
 
-.search-box {
+.products-module-container .search-box {
   position: relative;
   width: 320px;
 }
 
-.search-box.small {
+.products-module-container .search-box.small {
   width: 260px;
 }
 
-.search-box input {
+.products-module-container .search-box input {
   width: 100%;
   padding: 10px 16px 10px 40px;
   border: 1px solid #e5e7eb;
@@ -130,18 +130,20 @@
   transition: border-color 0.2s;
 }
 
-.search-box input:focus {
+.products-module-container .search-box input:focus {
   border-color: #2563eb;
 }
 
-.search-box svg {
+.products-module-container .search-box svg {
   position: absolute;
   left: 12px;
+  right: auto;
   top: 50%;
   transform: translateY(-50%);
   width: 18px;
   height: 18px;
   stroke: #9ca3af;
+  pointer-events: none;
 }
 
 .toolbar-actions {
@@ -1574,4 +1576,173 @@
     flex: 1;
     justify-content: center;
   }
+}
+
+/* ============================================================
+   RESPONSIVE — Products module (added, non-breaking)
+   Breakpoints: 1024 / 768 / 480
+   ============================================================ */
+
+/* Let the page container use the shell's fluid padding */
+@media (max-width: 1024px) {
+  .products-module-container {
+    padding: var(--page-pad-y) var(--page-pad-x);
+  }
+
+  /* Tablet: toolbar wraps instead of overflowing; search grows */
+  .products-toolbar {
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
+  .search-box,
+  .search-box.small {
+    flex: 1 1 220px;
+    width: auto;
+    min-width: 180px;
+  }
+  .search-box input { width: 100%; }
+  .toolbar-actions { flex-wrap: wrap; }
+}
+
+@media (max-width: 768px) {
+  /* Toolbar stacks: title, then full-width search, then actions */
+  .products-toolbar {
+    align-items: stretch;
+  }
+  .products-toolbar h3 { width: 100%; }
+
+  .search-box,
+  .search-box.small {
+    width: 100%;
+  }
+
+  .toolbar-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .toolbar-actions > * { flex: 1 1 auto; }
+  .toolbar-actions .sort-select,
+  .toolbar-actions .btn-export,
+  .toolbar-actions .btn-filter,
+  .toolbar-actions .btn-add {
+    justify-content: center;
+  }
+
+  /* Products header wraps and its action goes full width */
+  .products-header .btn-gallery { width: 100%; justify-content: center; }
+
+  /* Pagination wraps and scrolls if needed */
+  .pagination {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* Filter actions stack full width */
+  .filter-actions {
+    flex-direction: column;
+  }
+  .filter-actions > * { width: 100%; }
+
+  /* Template + form actions stack */
+  .template-buttons { flex-direction: column; }
+  .template-buttons .btn-template { width: 100%; }
+  .form-actions { flex-direction: column-reverse; }
+  .form-actions .btn-reset,
+  .form-actions .btn-submit { width: 100%; }
+}
+
+/* Inline-styled pagination bar (ProductList/LimitedStock use style={{}}).
+   These rules override only the layout props needed for small screens;
+   element colors/behaviour stay as authored inline. */
+@media (max-width: 768px) {
+  .pagination-container {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem;
+  }
+  .pagination-info {
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+  .pagination-buttons {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+/* ── Mobile: transform the products table into stacked cards ── */
+@media (max-width: 768px) {
+  .products-table thead {
+    position: absolute;
+    width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
+  .products-table,
+  .products-table tbody,
+  .products-table tr,
+  .products-table td {
+    display: block;
+    width: 100%;
+  }
+  .products-table tr {
+    margin-bottom: 0.85rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #fff;
+    padding: 0.75rem 0.9rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    position: relative;
+  }
+  .products-table tr.selected-row { border-color: #3b82f6; background: #eff6ff; }
+  .products-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    text-align: right;
+    padding: 0.55rem 0;
+    border: none;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  .products-table tr td:last-child { border-bottom: none; }
+  .products-table td::before {
+    content: attr(data-label);
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6b7280;
+    text-align: left;
+    flex-shrink: 0;
+  }
+  /* First cell = select checkbox, pin top-left without a label */
+  .products-table td:first-child {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.9rem;
+    width: auto;
+    padding: 0;
+    border: none;
+    justify-content: flex-start;
+  }
+  .products-table td:first-child::before { content: none; }
+  /* Give the product-name row room (it's the richest cell) */
+  .products-table td[data-label="Product"] { padding-left: 2rem; }
+  .products-table td[data-label="Product"] .product-name-cell { justify-content: flex-end; }
+  .products-table td .action-buttons { justify-content: flex-end; }
+  .products-table td[colspan] { justify-content: center; text-align: center; padding-left: 0; }
+  .products-table td[colspan]::before { content: none; }
+}
+
+@media (max-width: 480px) {
+  .products-card,
+  .filter-section { padding: 1rem; }
+
+  .product-thumb,
+  .product-thumb-placeholder { width: 40px; height: 40px; }
+
+  .action-buttons { flex-wrap: wrap; gap: 4px; }
+
+  .upload-dropzone { padding: 32px 16px; }
+  .upload-area { padding: 24px 16px; }
 }

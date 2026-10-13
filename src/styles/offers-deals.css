@@ -301,12 +301,12 @@
   color: #9ca3af;
 }
 
-.search-box {
+.offers-deals-container .search-box {
   position: relative;
   width: 280px;
 }
 
-.search-box input {
+.offers-deals-container .search-box input {
   width: 100%;
   padding: 10px 40px 10px 16px;
   border: 1px solid #e5e7eb;
@@ -316,18 +316,20 @@
   transition: border-color 0.2s;
 }
 
-.search-box input:focus {
+.offers-deals-container .search-box input:focus {
   border-color: #2563eb;
 }
 
-.search-box svg {
+.offers-deals-container .search-box svg {
   position: absolute;
   right: 12px;
+  left: auto;
   top: 50%;
   transform: translateY(-50%);
   width: 18px;
   height: 18px;
   stroke: #9ca3af;
+  pointer-events: none;
 }
 
 .search-clear {
@@ -1057,4 +1059,46 @@
 .clearance-pagination button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* ============================================================
+   RESPONSIVE — Offers & Deals (added refinements)
+   Breakpoints: 1024 / 768 / 480
+   ============================================================ */
+@media (max-width: 1024px) {
+  .offers-deals-container {
+    padding: var(--page-pad-y) var(--page-pad-x);
+  }
+}
+
+@media (max-width: 768px) {
+  .filter-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .filter-row > * { width: 100%; }
+
+  /* Toolbars + tab strips */
+  .offers-toolbar,
+  .deals-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  .offers-toolbar .search-box,
+  .deals-toolbar .search-box { width: 100%; }
+
+  .form-actions {
+    flex-direction: column-reverse;
+  }
+  .form-actions > * { width: 100%; }
+}
+
+@media (max-width: 480px) {
+  .coupon-form-card { padding: 1rem; }
+  .offers-table th,
+  .offers-table td,
+  .clearance-table th,
+  .clearance-table td { padding: 10px 8px; }
+  .action-buttons { flex-wrap: wrap; }
 }
