@@ -279,12 +279,12 @@
   align-items: center;
 }
 
-.search-box {
+.notifications-container .search-box {
   position: relative;
   width: 250px;
 }
 
-.search-box input {
+.notifications-container .search-box input {
   width: 100%;
   padding: 10px 40px 10px 16px;
   border: 1px solid #e5e7eb;
@@ -294,18 +294,20 @@
   transition: border-color 0.2s;
 }
 
-.search-box input:focus {
+.notifications-container .search-box input:focus {
   border-color: #2563eb;
 }
 
-.search-box svg {
+.notifications-container .search-box svg {
   position: absolute;
   right: 12px;
+  left: auto;
   top: 50%;
   transform: translateY(-50%);
   width: 18px;
   height: 18px;
   stroke: #9ca3af;
+  pointer-events: none;
 }
 
 /* Table */
@@ -649,4 +651,55 @@
 
 .toggle-switch input:checked + .toggle-slider:before {
   transform: translateX(20px);
+}
+
+/* ============================================================
+   RESPONSIVE — Notifications (added refinements)
+   Breakpoints: 1024 / 768 / 480
+   ============================================================ */
+@media (max-width: 1024px) {
+  .notifications-container {
+    padding: var(--page-pad-y) var(--page-pad-x);
+  }
+  /* Tablet: notifications toolbar search grows + wraps */
+  .notifications-toolbar { flex-wrap: wrap; }
+  .notifications-toolbar .toolbar-left .search-box { width: auto; flex: 1 1 220px; min-width: 180px; }
+  .notifications-toolbar .toolbar-left .search-box input { width: 100%; }
+}
+
+@media (max-width: 768px) {
+  .notifications-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .notifications-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  .notifications-toolbar .toolbar-left {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+  .notifications-toolbar .toolbar-left .search-box {
+    width: 100%;
+  }
+
+  /* Tab strip scrolls horizontally */
+  .notification-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  .notification-tabs::-webkit-scrollbar { display: none; }
+  .notification-tabs button { flex-shrink: 0; }
+}
+
+@media (max-width: 480px) {
+  .notifications-table th,
+  .notifications-table td { padding: 10px 8px; }
+  .notification-thumb { width: 40px; height: 40px; }
 }

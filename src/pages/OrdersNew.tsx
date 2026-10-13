@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
-import "../styles/orders-new.css";
+import { DataTable, StatusDropdown, FilterDrawer } from "../components";
+import "../styles/ui-kit.css";
 
 type OrderStatus = "all" | "pending" | "confirmed" | "processing" | "packaging" | "shipped" | "out_for_delivery" | "delivered" | "returned" | "failed_to_deliver" | "cancelled";
 type OrderChannel = "all" | "online" | "pos";
@@ -46,15 +47,28 @@ interface Order {
 }
 
 const orderStatusOptions = [
-  { value: "all", label: "All", path: "/orders-management" },
-  { value: "pending", label: "Pending", path: "/orders-management/pending" },
-  { value: "confirmed", label: "Confirmed", path: "/orders-management/confirmed" },
-  { value: "packaging", label: "Packaging", path: "/orders-management/packaging" },
-  { value: "out_for_delivery", label: "Out for Delivery", path: "/orders-management/out-for-delivery" },
-  { value: "delivered", label: "Delivered", path: "/orders-management/delivered" },
-  { value: "returned", label: "Returned", path: "/orders-management/returned" },
-  { value: "failed_to_deliver", label: "Failed to Deliver", path: "/orders-management/failed-to-deliver" },
-  { value: "cancelled", label: "Cancelled", path: "/orders-management/canceled" },
+  { value: "all", label: "All Orders", color: "neutral" as const, path: "/orders-management" },
+  { value: "pending", label: "Pending", color: "warning" as const, path: "/orders-management/pending" },
+  { value: "confirmed", label: "Confirmed", color: "success" as const, path: "/orders-management/confirmed" },
+  { value: "packaging", label: "Packaging", color: "info" as const, path: "/orders-management/packaging" },
+  { value: "out_for_delivery", label: "Out for Delivery", color: "info" as const, path: "/orders-management/out-for-delivery" },
+  { value: "delivered", label: "Delivered", color: "success" as const, path: "/orders-management/delivered" },
+  { value: "returned", label: "Returned", color: "neutral" as const, path: "/orders-management/returned" },
+  { value: "failed_to_deliver", label: "Failed to Deliver", color: "danger" as const, path: "/orders-management/failed-to-deliver" },
+  { value: "cancelled", label: "Cancelled", color: "danger" as const, path: "/orders-management/canceled" },
+];
+
+const channelOptions = [
+  { value: "all", label: "All Channels", color: "neutral" as const },
+  { value: "online", label: "Online", color: "info" as const },
+  { value: "pos", label: "POS", color: "brand" as const },
+];
+
+const paymentStatusOptions = [
+  { value: "all", label: "All Payments", color: "neutral" as const },
+  { value: "paid", label: "Paid", color: "success" as const },
+  { value: "unpaid", label: "Unpaid", color: "danger" as const },
+  { value: "partial", label: "Partial", color: "warning" as const },
 ];
 
 interface OrdersNewProps {
@@ -64,7 +78,9 @@ interface OrdersNewProps {
 export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
   const navigate = useNavigate();
   const invoiceRef = useRef<HTMLDivElement>(null);
+  const receiptRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -72,30 +88,37 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
   const [channelFilter, setChannelFilter] = useState<OrderChannel>("all");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const [showInvoice, setShowInvoice] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [loadingInvoice, setLoadingInvoice] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
-  const receiptRef = useRef<HTMLDivElement>(null);
-  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
 
-  const currentStatusLabel = orderStatusOptions.find(o => o.value === currentStatus)?.label ?? "All";
-
-  // Filter modal state
-  const [showFilterModal, setShowFilterModal] = useState(false);
+  // Filter drawer state
+  const [showFilterDrawer, setShowFilterDrawer] = useState(false);
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
   const [filterPaymentStatus, setFilterPaymentStatus] = useState<PaymentStatusFilter>("all");
-  const [activeFiltersCount, setActiveFiltersCount] = useState(0);
 
-  // Sync statusFilter prop with currentStatus state when route changes
+  // Temp filter state
+  const [tempChannelFilter, setTempChannelFilter] = useState<OrderChannel>("all");
+  const [tempDateFrom, setTempDateFrom] = useState("");
+  const [tempDateTo, setTempDateTo] = useState("");
+  const [tempPaymentStatus, setTempPaymentStatus] = useState<PaymentStatusFilter>("all");
+
+  const activeFiltersCount = [
+    channelFilter !== "all" ? 1 : 0,
+    filterDateFrom ? 1 : 0,
+    filterDateTo ? 1 : 0,
+    filterPaymentStatus !== "all" ? 1 : 0,
+  ].reduce((a, b) => a + b, 0);
+
   useEffect(() => {
     setCurrentStatus(statusFilter);
-    setPage(1); // Reset to first page when filter changes
+    setPage(1);
   }, [statusFilter]);
 
   const loadOrders = useCallback(async () => {
-    // Abort any in-flight request so only one runs at a time.
     abortControllerRef.current?.abort();
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -114,8 +137,9 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
       }, controller.signal);
       setOrders(response.data || []);
       setTotalPages(response.pagination?.totalPages || 1);
+      setTotalItems(response.pagination?.total || 0);
     } catch (error) {
-      if ((error as any)?.name === "AbortError") return; // silently ignore cancelled requests
+      if ((error as Error)?.name === "AbortError") return;
       console.error("Failed to load orders:", error);
     } finally {
       setLoading(false);
@@ -124,21 +148,7 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
 
   useEffect(() => {
     loadOrders();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // loadOrders is useCallback-stable; only runs on mount
-
-  // Close status dropdown when clicking outside
-  useEffect(() => {
-    if (!statusDropdownOpen) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest(".status-dropdown")) {
-        setStatusDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [statusDropdownOpen]);
+  }, [loadOrders]);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -146,73 +156,84 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     loadOrders();
   }
 
+  function handleStatusChange(value: string) {
+    const option = orderStatusOptions.find((o) => o.value === value);
+    if (option) {
+      navigate(option.path);
+    }
+  }
+
+  function openFilterDrawer() {
+    setTempChannelFilter(channelFilter);
+    setTempDateFrom(filterDateFrom);
+    setTempDateTo(filterDateTo);
+    setTempPaymentStatus(filterPaymentStatus);
+    setShowFilterDrawer(true);
+  }
+
+  function applyFilters() {
+    setChannelFilter(tempChannelFilter);
+    setFilterDateFrom(tempDateFrom);
+    setFilterDateTo(tempDateTo);
+    setFilterPaymentStatus(tempPaymentStatus);
+    setPage(1);
+    setShowFilterDrawer(false);
+  }
+
+  function resetFilters() {
+    setTempChannelFilter("all");
+    setTempDateFrom("");
+    setTempDateTo("");
+    setTempPaymentStatus("all");
+    setChannelFilter("all");
+    setFilterDateFrom("");
+    setFilterDateTo("");
+    setFilterPaymentStatus("all");
+    setPage(1);
+    setShowFilterDrawer(false);
+  }
+
   function formatDateTime(dateString: string): string {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
+    return new Date(dateString).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  }
+
+  function formatTime(dateString: string): string {
+    return new Date(dateString).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
   }
 
   function formatPrice(paise: number): string {
     return `₹${(paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
   }
 
+  function getStatusVariant(status: string): string {
+    const variants: Record<string, string> = {
+      pending: "warning", confirmed: "success", processing: "info", packaging: "info",
+      shipped: "info", out_for_delivery: "info", delivered: "success", returned: "neutral",
+      failed_to_deliver: "danger", cancelled: "danger",
+    };
+    return variants[status] || "neutral";
+  }
+
   function getStatusLabel(status: string): string {
     const labels: Record<string, string> = {
-      all: "All",
-      pending: "Pending",
-      confirmed: "Confirmed",
-      processing: "Processing",
-      packaging: "Packaging",
-      shipped: "Shipped",
-      out_for_delivery: "Out for Delivery",
-      delivered: "Delivered",
-      returned: "Returned",
-      failed_to_deliver: "Failed to Deliver",
-      cancelled: "Cancelled",
+      pending: "Pending", confirmed: "Confirmed", processing: "Processing", packaging: "Packaging",
+      shipped: "Shipped", out_for_delivery: "Out for Delivery", delivered: "Delivered",
+      returned: "Returned", failed_to_deliver: "Failed", cancelled: "Cancelled",
     };
     return labels[status] || status;
   }
 
-  function getStatusColor(status: string): string {
-    const colors: Record<string, string> = {
-      all: "#6b7280",
-      pending: "#f59e0b",
-      confirmed: "#22c55e",
-      processing: "#3b82f6",
-      packaging: "#8b5cf6",
-      shipped: "#0ea5e9",
-      out_for_delivery: "#3b82f6",
-      delivered: "#10b981",
-      returned: "#6b7280",
-      failed_to_deliver: "#dc2626",
-      cancelled: "#ef4444",
-    };
-    return colors[status] || "#6b7280";
-  }
-
-  function getPaymentStatusDisplay(order: Order): { label: string; className: string } {
+  function getPaymentStatusDisplay(order: Order): { label: string; variant: string } {
     const paidAmount = Number(order.paidAmountPaise || 0);
     const totalAmount = Number(order.totalPaise);
-    
-    if (paidAmount >= totalAmount) {
-      return { label: "Paid", className: "paid" };
-    } else if (paidAmount > 0) {
-      return { label: "Partial", className: "partial" };
-    } else {
-      return { label: "Unpaid", className: "pending" };
-    }
+    if (paidAmount >= totalAmount) return { label: "Paid", variant: "success" };
+    if (paidAmount > 0) return { label: "Partial", variant: "warning" };
+    return { label: "Unpaid", variant: "danger" };
   }
 
   async function handleViewInvoice(order: Order) {
     setLoadingInvoice(true);
     try {
-      // Fetch full order details with items
       const fullOrder = await api.getOrder(order.id);
       setSelectedOrder(fullOrder);
       setShowInvoice(true);
@@ -226,8 +247,7 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
 
   async function downloadInvoicePdf() {
     if (!invoiceRef.current || !selectedOrder) return;
-    const element = invoiceRef.current;
-    const canvas = await html2canvas(element, { scale: 2, useCORS: true });
+    const canvas = await html2canvas(invoiceRef.current, { scale: 2, useCORS: true });
     const imgData = canvas.toDataURL("image/png");
     const pdf = new jsPDF({ orientation: "portrait", unit: "px", format: "a4" });
     const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -238,72 +258,14 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
 
   function printInvoice() {
     if (!invoiceRef.current || !selectedOrder) return;
-
-    const printContent = invoiceRef.current.innerHTML;
     const printWindow = window.open("", "_blank", "width=800,height=600");
-
     if (printWindow) {
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Invoice - ${selectedOrder.orderNumber}</title>
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body {
-              font-family: 'Segoe UI', Arial, sans-serif;
-              padding: 20px;
-              font-size: 14px;
-              color: #333;
-            }
-            .invoice-container { max-width: 800px; margin: 0 auto; }
-            .invoice-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #e5e7eb; }
-            .invoice-logo h1 { font-size: 28px; color: #7c3aed; margin-bottom: 5px; }
-            .invoice-logo p { color: #6b7280; font-size: 12px; }
-            .invoice-title { text-align: right; }
-            .invoice-title h2 { font-size: 24px; color: #111; margin-bottom: 5px; }
-            .invoice-title p { color: #6b7280; }
-            .invoice-meta { display: flex; justify-content: space-between; margin-bottom: 30px; }
-            .invoice-meta-block { }
-            .invoice-meta-block h3 { font-size: 12px; color: #6b7280; text-transform: uppercase; margin-bottom: 8px; }
-            .invoice-meta-block p { margin-bottom: 4px; }
-            .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-            .invoice-table th { background: #f9fafb; padding: 12px; text-align: left; font-size: 12px; text-transform: uppercase; color: #6b7280; border-bottom: 2px solid #e5e7eb; }
-            .invoice-table td { padding: 12px; border-bottom: 1px solid #e5e7eb; }
-            .invoice-table .text-right { text-align: right; }
-            .invoice-summary { display: flex; justify-content: flex-end; }
-            .invoice-summary-table { width: 300px; }
-            .invoice-summary-table tr td { padding: 8px 0; }
-            .invoice-summary-table tr td:last-child { text-align: right; }
-            .invoice-summary-table .total-row { font-weight: bold; font-size: 16px; border-top: 2px solid #e5e7eb; }
-            .invoice-footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 12px; }
-            .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; }
-            .badge-paid { background: #dcfce7; color: #16a34a; }
-            .badge-partial { background: #fef3c7; color: #d97706; }
-            .badge-unpaid { background: #fee2e2; color: #dc2626; }
-            .badge-pos { background: #fef3c7; color: #d97706; }
-            .badge-online { background: #dbeafe; color: #2563eb; }
-            @media print {
-              body { padding: 0; }
-              .no-print { display: none; }
-            }
-          </style>
-        </head>
-        <body>
-          ${printContent}
-        </body>
-        </html>
-      `);
+      printWindow.document.write(`<!DOCTYPE html><html><head><title>Invoice - ${selectedOrder.orderNumber}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',Arial,sans-serif;padding:20px;font-size:14px;color:#333}@media print{body{padding:0}}</style></head><body>${invoiceRef.current.innerHTML}</body></html>`);
       printWindow.document.close();
+      setTimeout(() => printWindow.print(), 250);
     }
   }
 
-  function closeInvoiceModal() {
-    setShowInvoice(false);
-    setSelectedOrder(null);
-  }
-
-  // Receipt (POS Bill) functions
   async function handleViewReceipt(order: Order) {
     setLoadingInvoice(true);
     try {
@@ -318,670 +280,302 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     }
   }
 
-  function closeReceiptModal() {
-    setShowReceipt(false);
-    setSelectedOrder(null);
-  }
-
   function printReceipt() {
     if (!receiptRef.current || !selectedOrder) return;
-
-    const printContent = receiptRef.current.innerHTML;
     const printWindow = window.open("", "_blank", "width=400,height=600");
-    
     if (printWindow) {
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Receipt - ${selectedOrder.orderNumber}</title>
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { 
-              font-family: 'Courier New', monospace; 
-              padding: 10px;
-              font-size: 12px;
-              max-width: 300px;
-              margin: 0 auto;
-            }
-            .receipt-header { text-align: center; margin-bottom: 15px; border-bottom: 1px dashed #000; padding-bottom: 10px; }
-            .receipt-header h1 { font-size: 18px; margin-bottom: 5px; }
-            .receipt-header p { font-size: 11px; color: #333; }
-            .receipt-info { margin-bottom: 15px; border-bottom: 1px dashed #000; padding-bottom: 10px; }
-            .receipt-info p { display: flex; justify-content: space-between; margin-bottom: 3px; }
-            .receipt-items { margin-bottom: 15px; border-bottom: 1px dashed #000; padding-bottom: 10px; }
-            .receipt-item { margin-bottom: 8px; }
-            .receipt-item-name { font-weight: bold; }
-            .receipt-item-details { display: flex; justify-content: space-between; font-size: 11px; }
-            .receipt-summary { margin-bottom: 15px; }
-            .receipt-summary p { display: flex; justify-content: space-between; margin-bottom: 3px; }
-            .receipt-summary .total { font-weight: bold; font-size: 14px; border-top: 1px solid #000; padding-top: 5px; margin-top: 5px; }
-            .receipt-footer { text-align: center; margin-top: 15px; font-size: 11px; }
-            @media print {
-              body { padding: 0; }
-            }
-          </style>
-        </head>
-        <body>
-          ${printContent}
-          <script>
-            window.onload = function() {
-              window.print();
-              window.onafterprint = function() { window.close(); }
-            }
-          </script>
-        </body>
-        </html>
-      `);
+      printWindow.document.write(`<!DOCTYPE html><html><head><title>Receipt - ${selectedOrder.orderNumber}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Courier New',monospace;padding:10px;font-size:12px;max-width:300px;margin:0 auto}</style></head><body>${receiptRef.current.innerHTML}<script>window.onload=function(){window.print()}</script></body></html>`);
       printWindow.document.close();
     }
   }
 
-  // Filter functions
-  function openFilterModal() {
-    setShowFilterModal(true);
-  }
-
-  function closeFilterModal() {
-    setShowFilterModal(false);
-  }
-
-  function applyFilters() {
-    let count = 0;
-    if (filterDateFrom) count++;
-    if (filterDateTo) count++;
-    if (filterPaymentStatus !== "all") count++;
-    setActiveFiltersCount(count);
-    setPage(1);
-    loadOrders();
-    closeFilterModal();
-  }
-
-  function clearFilters() {
-    setFilterDateFrom("");
-    setFilterDateTo("");
-    setFilterPaymentStatus("all");
-    setActiveFiltersCount(0);
-    setPage(1);
-    loadOrders();
-    closeFilterModal();
-  }
-
-  // Export function
   function exportOrders() {
-    if (orders.length === 0) {
-      alert("No orders to export");
-      return;
-    }
-
-    // Prepare CSV data
-    const headers = [
-      "Order ID",
-      "Order Date",
-      "Customer Name",
-      "Customer Phone",
-      "Channel",
-      "Subtotal",
-      "Discount",
-      "Total",
-      "Paid Amount",
-      "Payment Status",
-      "Order Status",
-    ];
-
+    if (orders.length === 0) { alert("No orders to export"); return; }
+    const headers = ["Order ID", "Order Date", "Customer Name", "Phone", "Channel", "Total", "Payment Status", "Order Status"];
     const rows = orders.map(order => {
-      const paymentStatus = getPaymentStatusDisplay(order);
-      return [
-        order.orderNumber,
-        formatDateTime(order.createdAt),
-        order.shippingAddress?.fullName || "Walk-in",
-        order.shippingAddress?.phone || "",
-        order.orderChannel.toUpperCase(),
-        (order.subtotalPaise / 100).toFixed(2),
-        ((order.discountPaise + (order.extraDiscountPaise || 0)) / 100).toFixed(2),
-        (order.totalPaise / 100).toFixed(2),
-        ((order.paidAmountPaise || 0) / 100).toFixed(2),
-        paymentStatus.label,
-        getStatusLabel(order.status),
-      ];
+      const payment = getPaymentStatusDisplay(order);
+      return [order.orderNumber, formatDateTime(order.createdAt), order.shippingAddress?.fullName || "Walk-in", order.shippingAddress?.phone || "", order.orderChannel.toUpperCase(), (order.totalPaise / 100).toFixed(2), payment.label, getStatusLabel(order.status)];
     });
-
-    // Create CSV content
-    const csvContent = [
-      headers.join(","),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
-    ].join("\n");
-
-    // Download file
+    const csvContent = [headers.join(","), ...rows.map(row => row.map(cell => `"${cell}"`).join(","))].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.href = url;
+    link.href = URL.createObjectURL(blob);
     link.download = `orders_${new Date().toISOString().split("T")[0]}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   }
 
+  const columns = [
+    {
+      key: "sl",
+      header: "#",
+      width: "50px",
+      render: (_: Order, index: number) => <span className="ak-text-muted">{(page - 1) * 20 + index + 1}</span>,
+    },
+    {
+      key: "orderNumber",
+      header: "Order ID",
+      render: (order: Order) => (
+        <div className="ak-order-id">
+          {order.orderNumber}
+          {order.orderChannel === "pos" && <span className="ak-badge ak-badge--brand" style={{ marginLeft: 6, fontSize: "0.65rem" }}>POS</span>}
+        </div>
+      ),
+    },
+    {
+      key: "createdAt",
+      header: "Date",
+      render: (order: Order) => (
+        <div className="ak-date-cell">
+          <span className="ak-date-cell__date">{formatDateTime(order.createdAt)}</span>
+          <span className="ak-date-cell__time">{formatTime(order.createdAt)}</span>
+        </div>
+      ),
+    },
+    {
+      key: "customer",
+      header: "Customer",
+      render: (order: Order) => (
+        <div className="ak-user-cell">
+          <div className="ak-user-cell__initials">{(order.shippingAddress?.fullName?.[0] || "?").toUpperCase()}</div>
+          <div className="ak-user-cell__info">
+            <span className="ak-user-cell__name">{order.shippingAddress?.fullName || "Walk-in"}</span>
+            {order.shippingAddress?.phone && order.shippingAddress.phone !== "0000000000" && (
+              <span className="ak-user-cell__email">{order.shippingAddress.phone}</span>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "total",
+      header: "Total",
+      align: "right" as const,
+      render: (order: Order) => {
+        const payment = getPaymentStatusDisplay(order);
+        return (
+          <div style={{ textAlign: "right" }}>
+            <div className="ak-amount">{formatPrice(order.totalPaise)}</div>
+            <span className={`ak-status ak-status--${payment.variant}`} style={{ marginTop: 4 }}>{payment.label}</span>
+          </div>
+        );
+      },
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (order: Order) => (
+        <span className={`ak-status ak-status--${getStatusVariant(order.status)}`}>
+          <span className="ak-status__dot" />
+          {getStatusLabel(order.status)}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      width: "100px",
+      render: (order: Order) => (
+        <div className="ak-row-actions">
+          <button type="button" className="ak-icon-btn ak-icon-btn--view" title="View Invoice" onClick={(e) => { e.stopPropagation(); handleViewInvoice(order); }} disabled={loadingInvoice}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </button>
+          <button type="button" className="ak-icon-btn ak-icon-btn--edit" title="Print Receipt" onClick={(e) => { e.stopPropagation(); handleViewReceipt(order); }} disabled={loadingInvoice}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="6 9 6 2 18 2 18 9" />
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+              <rect x="6" y="14" width="12" height="8" />
+            </svg>
+          </button>
+        </div>
+      ),
+    },
+  ];
+
   return (
-    <div className="orders-new-container">
-      <div className="orders-list-section">
-        <div className="orders-list-header">
-          <h2>Order list <span>{orders.length}</span></h2>
-          <div className="orders-actions" style={{ width: 'auto' }}>
-            <div className="status-dropdown">
-              <button
-                type="button"
-                className="status-dropdown-trigger"
-                onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-              >
-                <span>{currentStatusLabel}</span>
-                <svg className={`chevron ${statusDropdownOpen ? "expanded" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="6,9 12,15 18,9" />
-                </svg>
-              </button>
-              {statusDropdownOpen && (
-                <div className="status-dropdown-menu">
-                  {orderStatusOptions.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      className={`status-dropdown-item ${currentStatus === option.value ? "active" : ""}`}
-                      onClick={() => {
-                        navigate(option.path);
-                        setStatusDropdownOpen(false);
-                      }}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <form onSubmit={handleSearch} className="search-box">
-              <input
-                type="text"
-                placeholder="Search by Order ID"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-                <circle cx="11" cy="11" r="8" />
-                <path d="M21 21l-4.35-4.35" />
-              </svg>
-            </form>
-            <select
-              value={channelFilter}
-              onChange={(e) => { setChannelFilter(e.target.value as OrderChannel); setPage(1); }}
-              className="channel-filter"
-              style={{
-                padding: "0.5rem 1rem",
-                border: "1px solid #e5e7eb",
-                borderRadius: "8px",
-                fontSize: "0.875rem",
-                backgroundColor: "#fff",
-              }}
-            >
-              <option value="all">All Channels</option>
-              <option value="online">Online</option>
-              <option value="pos">POS</option>
-            </select>
-            <button className="btn-export" onClick={exportOrders}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7,10 12,15 17,10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-              Export
-            </button>
-            <button className="btn-filter" onClick={openFilterModal}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-                <line x1="4" y1="21" x2="4" y2="14" />
-                <line x1="4" y1="10" x2="4" y2="3" />
-                <line x1="12" y1="21" x2="12" y2="12" />
-                <line x1="12" y1="8" x2="12" y2="3" />
-                <line x1="20" y1="21" x2="20" y2="16" />
-                <line x1="20" y1="12" x2="20" y2="3" />
-              </svg>
-              Filter
-              {activeFiltersCount > 0 && <span className="filter-badge">{activeFiltersCount}</span>}
-            </button>
-          </div>
+    <div className="ak-page">
+      {/* Page Header */}
+      <div className="ak-page-header">
+        <div className="ak-page-header__left">
+          <h1 className="ak-page-header__title">
+            Orders
+            {totalItems > 0 && <span className="ak-page-header__count">{totalItems}</span>}
+          </h1>
+          <p className="ak-page-header__subtitle">Manage and track all customer orders</p>
         </div>
-
-        <div className="orders-table-container">
-          <table className="orders-table">
-            <thead>
-              <tr>
-                <th>SL</th>
-                <th>Order ID</th>
-                <th>Order Date</th>
-                <th>Customer Info</th>
-                <th>Store</th>
-                <th>Total Amount</th>
-                <th>Order Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={8} style={{ textAlign: "center", padding: "2rem" }}>Loading...</td>
-                </tr>
-              ) : orders.length === 0 ? (
-                <tr>
-                  <td colSpan={8} style={{ textAlign: "center", padding: "2rem" }}>No orders found</td>
-                </tr>
-              ) : (
-                orders.map((order, index) => (
-                  <tr key={order.id}>
-                    <td>{(page - 1) * 20 + index + 1}</td>
-                    <td>
-                      <span className="order-id">{order.orderNumber}</span>
-                      {order.orderChannel === "pos" && <span className="order-source">(POS)</span>}
-                    </td>
-                    <td>{formatDateTime(order.createdAt)}</td>
-                    <td>
-                      <div className="customer-info">
-                        <span className="customer-name">{order.shippingAddress?.fullName || "Unknown"}</span>
-                        {order.shippingAddress?.phone && order.shippingAddress.phone !== "0000000000" && (
-                          <span className="customer-phone">{order.shippingAddress.phone}</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="store-name">Arafine Silver Jewellery</td>
-                    <td>
-                      <div className="amount-info">
-                        <span className="amount">{formatPrice(order.totalPaise)}</span>
-                        <span className={`payment-status ${getPaymentStatusDisplay(order).className}`}>
-                          {getPaymentStatusDisplay(order).label}
-                        </span>
-                      </div>
-                    </td>
-                    <td>
-                      <span 
-                        className="status-badge"
-                        style={{ color: getStatusColor(order.status) }}
-                      >
-                        {getStatusLabel(order.status)}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="action-buttons">
-                        <button 
-                          className="btn-action btn-icon-view" 
-                          title="View Invoice"
-                          onClick={() => handleViewInvoice(order)}
-                          disabled={loadingInvoice}
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#4f46e5" strokeWidth="2"/>
-                            <circle cx="12" cy="12" r="3" stroke="#4f46e5" strokeWidth="2"/>
-                          </svg>
-                        </button>
-                        <button 
-                          className="btn-action btn-icon-receipt" 
-                          title="Print Receipt"
-                          onClick={() => handleViewReceipt(order)}
-                          disabled={loadingInvoice}
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" stroke="#f59e0b" strokeWidth="2"/>
-                            <line x1="3" y1="6" x2="21" y2="6" stroke="#f59e0b" strokeWidth="2"/>
-                            <path d="M16 10a4 4 0 0 1-8 0" stroke="#f59e0b" strokeWidth="2"/>
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="ak-page-header__actions">
+          <button type="button" className="ak-btn ak-btn--ghost" onClick={exportOrders}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7,10 12,15 17,10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Export
+          </button>
         </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="orders-pagination" style={{ display: "flex", justifyContent: "center", gap: "0.5rem", padding: "1rem" }}>
-            <button 
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-              style={{ padding: "0.5rem 1rem", border: "1px solid #e5e7eb", borderRadius: "4px", cursor: page === 1 ? "not-allowed" : "pointer" }}
-            >
-              Previous
-            </button>
-            <span style={{ padding: "0.5rem 1rem" }}>Page {page} of {totalPages}</span>
-            <button 
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              style={{ padding: "0.5rem 1rem", border: "1px solid #e5e7eb", borderRadius: "4px", cursor: page === totalPages ? "not-allowed" : "pointer" }}
-            >
-              Next
-            </button>
-          </div>
-        )}
       </div>
+
+      {/* Page Body */}
+      <div className="ak-page-body">
+        {/* Toolbar */}
+        <div className="ak-toolbar">
+          <form onSubmit={handleSearch} className="ak-toolbar__search">
+            <div className="ak-searchbar">
+              <div className="ak-searchbar__form">
+                <svg className="ak-searchbar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="M21 21l-4.35-4.35" />
+                </svg>
+                <input type="text" className="ak-searchbar__input" placeholder="Search by Order ID…" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+              </div>
+            </div>
+          </form>
+
+          <div className="ak-toolbar__filters">
+            <StatusDropdown
+              options={orderStatusOptions}
+              value={currentStatus}
+              onChange={handleStatusChange}
+              placeholder="Order Status"
+              size="sm"
+            />
+
+            <StatusDropdown
+              options={channelOptions}
+              value={channelFilter}
+              onChange={(val) => { setChannelFilter(val as OrderChannel); setPage(1); }}
+              placeholder="Channel"
+              size="sm"
+            />
+
+            <StatusDropdown
+              options={paymentStatusOptions}
+              value={filterPaymentStatus}
+              onChange={(val) => { setFilterPaymentStatus(val as PaymentStatusFilter); setPage(1); }}
+              placeholder="Payment"
+              size="sm"
+            />
+          </div>
+
+          <div className="ak-toolbar__actions">
+            <button type="button" className="ak-btn ak-btn--ghost ak-btn--sm" onClick={openFilterDrawer}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
+                <line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" />
+                <line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" />
+                <circle cx="4" cy="12" r="2" /><circle cx="12" cy="10" r="2" /><circle cx="20" cy="14" r="2" />
+              </svg>
+              More
+              {activeFiltersCount > 0 && <span className="ak-page-header__count">{activeFiltersCount}</span>}
+            </button>
+
+            {activeFiltersCount > 0 && (
+              <button type="button" className="ak-btn ak-btn--ghost ak-btn--sm" onClick={resetFilters}>Clear</button>
+            )}
+          </div>
+        </div>
+
+        {/* Data Table */}
+        <DataTable
+          columns={columns}
+          data={orders}
+          loading={loading}
+          loadingText="Loading orders…"
+          emptyIcon="cart"
+          emptyTitle="No orders found"
+          emptyDescription={searchQuery || currentStatus !== "all" || channelFilter !== "all" ? "Try adjusting your filters or search query." : "When customers place orders, they'll appear here."}
+          keyExtractor={(order) => order.id}
+          onRowClick={(order) => navigate(`/orders/${order.id}`)}
+          currentPage={page}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={20}
+          onPageChange={setPage}
+        />
+      </div>
+
+      {/* Filter Drawer */}
+      <FilterDrawer isOpen={showFilterDrawer} onClose={() => setShowFilterDrawer(false)} title="Filter Orders" onApply={applyFilters} onReset={resetFilters}>
+        <div className="ak-filter-field">
+          <label className="ak-filter-field__label">Channel</label>
+          <StatusDropdown options={channelOptions} value={tempChannelFilter} onChange={(val) => setTempChannelFilter(val as OrderChannel)} placeholder="All Channels" />
+        </div>
+        <div className="ak-filter-field">
+          <label className="ak-filter-field__label">Payment Status</label>
+          <StatusDropdown options={paymentStatusOptions} value={tempPaymentStatus} onChange={(val) => setTempPaymentStatus(val as PaymentStatusFilter)} placeholder="All" />
+        </div>
+        <div className="ak-filter-field">
+          <label className="ak-filter-field__label">Date From</label>
+          <input type="date" className="ak-input" value={tempDateFrom} onChange={(e) => setTempDateFrom(e.target.value)} />
+        </div>
+        <div className="ak-filter-field">
+          <label className="ak-filter-field__label">Date To</label>
+          <input type="date" className="ak-input" value={tempDateTo} onChange={(e) => setTempDateTo(e.target.value)} />
+        </div>
+      </FilterDrawer>
 
       {/* Invoice Modal */}
       {showInvoice && selectedOrder && (
-        <div className="invoice-modal-overlay" onClick={closeInvoiceModal}>
-          <div className="invoice-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="invoice-modal-header">
-              <h2>Invoice</h2>
-              <button className="invoice-close-btn" onClick={closeInvoiceModal}>×</button>
+        <div className="ak-modal-overlay" onClick={() => setShowInvoice(false)}>
+          <div className="ak-modal" style={{ maxWidth: "700px" }} onClick={(e) => e.stopPropagation()}>
+            <div className="ak-modal__header">
+              <h2 className="ak-modal__title">Invoice #{selectedOrder.orderNumber}</h2>
+              <button type="button" className="ak-modal__close" onClick={() => setShowInvoice(false)}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              </button>
             </div>
-            
-            <div className="invoice-content" ref={invoiceRef}>
-              <div className="invoice-container">
-                {/* Header */}
-                <div className="invoice-header">
-                  <div className="invoice-logo">
-                    <h1>ARAFINE</h1>
-                    <p>Premium Silver Jewellery</p>
-                    <p>GST: 36AABCA1234C1ZE</p>
-                  </div>
-                  <div className="invoice-title">
-                    <h2>INVOICE</h2>
-                    <p><strong>#{selectedOrder.orderNumber}</strong></p>
-                    <p>{formatDateTime(selectedOrder.createdAt)}</p>
-                    <span className={`badge ${selectedOrder.orderChannel === "pos" ? "badge-pos" : "badge-online"}`}>
-                      {selectedOrder.orderChannel === "pos" ? "POS" : "Online"}
-                    </span>
-                  </div>
+            <div className="ak-modal__body" style={{ maxHeight: "60vh", overflow: "auto" }}>
+              <div ref={invoiceRef} style={{ padding: "1rem", background: "#fff" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2rem", paddingBottom: "1rem", borderBottom: "2px solid #e5e7eb" }}>
+                  <div><h1 style={{ fontSize: "1.5rem", color: "#b78d3f", marginBottom: "0.25rem" }}>ARAFINE</h1><p style={{ color: "#6b7280", fontSize: "0.8rem" }}>Premium Silver Jewellery</p></div>
+                  <div style={{ textAlign: "right" }}><h2 style={{ fontSize: "1.25rem", marginBottom: "0.25rem" }}>INVOICE</h2><p style={{ color: "#6b7280" }}>#{selectedOrder.orderNumber}</p><p style={{ color: "#6b7280", fontSize: "0.85rem" }}>{formatDateTime(selectedOrder.createdAt)}</p></div>
                 </div>
-
-                {/* Meta Info */}
-                <div className="invoice-meta">
-                  <div className="invoice-meta-block">
-                    <h3>Bill To</h3>
-                    <p><strong>{selectedOrder.shippingAddress?.fullName || "Walk-in Customer"}</strong></p>
-                    {selectedOrder.shippingAddress?.phone && selectedOrder.shippingAddress.phone !== "0000000000" && (
-                      <p>{selectedOrder.shippingAddress.phone}</p>
-                    )}
-                    {selectedOrder.shippingAddress?.addressLine1 && selectedOrder.shippingAddress.addressLine1 !== "In-Store Purchase" && (
-                      <>
-                        <p>{selectedOrder.shippingAddress.addressLine1}</p>
-                        {selectedOrder.shippingAddress.addressLine2 && <p>{selectedOrder.shippingAddress.addressLine2}</p>}
-                        <p>{selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state} - {selectedOrder.shippingAddress.postalCode}</p>
-                      </>
-                    )}
-                  </div>
-                  <div className="invoice-meta-block">
-                    <h3>Payment Details</h3>
-                    <p><strong>Status:</strong> <span className={`badge ${getPaymentStatusDisplay(selectedOrder).className === "paid" ? "badge-paid" : getPaymentStatusDisplay(selectedOrder).className === "partial" ? "badge-partial" : "badge-unpaid"}`}>{getPaymentStatusDisplay(selectedOrder).label}</span></p>
-                    {selectedOrder.paymentMethod && <p><strong>Method:</strong> {selectedOrder.paymentMethod.toUpperCase()}</p>}
-                    <p><strong>Order Status:</strong> {getStatusLabel(selectedOrder.status)}</p>
-                  </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem", marginBottom: "2rem" }}>
+                  <div><h3 style={{ fontSize: "0.7rem", textTransform: "uppercase", color: "#6b7280", marginBottom: "0.5rem" }}>Bill To</h3><p style={{ fontWeight: 600 }}>{selectedOrder.shippingAddress?.fullName || "Walk-in Customer"}</p>{selectedOrder.shippingAddress?.phone && <p>{selectedOrder.shippingAddress.phone}</p>}</div>
+                  <div><h3 style={{ fontSize: "0.7rem", textTransform: "uppercase", color: "#6b7280", marginBottom: "0.5rem" }}>Payment</h3><p><span className={`ak-status ak-status--${getPaymentStatusDisplay(selectedOrder).variant}`}>{getPaymentStatusDisplay(selectedOrder).label}</span></p>{selectedOrder.paymentMethod && <p style={{ marginTop: "0.25rem" }}>{selectedOrder.paymentMethod.toUpperCase()}</p>}</div>
                 </div>
-
-                {/* Items Table */}
-                <table className="invoice-table">
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Item</th>
-                      <th>SKU</th>
-                      <th className="text-right">Qty</th>
-                      <th className="text-right">Unit Price</th>
-                      <th className="text-right">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedOrder.items?.map((item, idx) => (
-                      <tr key={item.id}>
-                        <td>{idx + 1}</td>
-                        <td>{item.productName}</td>
-                        <td>{item.productSku}</td>
-                        <td className="text-right">{item.quantity}</td>
-                        <td className="text-right">{formatPrice(Number(item.unitPricePaise))}</td>
-                        <td className="text-right">{formatPrice(Number(item.totalPricePaise))}</td>
-                      </tr>
-                    ))}
-                  </tbody>
+                <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "2rem" }}>
+                  <thead><tr style={{ background: "#f9fafb" }}><th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.7rem", textTransform: "uppercase", color: "#6b7280" }}>Item</th><th style={{ padding: "0.75rem", textAlign: "center", fontSize: "0.7rem", textTransform: "uppercase", color: "#6b7280" }}>Qty</th><th style={{ padding: "0.75rem", textAlign: "right", fontSize: "0.7rem", textTransform: "uppercase", color: "#6b7280" }}>Price</th><th style={{ padding: "0.75rem", textAlign: "right", fontSize: "0.7rem", textTransform: "uppercase", color: "#6b7280" }}>Total</th></tr></thead>
+                  <tbody>{selectedOrder.items?.map((item) => (<tr key={item.id} style={{ borderBottom: "1px solid #e5e7eb" }}><td style={{ padding: "0.75rem" }}>{item.productName}</td><td style={{ padding: "0.75rem", textAlign: "center" }}>{item.quantity}</td><td style={{ padding: "0.75rem", textAlign: "right" }}>{formatPrice(item.unitPricePaise)}</td><td style={{ padding: "0.75rem", textAlign: "right" }}>{formatPrice(item.totalPricePaise)}</td></tr>))}</tbody>
                 </table>
-
-                {/* Summary */}
-                <div className="invoice-summary">
-                  <table className="invoice-summary-table">
-                    <tbody>
-                      <tr>
-                        <td>Subtotal</td>
-                        <td>{formatPrice(Number(selectedOrder.subtotalPaise))}</td>
-                      </tr>
-                      {Number(selectedOrder.discountPaise) > 0 && (
-                        <tr>
-                          <td>Discount</td>
-                          <td>-{formatPrice(Number(selectedOrder.discountPaise))}</td>
-                        </tr>
-                      )}
-                      {Number(selectedOrder.extraDiscountPaise || 0) > 0 && (
-                        <tr>
-                          <td>Extra Discount</td>
-                          <td>-{formatPrice(Number(selectedOrder.extraDiscountPaise || 0))}</td>
-                        </tr>
-                      )}
-                      {Number(selectedOrder.shippingPaise) > 0 && (
-                        <tr>
-                          <td>Shipping</td>
-                          <td>{formatPrice(Number(selectedOrder.shippingPaise))}</td>
-                        </tr>
-                      )}
-                      {Number(selectedOrder.taxPaise) > 0 && (
-                        <tr>
-                          <td>Tax</td>
-                          <td>{formatPrice(Number(selectedOrder.taxPaise))}</td>
-                        </tr>
-                      )}
-                      <tr className="total-row">
-                        <td>Total</td>
-                        <td>{formatPrice(Number(selectedOrder.totalPaise))}</td>
-                      </tr>
-                      {/* Payment Summary */}
-                      <tr style={{ borderTop: "1px solid #e5e7eb" }}>
-                        <td style={{ color: "#16a34a" }}>Paid Amount</td>
-                        <td style={{ color: "#16a34a" }}>{formatPrice(Number(selectedOrder.paidAmountPaise || 0))}</td>
-                      </tr>
-                      {Number(selectedOrder.paidAmountPaise || 0) < Number(selectedOrder.totalPaise) && (
-                        <tr>
-                          <td style={{ color: "#dc2626", fontWeight: "bold" }}>Balance Due</td>
-                          <td style={{ color: "#dc2626", fontWeight: "bold" }}>
-                            {formatPrice(Number(selectedOrder.totalPaise) - Number(selectedOrder.paidAmountPaise || 0))}
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Footer */}
-                <div className="invoice-footer">
-                  <p>Thank you for shopping with Arafine!</p>
-                  <p>For any queries, contact us at support@arafine.com</p>
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <div style={{ width: "250px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: "0.5rem 0" }}><span>Subtotal</span><span>{formatPrice(selectedOrder.subtotalPaise)}</span></div>
+                    {selectedOrder.discountPaise > 0 && <div style={{ display: "flex", justifyContent: "space-between", padding: "0.5rem 0", color: "#22c55e" }}><span>Discount</span><span>-{formatPrice(selectedOrder.discountPaise)}</span></div>}
+                    {selectedOrder.taxPaise > 0 && <div style={{ display: "flex", justifyContent: "space-between", padding: "0.5rem 0" }}><span>Tax</span><span>{formatPrice(selectedOrder.taxPaise)}</span></div>}
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: "0.75rem 0", borderTop: "2px solid #e5e7eb", fontWeight: 700, fontSize: "1.1rem" }}><span>Total</span><span>{formatPrice(selectedOrder.totalPaise)}</span></div>
+                  </div>
                 </div>
               </div>
             </div>
-
-            <div className="invoice-modal-actions">
-              <button className="btn-download-pdf" onClick={() => downloadInvoicePdf()}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-                Download PDF
-              </button>
-              <button className="btn-print-only" onClick={() => printInvoice()}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-                  <polyline points="6 9 6 2 18 2 18 9" />
-                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-                  <rect x="6" y="14" width="12" height="8" />
-                </svg>
-                Print
-              </button>
-              <button className="btn-close" onClick={closeInvoiceModal}>
-                Close
-              </button>
+            <div className="ak-modal__footer">
+              <button type="button" className="ak-btn ak-btn--ghost" onClick={printInvoice}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></svg>Print</button>
+              <button type="button" className="ak-btn ak-btn--primary" onClick={downloadInvoicePdf}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7,10 12,15 17,10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>Download PDF</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Filter Modal */}
-      {showFilterModal && (
-        <div className="filter-modal-overlay" onClick={closeFilterModal}>
-          <div className="filter-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="filter-modal-header">
-              <h2>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-                  <line x1="4" y1="21" x2="4" y2="14" />
-                  <line x1="4" y1="10" x2="4" y2="3" />
-                  <line x1="12" y1="21" x2="12" y2="12" />
-                  <line x1="12" y1="8" x2="12" y2="3" />
-                  <line x1="20" y1="21" x2="20" y2="16" />
-                  <line x1="20" y1="12" x2="20" y2="3" />
-                </svg>
-                Filter Orders
-              </h2>
-              <button className="filter-close-btn" onClick={closeFilterModal}>×</button>
-            </div>
-
-            <div className="filter-modal-content">
-              <div className="filter-group">
-                <label>Date Range</label>
-                <div className="filter-date-row">
-                  <div className="filter-date-field">
-                    <span>From</span>
-                    <input
-                      type="date"
-                      value={filterDateFrom}
-                      onChange={(e) => setFilterDateFrom(e.target.value)}
-                    />
-                  </div>
-                  <div className="filter-date-field">
-                    <span>To</span>
-                    <input
-                      type="date"
-                      value={filterDateTo}
-                      onChange={(e) => setFilterDateTo(e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="filter-group">
-                <label>Payment Status</label>
-                <div className="filter-options">
-                  {["all", "paid", "unpaid", "partial"].map((status) => (
-                    <button
-                      key={status}
-                      className={`filter-option ${filterPaymentStatus === status ? "active" : ""}`}
-                      onClick={() => setFilterPaymentStatus(status as PaymentStatusFilter)}
-                    >
-                      {status === "all" ? "All" : status.charAt(0).toUpperCase() + status.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="filter-modal-actions">
-              <button className="btn-clear-filter" onClick={clearFilters}>
-                Clear All
-              </button>
-              <button className="btn-apply-filter" onClick={applyFilters}>
-                Apply Filters
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Receipt Modal (POS Bill Style) */}
+      {/* Receipt Modal */}
       {showReceipt && selectedOrder && (
-        <div className="receipt-modal-overlay" onClick={closeReceiptModal}>
-          <div className="receipt-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="receipt-modal-header">
-              <h2>Receipt</h2>
-              <button className="receipt-close-btn" onClick={closeReceiptModal}>×</button>
+        <div className="ak-modal-overlay" onClick={() => setShowReceipt(false)}>
+          <div className="ak-modal" style={{ maxWidth: "360px" }} onClick={(e) => e.stopPropagation()}>
+            <div className="ak-modal__header">
+              <h2 className="ak-modal__title">Receipt</h2>
+              <button type="button" className="ak-modal__close" onClick={() => setShowReceipt(false)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg></button>
             </div>
-            
-            <div className="receipt-content" ref={receiptRef}>
-              {/* Receipt Header */}
-              <div className="receipt-header">
-                <h1>ARAFINE</h1>
-                <p>Premium Silver Jewellery</p>
-                <p>GST: 36AABCA1234C1ZE</p>
-              </div>
-
-              {/* Receipt Info */}
-              <div className="receipt-info">
-                <p><span>Order #:</span><span>{selectedOrder.orderNumber}</span></p>
-                <p><span>Date:</span><span>{formatDateTime(selectedOrder.createdAt)}</span></p>
-                <p><span>Customer:</span><span>{selectedOrder.shippingAddress?.fullName || "Walk-in"}</span></p>
-                {selectedOrder.shippingAddress?.phone && selectedOrder.shippingAddress.phone !== "0000000000" && (
-                  <p><span>Phone:</span><span>{selectedOrder.shippingAddress.phone}</span></p>
-                )}
-                <p><span>Payment:</span><span>{selectedOrder.paymentMethod?.toUpperCase() || "CASH"}</span></p>
-              </div>
-
-              {/* Receipt Items */}
-              <div className="receipt-items">
-                <div className="receipt-items-header">
-                  <span>Item</span>
-                  <span>Qty</span>
-                  <span>Amount</span>
-                </div>
-                {selectedOrder.items?.map((item, idx) => (
-                  <div key={item.id || idx} className="receipt-item">
-                    <div className="receipt-item-name">{item.productName}</div>
-                    <div className="receipt-item-details">
-                      <span>{formatPrice(Number(item.unitPricePaise))} x {item.quantity}</span>
-                      <span>{formatPrice(Number(item.totalPricePaise))}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Receipt Summary */}
-              <div className="receipt-summary">
-                <p><span>Subtotal:</span><span>{formatPrice(Number(selectedOrder.subtotalPaise))}</span></p>
-                {Number(selectedOrder.discountPaise) > 0 && (
-                  <p><span>Discount:</span><span>-{formatPrice(Number(selectedOrder.discountPaise))}</span></p>
-                )}
-                {Number(selectedOrder.extraDiscountPaise || 0) > 0 && (
-                  <p><span>Extra Discount:</span><span>-{formatPrice(Number(selectedOrder.extraDiscountPaise || 0))}</span></p>
-                )}
-                <p className="total"><span>Total:</span><span>{formatPrice(Number(selectedOrder.totalPaise))}</span></p>
-                <p className="paid"><span>Paid:</span><span>{formatPrice(Number(selectedOrder.paidAmountPaise || 0))}</span></p>
-                {Number(selectedOrder.paidAmountPaise || 0) > Number(selectedOrder.totalPaise) && (
-                  <p className="change"><span>Change:</span><span>{formatPrice(Number(selectedOrder.paidAmountPaise || 0) - Number(selectedOrder.totalPaise))}</span></p>
-                )}
-                {Number(selectedOrder.paidAmountPaise || 0) < Number(selectedOrder.totalPaise) && (
-                  <p className="balance"><span>Balance:</span><span>{formatPrice(Number(selectedOrder.totalPaise) - Number(selectedOrder.paidAmountPaise || 0))}</span></p>
-                )}
-              </div>
-
-              {/* Receipt Footer */}
-              <div className="receipt-footer">
-                <p>Thank you for shopping with us!</p>
-                <p>Visit again</p>
-              </div>
+            <div className="ak-modal__body" ref={receiptRef} style={{ fontFamily: "'Courier New', monospace", fontSize: "12px" }}>
+              <div style={{ textAlign: "center", marginBottom: "1rem", paddingBottom: "0.75rem", borderBottom: "1px dashed #000" }}><h1 style={{ fontSize: "1.1rem", marginBottom: "0.25rem" }}>ARAFINE</h1><p style={{ fontSize: "0.7rem" }}>Silver Jewellery</p></div>
+              <div style={{ marginBottom: "1rem", paddingBottom: "0.75rem", borderBottom: "1px dashed #000" }}><div style={{ display: "flex", justifyContent: "space-between" }}><span>Order:</span><span>{selectedOrder.orderNumber}</span></div><div style={{ display: "flex", justifyContent: "space-between" }}><span>Date:</span><span>{formatDateTime(selectedOrder.createdAt)}</span></div></div>
+              <div style={{ marginBottom: "1rem", paddingBottom: "0.75rem", borderBottom: "1px dashed #000" }}>{selectedOrder.items?.map((item) => (<div key={item.id} style={{ marginBottom: "0.5rem" }}><div style={{ fontWeight: 600 }}>{item.productName}</div><div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}><span>{item.quantity} x {formatPrice(item.unitPricePaise)}</span><span>{formatPrice(item.totalPricePaise)}</span></div></div>))}</div>
+              <div><div style={{ display: "flex", justifyContent: "space-between" }}><span>Subtotal</span><span>{formatPrice(selectedOrder.subtotalPaise)}</span></div>{selectedOrder.discountPaise > 0 && <div style={{ display: "flex", justifyContent: "space-between" }}><span>Discount</span><span>-{formatPrice(selectedOrder.discountPaise)}</span></div>}<div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, borderTop: "1px solid #000", paddingTop: "0.5rem", marginTop: "0.5rem" }}><span>TOTAL</span><span>{formatPrice(selectedOrder.totalPaise)}</span></div></div>
+              <div style={{ textAlign: "center", marginTop: "1rem", fontSize: "10px", color: "#666" }}>Thank you for shopping with us!</div>
             </div>
-
-            <div className="receipt-modal-actions">
-              <button className="btn-print-receipt" onClick={printReceipt}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-                  <polyline points="6 9 6 2 18 2 18 9" />
-                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-                  <rect x="6" y="14" width="12" height="8" />
-                </svg>
-                Print Receipt
-              </button>
-              <button className="btn-close-receipt" onClick={closeReceiptModal}>
-                Close
-              </button>
-            </div>
+            <div className="ak-modal__footer"><button type="button" className="ak-btn ak-btn--primary ak-btn--block" onClick={printReceipt}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></svg>Print Receipt</button></div>
           </div>
         </div>
       )}

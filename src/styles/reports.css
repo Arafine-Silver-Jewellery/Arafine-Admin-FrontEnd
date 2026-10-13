@@ -516,13 +516,13 @@
 .btn-icon-delete { background: #fee2e2; }
 .btn-icon-delete:hover { background: #fecaca; }
 
-/* Search Box */
-.search-box {
+/* Search Box (scoped to this page to prevent global CSS leakage) */
+.reports-container .search-box {
   position: relative;
   min-width: 250px;
 }
 
-.search-box input {
+.reports-container .search-box input {
   width: 100%;
   padding: 10px 12px 10px 36px;
   border: 1px solid #e0e0e0;
@@ -530,19 +530,21 @@
   font-size: 14px;
 }
 
-.search-box input:focus {
+.reports-container .search-box input:focus {
   outline: none;
   border-color: #0d6efd;
 }
 
-.search-box svg {
+.reports-container .search-box svg {
   position: absolute;
   left: 12px;
+  right: auto;
   top: 50%;
   transform: translateY(-50%);
   width: 16px;
   height: 16px;
   color: #888;
+  pointer-events: none;
 }
 
 /* Product Cell */
@@ -806,4 +808,39 @@
 
 .chart-x-axis span {
   text-align: center;
+}
+
+/* ============================================================
+   RESPONSIVE — Reports (added refinements)
+   Breakpoints: 1024 / 768 / 480
+   ============================================================ */
+@media (max-width: 1024px) {
+  .reports-container,
+  .report-container {
+    padding: var(--page-pad-y) var(--page-pad-x);
+  }
+}
+
+@media (max-width: 768px) {
+  /* Filter rows stack, controls go full width */
+  .filter-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .filter-row > * { width: 100%; }
+
+  /* Tabs become a horizontally scrollable strip */
+  .report-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  .report-tabs::-webkit-scrollbar { display: none; }
+  .report-tabs button { flex-shrink: 0; }
+}
+
+@media (max-width: 480px) {
+  .report-table th,
+  .report-table td { padding: 10px 8px; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
 }

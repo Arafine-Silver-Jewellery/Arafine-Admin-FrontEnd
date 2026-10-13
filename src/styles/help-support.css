@@ -433,16 +433,16 @@
   align-items: center;
 }
 
-.search-box {
+.help-support-container .search-box {
   position: relative;
   width: 300px;
 }
 
-.search-box.wide {
+.help-support-container .search-box.wide {
   width: 350px;
 }
 
-.search-box input {
+.help-support-container .search-box input {
   width: 100%;
   padding: 10px 40px 10px 16px;
   border: 1px solid #e5e7eb;
@@ -451,18 +451,20 @@
   outline: none;
 }
 
-.search-box input:focus {
+.help-support-container .search-box input:focus {
   border-color: #2563eb;
 }
 
-.search-box svg {
+.help-support-container .search-box svg {
   position: absolute;
   right: 12px;
+  left: auto;
   top: 50%;
   transform: translateY(-50%);
   width: 18px;
   height: 18px;
   stroke: #9ca3af;
+  pointer-events: none;
 }
 
 .btn-filter {
@@ -832,4 +834,48 @@
   text-align: center;
   color: #9ca3af;
   font-size: 13px;
+}
+
+/* ============================================================
+   RESPONSIVE — Help & Support (added refinements)
+   Breakpoints: 1024 / 768 / 480
+   ============================================================ */
+@media (max-width: 1024px) {
+  .help-support-container {
+    padding: var(--page-pad-y) var(--page-pad-x);
+  }
+}
+
+@media (max-width: 900px) {
+  /* Chat: stack contacts over the message pane, give each usable height */
+  .chat-container {
+    height: auto;
+  }
+  .chat-contacts {
+    max-height: 240px;
+    overflow-y: auto;
+  }
+  .chat-messages {
+    min-height: 320px;
+  }
+}
+
+@media (max-width: 768px) {
+  .support-toolbar,
+  .messages-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  .support-toolbar .search-box,
+  .messages-toolbar .search-box { width: 100%; }
+  .filter-row { flex-direction: column; align-items: stretch; }
+  .filter-row > * { width: 100%; }
+}
+
+@media (max-width: 480px) {
+  .support-table th,
+  .support-table td,
+  .messages-table th,
+  .messages-table td { padding: 10px 8px; }
 }

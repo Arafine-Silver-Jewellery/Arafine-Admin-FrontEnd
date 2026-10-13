@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
+import { AppHeader } from "./layout/AppHeader";
 import "../styles/layout.css";
 
 const categorySubmenus = [
@@ -116,6 +117,13 @@ export default function Layout() {
   const [customersExpanded, setCustomersExpanded] = useState(location.pathname.startsWith("/customers"));
   const [searchQuery, setSearchQuery] = useState("");
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  // Mobile/tablet off-canvas sidebar (purely presentational state)
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Close the mobile sidebar whenever the route changes
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
 
   async function handleLogout() {
     await logout();
@@ -133,13 +141,29 @@ export default function Layout() {
 
   return (
     <div className="admin-layout">
-      <aside className="sidebar">
+      {/* Mobile overlay — tap to close the sidebar */}
+      <div
+        className={`sidebar-overlay ${sidebarOpen ? "visible" : ""}`}
+        onClick={() => setSidebarOpen(false)}
+        aria-hidden="true"
+      />
+      <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="sidebar-header">
           <img 
             src="https://arafine.co/storage/app/public/company/2026-06-04-6a218bac104aa.webp" 
             alt="Arafine" 
             className="sidebar-logo"
           />
+          <button
+            className="sidebar-close"
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Close menu"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
         </div>
         
         <div className="sidebar-search">
@@ -532,8 +556,26 @@ export default function Layout() {
       </aside>
       
       <main className="main-content">
+        <AppHeader
+          title={currentPage.title}
+          onMenuClick={() => setSidebarOpen(true)}
+          employee={employee}
+          onLogout={handleLogout}
+        />
+        {false && (
         <header className="top-header">
           <div className="header-left">
+            <button
+              className="sidebar-toggle"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open menu"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
             <div className="page-title">
               <span className="page-title-icon">
                 {currentPage.icon === "dashboard" && (
@@ -690,6 +732,7 @@ export default function Layout() {
             </div>
           </div>
         </header>
+        )}
         <div className="main-content-inner">
           <Outlet />
         </div>
