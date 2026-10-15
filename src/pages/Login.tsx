@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import "../styles/login.css";
@@ -6,6 +6,7 @@ import "../styles/login.css";
 type Step = "credentials" | "otp";
 
 const RESEND_COOLDOWN_SECONDS = 60;
+const OTP_LENGTH = 4;
 
 // Eye icons as inline SVGs
 function EyeIcon() {
@@ -34,11 +35,64 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [otp, setOtp] = useState("");
+  const [otpDigits, setOtpDigits] = useState<string[]>(() => Array(OTP_LENGTH).fill(""));
+  const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(0);
   const [isResending, setIsResending] = useState(false);
+
+  const isOtpComplete = otpDigits.every((d) => d !== "");
+  const otpString = otpDigits.join("");
+
+  function handleOtpDigitChange(index: number, value: string) {
+    // Take the last typed character (handles paste-into-single-box too)
+    const digit = value.replace(/\D/g, "").slice(-1);
+    setOtpDigits((prev) => {
+      const next = [...prev];
+      next[index] = digit;
+      return next;
+    });
+    if (digit && index < OTP_LENGTH - 1) {
+      otpRefs.current[index + 1]?.focus();
+      otpRefs.current[index + 1]?.select();
+    }
+  }
+
+  function handleOtpKeyDown(index: number, e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Backspace" && !otpDigits[index] && index > 0) {
+      e.preventDefault();
+      setOtpDigits((prev) => {
+        const next = [...prev];
+        next[index - 1] = "";
+        return next;
+      });
+      otpRefs.current[index - 1]?.focus();
+    }
+    else if (e.key === "ArrowLeft" && index > 0) {
+      e.preventDefault();
+      otpRefs.current[index - 1]?.focus();
+    }
+    else if (e.key === "ArrowRight" && index < OTP_LENGTH - 1) {
+      e.preventDefault();
+      otpRefs.current[index + 1]?.focus();
+    }
+  }
+
+  function handleOtpPaste(e: React.ClipboardEvent<HTMLInputElement>) {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, OTP_LENGTH);
+    if (!pasted) return;
+    setOtpDigits(() => {
+      const next = Array(OTP_LENGTH).fill("");
+      for (let i = 0; i < pasted.length; i++) {
+        next[i] = pasted[i];
+      }
+      return next;
+    });
+    const focusIndex = Math.min(pasted.length, OTP_LENGTH - 1);
+    otpRefs.current[focusIndex]?.focus();
+  }
 
   // Redirect to dashboard if already logged in
   useEffect(() => {
@@ -101,10 +155,11 @@ export default function Login() {
   async function handleOtpSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    if (!isOtpComplete) return;
     setIsLoading(true);
 
     try {
-      await verifyOtp(email, otp);
+      await verifyOtp(email, otpString);
       navigate("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "OTP verification failed");
@@ -120,7 +175,8 @@ export default function Login() {
     try {
       await login(email, password);
       startResendCountdown();
-      setOtp("");
+      setOtpDigits(Array(OTP_LENGTH).fill(""));
+      otpRefs.current[0]?.focus();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to resend OTP");
     } finally {
@@ -130,7 +186,7 @@ export default function Login() {
 
   function handleBackToCredentials() {
     setStep("credentials");
-    setOtp("");
+    setOtpDigits(Array(OTP_LENGTH).fill(""));
     setError("");
     setResendCountdown(0);
   }
@@ -189,25 +245,36 @@ export default function Login() {
         ) : (
           <form onSubmit={handleOtpSubmit} className="login-form">
             <div className="form-group">
-              <label htmlFor="otp">OTP Code</label>
-              <input
-                id="otp"
-                type="text"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                placeholder="Enter 6-digit OTP"
-                maxLength={6}
-                required
-                autoFocus
-                disabled={isLoading}
-              />
+              <label>OTP Code</label>
+              <div className="otp-input-group" role="group" aria-label={`${OTP_LENGTH}-digit OTP code`}>
+                {otpDigits.map((digit, index) => (
+                  <input
+                    key={index}
+                    ref={(el) => { otpRefs.current[index] = el; }}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    autoComplete={index === 0 ? "one-time-code" : "off"}
+                    className="otp-digit"
+                    value={digit}
+                    onChange={(e) => handleOtpDigitChange(index, e.target.value)}
+                    onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                    onPaste={handleOtpPaste}
+                    maxLength={1}
+                    required
+                    autoFocus={index === 0}
+                    disabled={isLoading}
+                    aria-label={`Digit ${index + 1} of ${OTP_LENGTH}`}
+                  />
+                ))}
+              </div>
               <p className="otp-hint">Check your email ({email}) for the OTP</p>
             </div>
 
-            <button 
-              type="submit" 
-              className="login-button" 
-              disabled={isLoading || otp.length !== 6}
+            <button
+              type="submit"
+              className="login-button"
+              disabled={isLoading || !isOtpComplete}
             >
               {isLoading ? "Verifying..." : "Verify OTP"}
             </button>

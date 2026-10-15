@@ -250,3 +250,53 @@
     font-size: 1.75rem;
   }
 }
+
+/* ============================================================
+   OTP input — OTP_LENGTH separate single-digit boxes, underline-only
+   (selectors are scoped under .login-form .form-group to win
+   the specificity battle against the .login-form .form-group
+   input rule, which is (0,2,1))
+   ============================================================ */
+
+.login-form .form-group .otp-input-group {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.login-form .form-group .otp-input-group .otp-digit {
+  width: 3rem;            /* 48px */
+  height: 3.25rem;        /* 52px */
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: 1.5rem;
+  font-weight: 500;
+  line-height: 1;
+  text-align: center;
+  color: var(--color-charcoal);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--border-color);
+  border-radius: 0;
+  box-shadow: none;
+  transition: border-color var(--transition-fast);
+  caret-color: var(--color-champagne);
+}
+
+.login-form .form-group .otp-input-group .otp-digit:focus {
+  outline: none;
+  border: none;
+  border-bottom: 2px solid var(--color-champagne);
+  box-shadow: none;
+}
+
+.login-form .form-group .otp-input-group .otp-digit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 380px) {
+  .login-form .form-group .otp-input-group { gap: 0.5rem; }
+  .login-form .form-group .otp-input-group .otp-digit { width: 2.5rem; height: 3rem; font-size: 1.35rem; }
+}
