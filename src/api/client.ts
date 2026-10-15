@@ -287,7 +287,6 @@ export const api = {
     paymentMethod: "cash" | "card" | "upi";
     paymentReference?: string;
     couponCode?: string;
-    couponDiscountPaise?: number;
     extraDiscountPaise?: number;
     paidAmountPaise: number;
   }) =>
@@ -318,7 +317,7 @@ export const api = {
       unitPricePaise: number;
       stockQuantity: number;
     }[];
-    couponDiscount?: number;
+    couponCode?: string;
     extraDiscount?: number;
     note?: string;
   }) =>

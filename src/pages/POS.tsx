@@ -33,7 +33,7 @@ interface OrderBill {
   items: CartItem[];
   subTotal: number;
   productDiscount: number;
-  couponDiscount: number;
+  couponCode?: string;
   extraDiscount: number;
   total: number;
   paymentMethod: "cash" | "card" | "upi";
@@ -57,7 +57,7 @@ interface HoldOrder {
   customerName: string;
   customerPhone?: string;
   items: HoldOrderItem[];
-  couponDiscount: number;
+  couponCode?: string;
   extraDiscount: number;
   note?: string;
   heldAt: string;
@@ -81,7 +81,7 @@ export default function POS() {
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card" | "upi">("cash");
   const [paidAmount, setPaidAmount] = useState("");
   const [upiTransactionId, setUpiTransactionId] = useState("");
-  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponCode, setCouponCode] = useState("");
   const [extraDiscount, setExtraDiscount] = useState(0);
   const [showBill, setShowBill] = useState(false);
   const [currentBill, setCurrentBill] = useState<OrderBill | null>(null);
@@ -322,7 +322,6 @@ export default function POS() {
 
       // Calculate amounts
       const paidAmountPaise = Math.round((Number(paidAmount) || 0) * 100);
-      const couponDiscountPaise = Math.round(Number(couponDiscount) * 100);
       const extraDiscountPaise = Math.round(Number(extraDiscount) * 100);
 
       // Prepare order data with customer details
@@ -330,7 +329,7 @@ export default function POS() {
         items,
         paymentMethod,
         paymentReference: paymentMethod === "upi" ? upiTransactionId.trim() : undefined,
-        couponDiscountPaise,
+        couponCode: couponCode.trim() || undefined,
         extraDiscountPaise,
         paidAmountPaise,
         isWalkIn: false,
@@ -357,7 +356,7 @@ export default function POS() {
         items: [...cart],
         subTotal: Number(order.subtotalPaise),
         productDiscount,
-        couponDiscount: couponDiscountPaise,
+        couponCode: couponCode.trim() || undefined,
         extraDiscount: extraDiscountPaise,
         total: finalTotal,
         paymentMethod,
@@ -373,7 +372,7 @@ export default function POS() {
       setCart([]);
       setPaidAmount("");
       setUpiTransactionId("");
-      setCouponDiscount(0);
+      setCouponCode("");
       setExtraDiscount(0);
     } catch (error) {
       console.error("Failed to place order:", error);
@@ -529,7 +528,7 @@ export default function POS() {
   function clearCart() {
     setCart([]);
     setPaidAmount("");
-    setCouponDiscount(0);
+    setCouponCode("");
     setExtraDiscount(0);
   }
 
@@ -574,7 +573,7 @@ export default function POS() {
       await api.createHoldOrder({
         customerName: "Walk In Customer",
         items,
-        couponDiscount,
+        couponCode: couponCode.trim() || undefined,
         extraDiscount,
         note: holdNote || undefined,
       });
@@ -694,7 +693,7 @@ export default function POS() {
 
     // Set cart with held items
     setCart(newCart);
-    setCouponDiscount(holdOrder.couponDiscount);
+    setCouponCode(holdOrder.couponCode || "");
     setExtraDiscount(holdOrder.extraDiscount);
 
     // Delete the hold order
@@ -764,7 +763,7 @@ export default function POS() {
     return sum + (comparePrice - item.product.pricePaise) * item.quantity;
   }, 0);
   
-  const total = subTotal - (couponDiscount * 100) - (extraDiscount * 100);
+  const total = subTotal - (extraDiscount * 100);
 
   async function handlePlaceOrder() {
     if (cart.length === 0) return;
@@ -1017,12 +1016,13 @@ export default function POS() {
             <span>{formatPrice(productDiscount)}</span>
           </div>
           <div className="summary-row editable">
-            <span>Coupon Discount:</span>
+            <span>Coupon Code:</span>
             <input
-              type="number"
-              value={couponDiscount || ""}
-              onChange={(e) => setCouponDiscount(Number(e.target.value) || 0)}
-              placeholder="0.00"
+              type="text"
+              value={couponCode}
+              onChange={(e) => setCouponCode(e.target.value)}
+              placeholder="e.g. OFFER50"
+              maxLength={64}
             />
           </div>
           <div className="summary-row editable">
@@ -1156,8 +1156,8 @@ export default function POS() {
                 {currentBill.productDiscount > 0 && (
                   <p><span>Product Discount:</span> <span>-{formatPrice(currentBill.productDiscount)}</span></p>
                 )}
-                {currentBill.couponDiscount > 0 && (
-                  <p><span>Coupon Discount:</span> <span>-{formatPrice(currentBill.couponDiscount)}</span></p>
+                {currentBill.couponCode && (
+                  <p><span>Coupon Code:</span> <span>{currentBill.couponCode}</span></p>
                 )}
                 {currentBill.extraDiscount > 0 && (
                   <p><span>Extra Discount:</span> <span>-{formatPrice(currentBill.extraDiscount)}</span></p>
@@ -1543,10 +1543,10 @@ export default function POS() {
                   <span>Sub Total:</span>
                   <span>{formatPrice(subTotal)}</span>
                 </div>
-                {(couponDiscount > 0 || extraDiscount > 0) && (
+                {(couponCode || extraDiscount > 0) && (
                   <div className="customer-order-row">
                     <span>Discounts:</span>
-                    <span>-{formatPrice((couponDiscount + extraDiscount) * 100)}</span>
+                    <span>-{formatPrice(extraDiscount * 100)}</span>
                   </div>
                 )}
                 <div className="customer-order-row total">
