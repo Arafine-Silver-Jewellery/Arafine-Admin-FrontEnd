@@ -416,7 +416,6 @@ export default function Categories() {
           emptyIcon="folder"
           emptyTitle="No categories found"
           emptyDescription={debouncedSearch || statusFilter ? "Try adjusting your filters." : "Create your first category to get started."}
-          emptyAction={{ label: "Add Category", onClick: () => openAddModal() }}
           keyExtractor={(category) => category.id}
           onRowClick={(category) => openAddModal(category)}
           currentPage={currentPage}

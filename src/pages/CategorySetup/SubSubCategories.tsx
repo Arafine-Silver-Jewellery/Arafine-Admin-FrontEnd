@@ -467,7 +467,6 @@ export default function SubSubCategories() {
           emptyIcon="folder"
           emptyTitle="No sub sub categories found"
           emptyDescription={debouncedSearch || statusFilter ? "Try adjusting your filters." : "Create your first sub sub category to get started."}
-          emptyAction={{ label: "Add Sub Sub Category", onClick: () => openAddModal() }}
           keyExtractor={(subSubCat) => subSubCat.id}
           onRowClick={(subSubCat) => openAddModal(subSubCat)}
           currentPage={currentPage}

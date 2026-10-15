@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { api } from "../api/client";
+import { FilterDrawer, StatusDropdown } from "../components";
 import "../styles/pos.css";
 
 interface Product {
@@ -122,14 +123,35 @@ export default function POS() {
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
-  // Fetch products when tab, search, or page changes
+  // Filter drawer state
+  const [showFilterDrawer, setShowFilterDrawer] = useState(false);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [tempCategoryFilter, setTempCategoryFilter] = useState("");
+
+  // Fetch products when tab, search, page, or category filter changes
   useEffect(() => {
     fetchProducts();
-  }, [activeTab, pagination.page]);
+  }, [activeTab, pagination.page, categoryFilter]);
 
   // Fetch hold orders count on mount
   useEffect(() => {
     fetchHoldOrdersCount();
+  }, []);
+
+  // Load categories for the filter drawer
+  useEffect(() => {
+    async function loadCategories() {
+      try {
+        const data = await api.getAllCategories();
+        setCategories(data || []);
+      } catch (error) {
+        // The /categories/all endpoint requires the "category-setup" permission.
+        // POS users may not have it — leave the dropdown empty rather than fail the page.
+        console.warn("Failed to load categories for filter:", error);
+      }
+    }
+    loadCategories();
   }, []);
 
   // Auto-hide toast after 3 seconds
@@ -142,6 +164,36 @@ export default function POS() {
 
   function showToast(message: string, type: "success" | "error" | "warning" | "info" = "success") {
     setToast({ message, type });
+  }
+
+  // Filter drawer helpers
+  const categoryOptions = [
+    { value: "", label: "All Categories", color: "neutral" as const },
+    ...categories.map((cat) => ({
+      value: cat.id,
+      label: cat.name,
+      color: "brand" as const,
+    })),
+  ];
+
+  const activeFilterCount = categoryFilter ? 1 : 0;
+
+  function openFilterDrawer() {
+    setTempCategoryFilter(categoryFilter);
+    setShowFilterDrawer(true);
+  }
+
+  function applyFilters() {
+    setCategoryFilter(tempCategoryFilter);
+    setPagination(prev => ({ ...prev, page: 1 }));
+    setShowFilterDrawer(false);
+  }
+
+  function resetFilters() {
+    setTempCategoryFilter("");
+    setCategoryFilter("");
+    setPagination(prev => ({ ...prev, page: 1 }));
+    setShowFilterDrawer(false);
   }
 
   function showConfirm(
@@ -401,6 +453,7 @@ export default function POS() {
         search: searchQuery || undefined,
         status: "active",
         productType: activeTab,
+        categoryId: categoryFilter || undefined,
       });
 
       setProducts(response.data || []);
@@ -820,7 +873,13 @@ export default function POS() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-          <button className="filter-btn">
+          <button
+            type="button"
+            className={activeFilterCount > 0 ? "filter-btn filter-btn--active" : "filter-btn"}
+            onClick={openFilterDrawer}
+            aria-haspopup="dialog"
+            aria-expanded={showFilterDrawer}
+          >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
               <line x1="4" y1="21" x2="4" y2="14" />
               <line x1="4" y1="10" x2="4" y2="3" />
@@ -830,6 +889,7 @@ export default function POS() {
               <line x1="20" y1="12" x2="20" y2="3" />
             </svg>
             Filter
+            {activeFilterCount > 0 && <span className="filter-btn__count">{activeFilterCount}</span>}
           </button>
         </div>
 
@@ -1629,6 +1689,25 @@ export default function POS() {
           </div>
         </div>
       )}
-    </div>
+    {/* Filter Drawer */}
+    <FilterDrawer
+      isOpen={showFilterDrawer}
+      onClose={() => setShowFilterDrawer(false)}
+      title="Filter Products"
+      onApply={applyFilters}
+      onReset={resetFilters}
+    >
+      <div className="ak-filter-field">
+        <label className="ak-filter-field__label">Category</label>
+        <StatusDropdown
+          options={categoryOptions}
+          value={tempCategoryFilter}
+          onChange={setTempCategoryFilter}
+          placeholder="All Categories"
+          showDot={false}
+        />
+      </div>
+    </FilterDrawer>
+  </div>
   );
 }
