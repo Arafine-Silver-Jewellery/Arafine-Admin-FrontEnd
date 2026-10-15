@@ -350,11 +350,6 @@ export default function Products() {
               ? "Try adjusting your filters or search query."
               : "Get started by adding your first product."
           }
-          emptyAction={
-            !search && !categoryFilter && !statusFilter
-              ? { label: "Add Product", onClick: () => navigate("/products/new") }
-              : undefined
-          }
           keyExtractor={(product) => product.id}
           onRowClick={(product) => navigate(`/products/${product.id}`)}
           currentPage={page}

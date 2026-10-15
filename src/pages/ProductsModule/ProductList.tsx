@@ -515,7 +515,6 @@ export default function ProductList() {
           emptyIcon="box"
           emptyTitle="No products found"
           emptyDescription={debouncedSearch || statusFilter ? "Try adjusting your filters." : "Add your first product to get started."}
-          emptyAction={{ label: "Add Product", onClick: () => navigate("/products-module/add-new") }}
           keyExtractor={(product) => product.id}
           onRowClick={(product) => navigate(`/products-module/view/${product.id}`)}
           currentPage={currentPage}
