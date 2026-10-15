@@ -36,7 +36,8 @@ interface OrderBill {
   couponDiscount: number;
   extraDiscount: number;
   total: number;
-  paymentMethod: "cash" | "card";
+  paymentMethod: "cash" | "card" | "upi";
+  paymentReference?: string;
   paidAmount: number;
   change: number;
 }
@@ -77,8 +78,9 @@ export default function POS() {
     totalPages: 0,
   });
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "card">("cash");
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "card" | "upi">("cash");
   const [paidAmount, setPaidAmount] = useState("");
+  const [upiTransactionId, setUpiTransactionId] = useState("");
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [extraDiscount, setExtraDiscount] = useState(0);
   const [showBill, setShowBill] = useState(false);
@@ -301,9 +303,15 @@ export default function POS() {
 
   async function placeOrderWithCustomer() {
     if (cart.length === 0) return;
-    
+
+    // Require UPI transaction ID when paying via UPI
+    if (paymentMethod === "upi" && !upiTransactionId.trim()) {
+      showToast("UPI transaction ID is required", "warning");
+      return;
+    }
+
     setIsPlacingOrder(true);
-    
+
     try {
       // Prepare items for API
       const items = cart.map(item => ({
@@ -321,6 +329,7 @@ export default function POS() {
       const orderData: Parameters<typeof api.createPOSOrder>[0] = {
         items,
         paymentMethod,
+        paymentReference: paymentMethod === "upi" ? upiTransactionId.trim() : undefined,
         couponDiscountPaise,
         extraDiscountPaise,
         paidAmountPaise,
@@ -340,6 +349,7 @@ export default function POS() {
       const order = response.data;
       const finalTotal = Number(order.totalPaise);
       const changeAmount = Math.max(0, paidAmountPaise - finalTotal);
+      const trimmedUpiRef = paymentMethod === "upi" ? upiTransactionId.trim() : undefined;
 
       const bill: OrderBill = {
         orderNumber: order.orderNumber,
@@ -351,16 +361,18 @@ export default function POS() {
         extraDiscount: extraDiscountPaise,
         total: finalTotal,
         paymentMethod,
+        paymentReference: trimmedUpiRef,
         paidAmount: paidAmountPaise,
         change: changeAmount,
       };
 
       setCurrentBill(bill);
       setShowBill(true);
-      
+
       // Clear cart after successful order
       setCart([]);
       setPaidAmount("");
+      setUpiTransactionId("");
       setCouponDiscount(0);
       setExtraDiscount(0);
     } catch (error) {
@@ -1044,6 +1056,12 @@ export default function POS() {
               >
                 Card
               </button>
+              <button
+                className={paymentMethod === "upi" ? "active" : ""}
+                onClick={() => setPaymentMethod("upi")}
+              >
+                UPI
+              </button>
             </div>
           </div>
           <div className="paid-amount">
@@ -1055,6 +1073,18 @@ export default function POS() {
               placeholder="0"
             />
           </div>
+          {paymentMethod === "upi" && (
+            <div className="upi-transaction-id">
+              <span>UPI Txn ID:</span>
+              <input
+                type="text"
+                value={upiTransactionId}
+                onChange={(e) => setUpiTransactionId(e.target.value)}
+                placeholder="Enter UPI transaction reference"
+                maxLength={64}
+              />
+            </div>
+          )}
         </div>
 
         <div className="pos-actions">
@@ -1099,6 +1129,9 @@ export default function POS() {
                 <p><span>Date:</span> <span>{currentBill.date.toLocaleDateString("en-IN")}</span></p>
                 <p><span>Time:</span> <span>{currentBill.date.toLocaleTimeString("en-IN")}</span></p>
                 <p><span>Payment:</span> <span>{currentBill.paymentMethod.toUpperCase()}</span></p>
+                {currentBill.paymentMethod === "upi" && currentBill.paymentReference && (
+                  <p><span>UPI Ref:</span> <span>{currentBill.paymentReference}</span></p>
+                )}
               </div>
 
               <div className="receipt-items">

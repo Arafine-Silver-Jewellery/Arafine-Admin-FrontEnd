@@ -284,7 +284,8 @@ export const api = {
     customerLastName?: string;
     customerAddress?: string;
     isWalkIn?: boolean;
-    paymentMethod: "cash" | "card";
+    paymentMethod: "cash" | "card" | "upi";
+    paymentReference?: string;
     couponCode?: string;
     couponDiscountPaise?: number;
     extraDiscountPaise?: number;

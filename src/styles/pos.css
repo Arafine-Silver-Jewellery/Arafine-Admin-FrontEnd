@@ -454,6 +454,27 @@
   font-size: 0.85rem;
 }
 
+.upi-transaction-id {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.upi-transaction-id span {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.upi-transaction-id input {
+  flex: 1;
+  max-width: 180px;
+  padding: 0.4rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
 .pos-actions {
   display: flex;
   gap: 0.5rem;
