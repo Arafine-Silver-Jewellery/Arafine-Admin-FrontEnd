@@ -5,6 +5,6 @@ export type { DashboardRange } from "./DateRangePicker";
 export { default as RevenueTrendChart } from "./RevenueTrendChart";
 export { default as OrdersTrendChart } from "./OrdersTrendChart";
 export { default as TopSellingChart } from "./TopSellingChart";
-export { default as CategoryDonut } from "./CategoryDonut";
+export { default as CategoryBars } from "./CategoryBars";
 export { default as ChannelStatTile } from "./ChannelStatTile";
 export { default as DashboardSkeleton } from "./DashboardSkeleton";

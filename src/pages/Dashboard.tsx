@@ -12,7 +12,7 @@ import type {
 } from "../types";
 import { formatDateTime, formatPrice, getOrderStatusColor } from "../utils/format";
 import {
-  CategoryDonut,
+  CategoryBars,
   ChannelStatTile,
   ChartCard,
   DashboardSkeleton,
@@ -315,7 +315,7 @@ export default function Dashboard() {
           isLoading={rangeLoading}
         >
           {categoryBreakdown && categoryBreakdown.items.length > 0 ? (
-            <CategoryDonut items={categoryBreakdown.items} totalLabel="Total revenue" />
+            <CategoryBars items={categoryBreakdown.items} totalLabel="Total revenue" />
           ) : (
             <div className="chart-empty">
               <p>No category sales yet</p>
