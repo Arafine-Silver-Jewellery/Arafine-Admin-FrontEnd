@@ -1,11 +1,35 @@
-export function formatPrice(paise: number): string {
+export function formatPrice(paise: number, opts: { compact?: boolean } = {}): string {
   const rupees = paise / 100;
+  if (opts.compact && Math.abs(rupees) >= 100000) {
+    // ₹1.2L / ₹3.4Cr for axis labels
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      notation: "compact",
+      maximumFractionDigits: 1,
+    }).format(rupees);
+  }
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(rupees);
+}
+
+export function formatShortDate(
+  dateStr: string,
+  opts: { withYear?: boolean; withMonth?: boolean } = {},
+): string {
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return dateStr;
+  const month = d.toLocaleDateString("en-IN", { month: "short" });
+  const day = d.getDate();
+  const year = d.getFullYear();
+  let out = `${day} ${month}`;
+  if (opts.withMonth && opts.withYear !== false) out = `${day} ${month}`;
+  if (opts.withYear) out = `${out} ${year}`;
+  return out;
 }
 
 export function formatDate(dateString: string): string {

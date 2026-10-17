@@ -177,6 +177,43 @@ export interface DashboardStats {
   };
 }
 
+// Analytics range preset
+export type DashboardRange = "7d" | "30d" | "90d" | "all";
+
+// Time-series point for trend charts
+export interface TrendPoint {
+  date: string; // YYYY-MM-DD
+  value: number;
+}
+
+export interface TrendResponse {
+  metric: "revenue" | "orders";
+  range: DashboardRange;
+  points: TrendPoint[];
+}
+
+// Group-by data
+export interface BreakdownItem {
+  label: string;
+  value: number;
+}
+
+export interface BreakdownResponse {
+  dimension: "category" | "channel" | "payment";
+  range: DashboardRange;
+  items: BreakdownItem[];
+}
+
+// Real top sellers (aggregated from order_items)
+export interface TopSellingItem {
+  productId: string;
+  name: string;
+  sku: string;
+  unitsSold: number;
+  revenuePaise: number;
+  imageUrl: string | null;
+}
+
 export interface Promotion {
   id: string;
   code: string;

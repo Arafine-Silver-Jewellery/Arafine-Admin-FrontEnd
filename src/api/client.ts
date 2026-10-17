@@ -42,6 +42,24 @@ export const api = {
     request<any[]>(`/dashboard/recent-orders?limit=${limit}`),
   getLowStockProducts: (limit = 10) =>
     request<any[]>(`/dashboard/low-stock?limit=${limit}`),
+  getDashboardTrend: (params: { metric?: "revenue" | "orders"; range?: "7d" | "30d" | "90d" | "all" } = {}) => {
+    const q = new URLSearchParams();
+    q.set("metric", params.metric ?? "revenue");
+    q.set("range", params.range ?? "30d");
+    return request<any>(`/dashboard/trend?${q}`);
+  },
+  getDashboardBreakdown: (params: { dimension?: "category" | "channel" | "payment"; range?: "7d" | "30d" | "90d" | "all" } = {}) => {
+    const q = new URLSearchParams();
+    q.set("dimension", params.dimension ?? "category");
+    q.set("range", params.range ?? "30d");
+    return request<any>(`/dashboard/breakdown?${q}`);
+  },
+  getTopProducts: (params: { limit?: number; range?: "7d" | "30d" | "90d" | "all" } = {}) => {
+    const q = new URLSearchParams();
+    q.set("limit", String(params.limit ?? 5));
+    q.set("range", params.range ?? "30d");
+    return request<any[]>(`/dashboard/top-products?${q}`);
+  },
 
   // Products
   getProducts: (params: {
