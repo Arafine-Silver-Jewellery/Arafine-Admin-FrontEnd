@@ -184,10 +184,13 @@ export type DashboardRange = "7d" | "30d" | "90d" | "all";
 export interface TrendPoint {
   date: string; // YYYY-MM-DD
   value: number;
+  // Populated only when metric === "channel".
+  online?: number;
+  pos?: number;
 }
 
 export interface TrendResponse {
-  metric: "revenue" | "orders" | "products" | "users";
+  metric: "revenue" | "orders" | "products" | "users" | "channel";
   range: DashboardRange;
   points: TrendPoint[];
 }

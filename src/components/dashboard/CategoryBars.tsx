@@ -1,7 +1,8 @@
-// Horizontal ranked-bar chart for the "Sales by category" card.
-// Replaces the previous donut — ranked data reads more clearly as bars
-// than as a circular composition, and the leader is immediately obvious
-// from the longest bar.
+// Single 100% stacked bar for the "Sales by category" card.
+// Direct labels live INSIDE a segment when the share is wide enough to
+// fit (>=12%); otherwise they live OUTSIDE the bar, just past the segment
+// end. Total sits above the bar in muted ink. No swatch-grid legend —
+// the bar carries identity through its labels.
 
 import { formatPrice } from "../../utils/format";
 import type { BreakdownItem } from "../../types";
@@ -21,6 +22,10 @@ const SLOTS = [
   "var(--c-series-6)",
 ];
 
+// Threshold below which the label goes OUTSIDE the segment, not inside.
+// Below this width the label won't fit and would clip.
+const INLINE_LABEL_MIN_PCT = 12;
+
 export default function CategoryBars({ items, totalLabel, totalValue }: CategoryBarsProps) {
   // Fold the tail past 6 into "Other" so the chart never seats a 7th hue.
   let display = items;
@@ -32,52 +37,52 @@ export default function CategoryBars({ items, totalLabel, totalValue }: Category
 
   const total = totalValue ?? items.reduce((s, i) => s + i.value, 0);
 
-  // Find the leader for the header callout and the top-row emphasis.
-  const topIdx = display.length > 0
-    ? display.reduce((bestIdx, item, idx, arr) => (item.value > arr[bestIdx].value ? idx : bestIdx), 0)
-    : -1;
-  const topItem = topIdx >= 0 ? display[topIdx] : null;
-  const topPct = topItem && total > 0 ? Math.round((topItem.value / total) * 100) : 0;
-
   return (
-    <div className="bars-wrap">
-      {/* Header callout: total + leader */}
-      <div className="bars-headline">
-        <span className="bars-headline-total">{formatPrice(total, { compact: total >= 100000 })}</span>
-        {topItem && (
-          <span className="bars-headline-leader">
-            <span className="bars-headline-leader-dot" style={{ background: SLOTS[topIdx % SLOTS.length] }} />
-            <span className="bars-headline-leader-name">{topItem.label}</span>
-            <span className="bars-headline-leader-pct">leads with {topPct}%</span>
-          </span>
-        )}
-        {totalLabel && <span className="bars-headline-label">{totalLabel}</span>}
+    <div className="cat-wrap">
+      {/* Total above the bar — answers "how big is the pie" before the eye reaches segments. */}
+      <div className="cat-headline">
+        <span className="cat-headline-total">
+          {formatPrice(total, { compact: total >= 100000 })}
+        </span>
+        {totalLabel && <span className="cat-headline-label">{totalLabel}</span>}
       </div>
 
-      {/* Ranked bar list */}
-      <ul className="bars-list">
+      {/* 100% stacked bar with direct labels */}
+      <div className="cat-stack" role="img" aria-label="Category revenue share">
         {display.map((item, idx) => {
           const pct = total > 0 ? (item.value / total) * 100 : 0;
+          const color = SLOTS[idx % SLOTS.length];
+          const inline = pct >= INLINE_LABEL_MIN_PCT;
           return (
-            <li
+            <div
               key={item.label}
-              className="bars-row"
+              className={inline ? "cat-seg cat-seg--inline" : "cat-seg"}
+              style={{ width: `${pct}%`, background: color }}
+              title={`${item.label} · ${pct.toFixed(0)}%`}
             >
-              <div className="bars-row-meta">
-                <span className="bars-swatch" style={{ background: SLOTS[idx % SLOTS.length] }} />
-                <span className="bars-label" title={item.label}>{item.label}</span>
-                <span className="bars-pct">{pct.toFixed(0)}%</span>
-                <span className="bars-value">{formatPrice(item.value, { compact: true })}</span>
-              </div>
-              <div className="bars-track" aria-hidden="true">
-                <span
-                  className="bars-fill"
-                  style={{ width: `${pct}%`, background: SLOTS[idx % SLOTS.length] }}
-                />
-              </div>
-            </li>
+              <span className="cat-seg-label">{item.label}</span>
+              <span className="cat-seg-pct">{pct.toFixed(0)}%</span>
+            </div>
           );
         })}
+      </div>
+
+      {/* Compact swatch-key under the bar: only for segments whose label
+          lives outside (so the user can identify which color = which name). */}
+      <ul className="cat-key">
+        {display
+          .map((item, idx) => {
+            const pct = total > 0 ? (item.value / total) * 100 : 0;
+            return { item, pct, idx };
+          })
+          .filter(({ pct }) => pct < INLINE_LABEL_MIN_PCT)
+          .map(({ item, pct, idx }) => (
+            <li key={item.label} className="cat-key-item">
+              <span className="cat-key-swatch" style={{ background: SLOTS[idx % SLOTS.length] }} />
+              <span className="cat-key-name">{item.label}</span>
+              <span className="cat-key-pct">{pct.toFixed(0)}%</span>
+            </li>
+          ))}
       </ul>
     </div>
   );

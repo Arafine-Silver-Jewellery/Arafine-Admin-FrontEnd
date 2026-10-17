@@ -40,6 +40,7 @@ export default function Dashboard() {
   const [topSelling, setTopSelling] = useState<TopSellingItem[] | null>(null);
   const [categoryBreakdown, setCategoryBreakdown] = useState<BreakdownResponse | null>(null);
   const [channelBreakdown, setChannelBreakdown] = useState<BreakdownResponse | null>(null);
+  const [channelTrend, setChannelTrend] = useState<TrendResponse | null>(null);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [lowStock, setLowStock] = useState<Product[]>([]);
   const [sparkPoints, setSparkPoints] = useState<{ revenue: number[]; orders: number[]; products: number[]; users: number[] }>({
@@ -58,12 +59,13 @@ export default function Dashboard() {
     const ac = new AbortController();
     async function loadInitial() {
       try {
-        const [statsData, revenueData, ordersData, productsData, usersData, topData, catData, chData, recentData, lowStockData] = await Promise.all([
+        const [statsData, revenueData, ordersData, productsData, usersData, channelData, topData, catData, chData, recentData, lowStockData] = await Promise.all([
           api.getDashboardStats(),
           api.getDashboardTrend({ metric: "revenue", range: "30d" }),
           api.getDashboardTrend({ metric: "orders", range: "30d" }),
           api.getDashboardTrend({ metric: "products", range: "30d" }),
           api.getDashboardTrend({ metric: "users", range: "30d" }),
+          api.getDashboardTrend({ metric: "channel", range: "30d" }),
           api.getTopProducts({ limit: 8, range: "30d" }),
           api.getDashboardBreakdown({ dimension: "category", range: "30d" }),
           api.getDashboardBreakdown({ dimension: "channel", range: "30d" }),
@@ -76,6 +78,7 @@ export default function Dashboard() {
         setTopSelling(topData);
         setCategoryBreakdown(catData);
         setChannelBreakdown(chData);
+        setChannelTrend(channelData);
         setRecentOrders(recentData);
         setLowStock(lowStockData);
         setSparkPoints({
@@ -105,11 +108,12 @@ export default function Dashboard() {
     const ac = new AbortController();
     async function refetchByRange() {
       try {
-        const [revenueData, ordersData, productsData, usersData, topData, catData, chData] = await Promise.all([
+        const [revenueData, ordersData, productsData, usersData, channelData, topData, catData, chData] = await Promise.all([
           api.getDashboardTrend({ metric: "revenue", range }),
           api.getDashboardTrend({ metric: "orders", range }),
           api.getDashboardTrend({ metric: "products", range }),
           api.getDashboardTrend({ metric: "users", range }),
+          api.getDashboardTrend({ metric: "channel", range }),
           api.getTopProducts({ limit: 8, range }),
           api.getDashboardBreakdown({ dimension: "category", range }),
           api.getDashboardBreakdown({ dimension: "channel", range }),
@@ -119,6 +123,7 @@ export default function Dashboard() {
         setTopSelling(topData);
         setCategoryBreakdown(catData);
         setChannelBreakdown(chData);
+        setChannelTrend(channelData);
         setSparkPoints({
           revenue: (revenueData?.points ?? []).map((p: { value: number }) => p.value),
           orders: (ordersData?.points ?? []).map((p: { value: number }) => p.value),
@@ -329,7 +334,11 @@ export default function Dashboard() {
           isLoading={rangeLoading}
         >
           {channelItems.length > 0 ? (
-            <ChannelStatTile online={onlineOrders} pos={posOrders} />
+            <ChannelStatTile
+              online={onlineOrders}
+              pos={posOrders}
+              series={channelTrend?.points}
+            />
           ) : (
             <div className="chart-empty">
               <p>No orders in this range</p>

@@ -42,7 +42,7 @@ export const api = {
     request<any[]>(`/dashboard/recent-orders?limit=${limit}`),
   getLowStockProducts: (limit = 10) =>
     request<any[]>(`/dashboard/low-stock?limit=${limit}`),
-  getDashboardTrend: (params: { metric?: "revenue" | "orders" | "products" | "users"; range?: "7d" | "30d" | "90d" | "all" } = {}) => {
+  getDashboardTrend: (params: { metric?: "revenue" | "orders" | "products" | "users" | "channel"; range?: "7d" | "30d" | "90d" | "all" } = {}) => {
     const q = new URLSearchParams();
     q.set("metric", params.metric ?? "revenue");
     q.set("range", params.range ?? "30d");
