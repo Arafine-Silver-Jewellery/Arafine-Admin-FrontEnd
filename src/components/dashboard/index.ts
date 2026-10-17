@@ -7,5 +7,3 @@ export { default as OrdersTrendChart } from "./OrdersTrendChart";
 export { default as TopSellingChart } from "./TopSellingChart";
 export { default as CategoryDonut } from "./CategoryDonut";
 export { default as ChannelStatTile } from "./ChannelStatTile";
-export { default as TrendTableFallback } from "./TrendTableFallback";
-export { default as BreakdownTableFallback } from "./BreakdownTableFallback";

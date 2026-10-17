@@ -295,42 +295,6 @@
 }
 
 /* =========================================================================
-   View toggle (chart / table)
-   ========================================================================= */
-
-.view-toggle {
-  display: inline-flex;
-  background: var(--color-ivory);
-  border: 1px solid var(--border-color-light);
-  border-radius: 6px;
-  padding: 2px;
-  gap: 1px;
-}
-
-.view-toggle button {
-  background: transparent;
-  border: none;
-  padding: 0.3rem 0.7rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--color-charcoal-muted);
-  cursor: pointer;
-  font-family: var(--font-sans);
-}
-
-.view-toggle button.active {
-  background: var(--color-white);
-  color: var(--color-charcoal);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
-}
-
-.view-toggle button:focus-visible {
-  outline: 2px solid var(--c-series-1);
-  outline-offset: 1px;
-}
-
-/* =========================================================================
    Chart empty / error states
    ========================================================================= */
 
@@ -365,42 +329,6 @@
   padding: 1rem;
   flex-direction: row;
   gap: 0.5rem;
-}
-
-/* =========================================================================
-   Table-view fallback for charts
-   ========================================================================= */
-
-.chart-fallback-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.8125rem;
-}
-
-.chart-fallback-table thead th {
-  text-align: left;
-  font-weight: 500;
-  color: var(--color-charcoal-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-size: 0.7rem;
-  padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid var(--border-color-light);
-  background: var(--color-pearl);
-}
-
-.chart-fallback-table tbody td {
-  padding: 0.55rem 0.75rem;
-  border-bottom: 1px solid var(--border-color-light);
-  color: var(--color-charcoal);
-}
-
-.chart-fallback-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.chart-fallback-table tbody tr:hover {
-  background: var(--color-ivory);
 }
 
 /* =========================================================================

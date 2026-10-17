@@ -12,7 +12,6 @@ import type {
 } from "../types";
 import { formatDateTime, formatPrice, getOrderStatusColor } from "../utils/format";
 import {
-  BreakdownTableFallback,
   CategoryDonut,
   ChannelStatTile,
   ChartCard,
@@ -21,7 +20,6 @@ import {
   RevenueTrendChart,
   Sparkline,
   TopSellingChart,
-  TrendTableFallback,
   type DashboardRange,
 } from "../components/dashboard";
 import "../styles/dashboard.css";
@@ -215,8 +213,6 @@ export default function Dashboard() {
           title="Revenue trend"
           subtitle={`Daily revenue · ${rangeLabel}`}
           isLoading={rangeLoading}
-          tableView={revenueTrend ? <TrendTableFallback points={revenueTrend.points} metric="revenue" /> : null}
-          storageKey="dashboard:revenue:view"
         >
           {revenueTrend && revenueTrend.points.length > 0 ? (
             <RevenueTrendChart data={revenueTrend.points} />
@@ -231,8 +227,6 @@ export default function Dashboard() {
           title="Orders trend"
           subtitle={`Daily orders · ${rangeLabel}`}
           isLoading={rangeLoading}
-          tableView={ordersTrend ? <TrendTableFallback points={ordersTrend.points} metric="orders" /> : null}
-          storageKey="dashboard:orders:view"
         >
           {ordersTrend && ordersTrend.points.length > 0 ? (
             <OrdersTrendChart data={ordersTrend.points} />
@@ -250,27 +244,6 @@ export default function Dashboard() {
           title="Top selling"
           subtitle={`Best sellers · ${rangeLabel}`}
           isLoading={rangeLoading}
-          tableView={topSelling ? (
-            <table className="chart-fallback-table">
-              <thead>
-                <tr>
-                  <th>Product</th>
-                  <th>Units</th>
-                  <th>Revenue</th>
-                </tr>
-              </thead>
-              <tbody>
-                {topSelling.map(item => (
-                  <tr key={item.productId}>
-                    <td>{item.name}</td>
-                    <td>{item.unitsSold.toLocaleString()}</td>
-                    <td>{formatPrice(item.revenuePaise)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : null}
-          storageKey="dashboard:topselling:view"
         >
           {topSelling && topSelling.length > 0 ? (
             <TopSellingChart items={topSelling} />
@@ -286,8 +259,6 @@ export default function Dashboard() {
           title="Sales by category"
           subtitle={`Revenue share · ${rangeLabel}`}
           isLoading={rangeLoading}
-          tableView={categoryBreakdown ? <BreakdownTableFallback items={categoryBreakdown.items} /> : null}
-          storageKey="dashboard:category:view"
         >
           {categoryBreakdown && categoryBreakdown.items.length > 0 ? (
             <CategoryDonut items={categoryBreakdown.items} totalLabel="Total revenue" />
@@ -302,7 +273,6 @@ export default function Dashboard() {
           title="Channel mix"
           subtitle={`Order count · ${rangeLabel}`}
           isLoading={rangeLoading}
-          storageKey="dashboard:channel:view"
         >
           {channelItems.length > 0 ? (
             <ChannelStatTile online={onlineOrders} pos={posOrders} />
