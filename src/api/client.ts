@@ -69,6 +69,7 @@ export const api = {
     categoryId?: string;
     status?: string;
     productType?: "physical" | "digital";
+    stock?: "out";
   }) => {
     const query = new URLSearchParams();
     if (params.page) query.set("page", params.page.toString());
@@ -77,6 +78,7 @@ export const api = {
     if (params.categoryId) query.set("categoryId", params.categoryId);
     if (params.status) query.set("status", params.status);
     if (params.productType) query.set("productType", params.productType);
+    if (params.stock) query.set("stock", params.stock);
     return request<ApiResponse<any[]>>(`/products?${query}`);
   },
   getProduct: (id: string) => request<any>(`/products/${id}`),

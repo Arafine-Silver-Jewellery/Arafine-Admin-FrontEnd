@@ -271,7 +271,7 @@ export default function Dashboard() {
               sub="Live on store"
               color="#10b981"
               bg="rgba(16, 185, 129, 0.12)"
-              to="/products"
+              to="/products-module/active"
               iconKind="eye"
             />
             <StatusTile
@@ -280,7 +280,7 @@ export default function Dashboard() {
               sub="Hidden from store"
               color="#94a3b8"
               bg="rgba(148, 163, 184, 0.14)"
-              to="/products"
+              to="/products-module/inactive"
               iconKind="eye-off"
             />
             <StatusTile
@@ -289,7 +289,7 @@ export default function Dashboard() {
               sub="Restock soon"
               color="#f59e0b"
               bg="rgba(245, 158, 11, 0.12)"
-              to="/products"
+              to="/products-module/limited-stock"
               iconKind="alert-triangle"
             />
             <StatusTile
@@ -298,7 +298,7 @@ export default function Dashboard() {
               sub="Sold out"
               color="#ef4444"
               bg="rgba(239, 68, 68, 0.12)"
-              to="/products"
+              to="/products-module/out-of-stock"
               iconKind="x-circle"
             />
           </div>
@@ -439,7 +439,7 @@ export default function Dashboard() {
         <div className="card">
           <div className="card-header">
             <h2>Low Stock Alert</h2>
-            <Link to="/products?status=low_stock" className="btn btn-secondary btn-sm">View All</Link>
+            <Link to="/products-module/limited-stock" className="btn btn-secondary btn-sm">View All</Link>
           </div>
           {lowStock.length === 0 ? (
             <div className="empty-state-box">

@@ -40,17 +40,17 @@ interface Product {
 }
 
 const statusFilterOptions = [
-  { value: "", label: "All Status", color: "neutral" as const },
-  { value: "active", label: "Active", color: "success" as const },
-  { value: "inactive", label: "Inactive", color: "neutral" as const },
-  { value: "out_of_stock", label: "Out of Stock", color: "danger" as const },
+  { value: "", label: "All Status", color: "neutral" as const, path: "/products-module" },
+  { value: "active", label: "Active", color: "success" as const, path: "/products-module/active" },
+  { value: "inactive", label: "Inactive", color: "neutral" as const, path: "/products-module/inactive" },
+  { value: "out_of_stock", label: "Out of Stock", color: "danger" as const, path: "/products-module/out-of-stock" },
 ];
 
-export default function ProductList() {
+export default function ProductList({ filter = "" }: { filter?: "" | "active" | "inactive" | "out_of_stock" }) {
   const navigate = useNavigate();
   const toast = useToast();
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"" | "active" | "inactive" | "out_of_stock">(filter);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -82,6 +82,12 @@ export default function ProductList() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // Sync filter prop -> state when route changes
+  useEffect(() => {
+    setStatusFilter(filter);
+    setCurrentPage(1);
+  }, [filter]);
+
   // Load products
   useEffect(() => {
     loadProducts();
@@ -99,7 +105,8 @@ export default function ProductList() {
         page: currentPage,
         limit: itemsPerPage,
         search: debouncedSearch || undefined,
-        status: statusFilter || undefined,
+        status: statusFilter === "out_of_stock" ? undefined : statusFilter || undefined,
+        stock: statusFilter === "out_of_stock" ? "out" : undefined,
       });
       setProducts(response.data || []);
       setTotalItems(response.pagination?.total || 0);
@@ -499,7 +506,10 @@ export default function ProductList() {
             <StatusDropdown
               options={statusFilterOptions}
               value={statusFilter}
-              onChange={setStatusFilter}
+              onChange={(val) => {
+                const opt = statusFilterOptions.find((o) => o.value === val);
+                if (opt) navigate(opt.path);
+              }}
               placeholder="All Status"
               size="sm"
             />
