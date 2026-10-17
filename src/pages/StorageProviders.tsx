@@ -14,6 +14,10 @@ interface StorageProvider {
   region: string | null;
   endpoint: string | null;
   accessKey: string;
+  // True when the stored accessKey could not be decrypted (e.g. the server's
+  // SESSION_SECRET was rotated). The user must open the edit modal and
+  // re-enter the access/secret key to re-encrypt the row.
+  decryptError?: boolean;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -66,6 +70,10 @@ export default function StorageProviders() {
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Delete confirmation modal state (custom modal replaces native window.confirm)
+  const [providerToDelete, setProviderToDelete] = useState<StorageProvider | null>(null);
+  const [deletingProvider, setDeletingProvider] = useState(false);
+
   // Explorer state
   const [hasActiveStorage, setHasActiveStorage] = useState(false);
   const [currentPath, setCurrentPath] = useState("");
@@ -105,6 +113,17 @@ export default function StorageProviders() {
       const providerList = res.data || [];
       setProviders(providerList);
       setHasActiveStorage(providerList.some((p: StorageProvider) => p.isActive));
+
+      // Warn once per load about any provider whose stored credentials could
+      // not be decrypted — the user must open it and re-enter the key/secret
+      // so the row gets re-encrypted with the server's current key.
+      const broken = providerList.filter((p: StorageProvider) => p.decryptError);
+      if (broken.length > 0) {
+        const names = broken.map((p: StorageProvider) => p.name).join(", ");
+        toast.error(
+          `${broken.length} storage provider${broken.length === 1 ? "" : "s"} could not be decrypted (${names}). Open ${broken.length === 1 ? "it" : "them"} and re-enter the access/secret key.`,
+        );
+      }
     } catch (error) {
       console.error("Failed to load storage providers:", error);
     } finally {
@@ -230,15 +249,23 @@ export default function StorageProviders() {
     }
   }
 
-  async function handleDelete(id: string, name: string) {
-    if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+  function handleDelete(provider: StorageProvider) {
+    setProviderToDelete(provider);
+  }
 
+  async function confirmDeleteProvider() {
+    if (!providerToDelete) return;
+    setDeletingProvider(true);
     try {
-      await api.deleteStorageProvider(id);
+      await api.deleteStorageProvider(providerToDelete.id);
+      toast.success(`Storage provider "${providerToDelete.name}" deleted`);
+      setProviderToDelete(null);
       loadProviders();
     } catch (error: any) {
       console.error("Failed to delete storage provider:", error);
       toast.error(error.message || "Failed to delete storage provider");
+    } finally {
+      setDeletingProvider(false);
     }
   }
 
@@ -686,7 +713,20 @@ export default function StorageProviders() {
                   ) : (
                     filteredProviders.map(provider => (
                       <tr key={provider.id}>
-                        <td>{provider.name}</td>
+                        <td>
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                            <span>{provider.name}</span>
+                            {provider.decryptError && (
+                              <span
+                                className="badge"
+                                style={{ background: "#fef3c7", color: "#92400e", fontSize: "0.7rem" }}
+                                title="Stored credentials could not be decrypted. Click Edit to re-enter the access/secret key."
+                              >
+                                ⚠ Re-enter key
+                              </span>
+                            )}
+                          </div>
+                        </td>
                         <td>
                           <span className="badge" style={{ background: "#e0e7ff", color: "#4f46e5" }}>
                             {getTypeLabel(provider.type)}
@@ -743,7 +783,7 @@ export default function StorageProviders() {
                             </button>
                             <button
                               className="btn-action btn-icon-delete"
-                              onClick={() => handleDelete(provider.id, provider.name)}
+                              onClick={() => handleDelete(provider)}
                               title="Delete"
                             >
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -1116,6 +1156,21 @@ export default function StorageProviders() {
             </div>
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
+                {editingProvider?.decryptError && (
+                  <div
+                    style={{
+                      marginBottom: "1rem",
+                      padding: "0.75rem 1rem",
+                      background: "#fef3c7",
+                      color: "#92400e",
+                      borderRadius: "6px",
+                      fontSize: "0.85rem",
+                      border: "1px solid #fde68a",
+                    }}
+                  >
+                    ⚠ Stored credentials could not be decrypted (the server's encryption key was rotated). Re-enter <strong>both</strong> the access key and secret key below to restore this provider.
+                  </div>
+                )}
                 <div className="form-row">
                   <div className="form-group">
                     <label>Name *</label>
@@ -1151,8 +1206,15 @@ export default function StorageProviders() {
                   <input type="text" name="accessKey" value={formData.accessKey} onChange={handleChange} required />
                 </div>
                 <div className="form-group">
-                  <label>{editingProvider ? "Secret Key (leave blank to keep)" : "Secret Key *"}</label>
-                  <input type="password" name="secretKey" value={formData.secretKey} onChange={handleChange} required={!editingProvider} />
+                  <label>{editingProvider?.decryptError ? "Secret Key *" : (editingProvider ? "Secret Key (leave blank to keep)" : "Secret Key *")}</label>
+                  <input
+                    type="password"
+                    name="secretKey"
+                    value={formData.secretKey}
+                    onChange={handleChange}
+                    required={!editingProvider || !!editingProvider?.decryptError}
+                    placeholder={editingProvider?.decryptError ? "Re-enter the secret key" : undefined}
+                  />
                 </div>
               </div>
               <div className="modal-footer">
@@ -1351,6 +1413,83 @@ export default function StorageProviders() {
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => copyUrl(previewItem)}>Copy URL</button>
               <button className="btn btn-primary" onClick={() => downloadFile(previewItem)}>Download</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Storage Provider Confirmation Modal */}
+      {providerToDelete && (
+        <div
+          className="modal-overlay"
+          onClick={() => { if (!deletingProvider) setProviderToDelete(null); }}
+        >
+          <div
+            className="modal"
+            onClick={e => e.stopPropagation()}
+            style={{ maxWidth: "440px" }}
+          >
+            <div className="modal-header">
+              <h2>Delete storage provider?</h2>
+              <button
+                className="modal-close"
+                onClick={() => setProviderToDelete(null)}
+                disabled={deletingProvider}
+                aria-label="Close"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+            <div className="modal-body">
+              <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start" }}>
+                <div
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                    borderRadius: "50%",
+                    background: "#fee2e2",
+                    color: "#dc2626",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
+                    <polyline points="3,6 5,6 21,6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ margin: 0, fontSize: "0.95rem", color: "#0f172a", lineHeight: 1.45 }}>
+                    You're about to permanently delete <strong>"{providerToDelete.name}"</strong>.
+                  </p>
+                  <p style={{ margin: "0.5rem 0 0", fontSize: "0.85rem", color: "#64748b", lineHeight: 1.5 }}>
+                    The provider's configuration will be removed. Files already uploaded to its bucket stay in storage, but uploads and the file explorer will stop working until you add and activate a new provider.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setProviderToDelete(null)}
+                disabled={deletingProvider}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={confirmDeleteProvider}
+                disabled={deletingProvider}
+              >
+                {deletingProvider ? "Deleting..." : "Delete provider"}
+              </button>
             </div>
           </div>
         </div>
