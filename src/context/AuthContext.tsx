@@ -23,6 +23,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, []);
 
+  // Listen for 401s from any API call and force-logout. This is what
+  // bounces a stale-session user back to /login when, e.g., the dashboard
+  // tries to load trends against a server-side session that no longer exists.
+  useEffect(() => {
+    function handleAuthExpired() {
+      // Fire-and-forget: logout() always clears local state via finally,
+      // even if the BE /auth/logout call itself 401s.
+      logout();
+    }
+    window.addEventListener("auth:expired", handleAuthExpired);
+    return () => window.removeEventListener("auth:expired", handleAuthExpired);
+  }, []);
+
   async function checkAuth() {
     try {
       const response = await authApi.getMe();

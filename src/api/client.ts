@@ -29,6 +29,15 @@ async function request<T>(
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
+
+    // Session expired or unauthenticated — let the AuthContext know so it
+    // can clear state and bounce the user back to /login. Dispatched only
+    // for 401s so a 403 (forbidden, suspended, missing permission) still
+    // surfaces as a normal error toast.
+    if (response.status === 401) {
+      window.dispatchEvent(new CustomEvent("auth:expired"));
+    }
+
     throw new Error(error.message || `HTTP ${response.status}`);
   }
 
