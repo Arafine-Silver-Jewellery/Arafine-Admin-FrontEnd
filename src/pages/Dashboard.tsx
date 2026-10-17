@@ -498,15 +498,19 @@ function KpiTile({ label, value, sub, spark, sparkColor, bg, iconColor, icon, to
       <div className="stat-icon" style={{ background: bg, color: iconColor }}>
         <KpiIcon kind={icon} />
       </div>
-      <div className="stat-content">
-        <span className="stat-label">{label}</span>
-        <span className="stat-value">{value}</span>
-        {sub && <span className="stat-sub">{sub}</span>}
-        {spark && spark.length > 1 && (
-          <div className="stat-spark">
-            <Sparkline values={spark} color={sparkColor} width={140} height={28} />
-          </div>
-        )}
+      <div className="stat-content stat-content--split">
+        <div className="stat-text">
+          <span className="stat-label">{label}</span>
+          {sub && <span className="stat-sub">{sub}</span>}
+        </div>
+        <div className="stat-numbers">
+          <span className="stat-value">{value}</span>
+          {spark && spark.length > 1 && (
+            <div className="stat-spark">
+              <Sparkline values={spark} color={sparkColor} width={120} height={32} />
+            </div>
+          )}
+        </div>
       </div>
       <span className="stat-card-arrow" aria-hidden="true">→</span>
     </Link>
