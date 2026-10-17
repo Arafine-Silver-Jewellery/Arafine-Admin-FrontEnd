@@ -536,10 +536,10 @@ function StatusTile({
         <StatusIcon kind={iconKind} />
       </div>
       <div className="status-tile-info">
-        <span className="status-tile-value" style={{ color }}>{value.toLocaleString()}</span>
         <span className="status-tile-label">{label}</span>
         <span className="status-tile-sub">{sub}</span>
       </div>
+      <span className="status-tile-value" style={{ color }}>{value.toLocaleString()}</span>
       <span className="status-tile-arrow" aria-hidden="true">→</span>
     </Link>
   );
