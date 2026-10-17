@@ -203,17 +203,6 @@ export default function Dashboard() {
           to="/orders-management"
         />
         <KpiTile
-          label="Active Products"
-          value={(stats?.products.active || 0).toLocaleString()}
-          sub={`${stats?.products.total || 0} total`}
-          spark={sparkPoints.products}
-          sparkColor="var(--c-series-3)"
-          bg="var(--c-tile-bg-3)"
-          iconColor="var(--c-series-3)"
-          icon="products"
-          to="/products-module"
-        />
-        <KpiTile
           label="Total Users"
           value={(stats?.users.total || 0).toLocaleString()}
           sub={`${stats?.orders.today || 0} orders today`}
@@ -226,92 +215,95 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Status counters — Orders */}
-      <section className="status-section">
-        <h2 className="status-section-title">Orders</h2>
-        <div className="status-tiles">
-          <StatusTile
-            value={stats?.orders.pending || 0}
-            label="Pending"
-            sub="Awaiting confirmation"
-            color="#f59e0b"
-            bg="rgba(245, 158, 11, 0.12)"
-            to="/orders-management/pending"
-            iconKind="clock"
-          />
-          <StatusTile
-            value={stats?.orders.processing || 0}
-            label="Processing"
-            sub="Being prepared"
-            color="#818cf8"
-            bg="rgba(129, 140, 248, 0.14)"
-            to="/orders-management/processing"
-            iconKind="sync"
-          />
-          <StatusTile
-            value={stats?.orders.shipped || 0}
-            label="Shipped"
-            sub="On the way"
-            color="#10b981"
-            bg="rgba(16, 185, 129, 0.12)"
-            to="/orders-management/shipped"
-            iconKind="truck"
-          />
-          <StatusTile
-            value={stats?.orders.delivered || 0}
-            label="Delivered"
-            sub="Completed"
-            color="#22c55e"
-            bg="rgba(34, 197, 94, 0.12)"
-            to="/orders-management/delivered"
-            iconKind="check"
-          />
+      {/* Status overview — Orders + Products in a single side-by-side band.
+          Collapses the previous two separate rows into one Gestalt group so the
+          dashboard doesn't read as a layered card wall. Each half holds a 2x2
+          compact tile grid; identical structure on both sides supports scanning. */}
+      <div className="status-overview">
+        <div className="status-overview-half">
+          <h3 className="status-overview-title">Orders</h3>
+          <div className="status-tiles status-tiles--compact">
+            <StatusTile
+              value={stats?.orders.pending || 0}
+              label="Pending"
+              sub="Awaiting confirmation"
+              color="#f59e0b"
+              bg="rgba(245, 158, 11, 0.12)"
+              to="/orders-management/pending"
+              iconKind="clock"
+            />
+            <StatusTile
+              value={stats?.orders.processing || 0}
+              label="Processing"
+              sub="Being prepared"
+              color="#818cf8"
+              bg="rgba(129, 140, 248, 0.14)"
+              to="/orders-management/processing"
+              iconKind="sync"
+            />
+            <StatusTile
+              value={stats?.orders.shipped || 0}
+              label="Shipped"
+              sub="On the way"
+              color="#10b981"
+              bg="rgba(16, 185, 129, 0.12)"
+              to="/orders-management/shipped"
+              iconKind="truck"
+            />
+            <StatusTile
+              value={stats?.orders.delivered || 0}
+              label="Delivered"
+              sub="Completed"
+              color="#22c55e"
+              bg="rgba(34, 197, 94, 0.12)"
+              to="/orders-management/delivered"
+              iconKind="check"
+            />
+          </div>
         </div>
-      </section>
 
-      {/* Status counters — Products. Mirrors the orders row above; same .status-tiles
-          grid + .status-tile card styles. */}
-      <section className="status-section">
-        <h2 className="status-section-title">Products</h2>
-        <div className="status-tiles">
-          <StatusTile
-            value={stats?.products.active || 0}
-            label="Active"
-            sub="Live on store"
-            color="#10b981"
-            bg="rgba(16, 185, 129, 0.12)"
-            to="/products"
-            iconKind="eye"
-          />
-          <StatusTile
-            value={stats?.products.inactive || 0}
-            label="Inactive"
-            sub="Hidden from store"
-            color="#94a3b8"
-            bg="rgba(148, 163, 184, 0.14)"
-            to="/products"
-            iconKind="eye-off"
-          />
-          <StatusTile
-            value={stats?.products.lowStock || 0}
-            label="Low stock"
-            sub="Restock soon"
-            color="#f59e0b"
-            bg="rgba(245, 158, 11, 0.12)"
-            to="/products"
-            iconKind="alert-triangle"
-          />
-          <StatusTile
-            value={stats?.products.outOfStock || 0}
-            label="Out of stock"
-            sub="Sold out"
-            color="#ef4444"
-            bg="rgba(239, 68, 68, 0.12)"
-            to="/products"
-            iconKind="x-circle"
-          />
+        <div className="status-overview-half">
+          <h3 className="status-overview-title">Products</h3>
+          <div className="status-tiles status-tiles--compact">
+            <StatusTile
+              value={stats?.products.active || 0}
+              label="Active"
+              sub="Live on store"
+              color="#10b981"
+              bg="rgba(16, 185, 129, 0.12)"
+              to="/products"
+              iconKind="eye"
+            />
+            <StatusTile
+              value={stats?.products.inactive || 0}
+              label="Inactive"
+              sub="Hidden from store"
+              color="#94a3b8"
+              bg="rgba(148, 163, 184, 0.14)"
+              to="/products"
+              iconKind="eye-off"
+            />
+            <StatusTile
+              value={stats?.products.lowStock || 0}
+              label="Low stock"
+              sub="Restock soon"
+              color="#f59e0b"
+              bg="rgba(245, 158, 11, 0.12)"
+              to="/products"
+              iconKind="alert-triangle"
+            />
+            <StatusTile
+              value={stats?.products.outOfStock || 0}
+              label="Out of stock"
+              sub="Sold out"
+              color="#ef4444"
+              bg="rgba(239, 68, 68, 0.12)"
+              to="/products"
+              iconKind="x-circle"
+            />
+          </div>
         </div>
-      </section>
+      </div>
 
       {/* Trend charts row */}
       <div className="chart-row chart-row-2">
