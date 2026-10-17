@@ -12,6 +12,7 @@ import StorageProviders from "./pages/StorageProviders";
 import Employees from "./pages/Employees";
 import POS from "./pages/POS";
 import OrdersNew from "./pages/OrdersNew";
+import OrderDetail from "./pages/OrderDetail";
 import RefundRequests from "./pages/RefundRequests";
 import { Categories, SubCategories, SubSubCategories } from "./pages/CategorySetup";
 import { ProductList, AddNewProduct, ProductView, GenerateBarcode, LimitedStock, BulkImport, RequestRestockList } from "./pages/ProductsModule";
@@ -47,7 +48,10 @@ function App() {
             {/* Orders Management */}
             <Route path="orders-management" element={<RequirePermission permission="orders"><OrdersNew statusFilter="all" /></RequirePermission>} />
             <Route path="orders-management/pending" element={<RequirePermission permission="orders"><OrdersNew statusFilter="pending" /></RequirePermission>} />
+            <Route path="orders-management/processing" element={<RequirePermission permission="orders"><OrdersNew statusFilter="processing" /></RequirePermission>} />
             <Route path="orders-management/confirmed" element={<RequirePermission permission="orders"><OrdersNew statusFilter="confirmed" /></RequirePermission>} />
+            <Route path="orders-management/shipped" element={<RequirePermission permission="orders"><OrdersNew statusFilter="shipped" /></RequirePermission>} />
+            <Route path="orders/:id" element={<RequirePermission permission="orders"><OrderDetail /></RequirePermission>} />
             <Route path="orders-management/packaging" element={<RequirePermission permission="orders"><OrdersNew statusFilter="packaging" /></RequirePermission>} />
             <Route path="orders-management/out-for-delivery" element={<RequirePermission permission="orders"><OrdersNew statusFilter="out_for_delivery" /></RequirePermission>} />
             <Route path="orders-management/delivered" element={<RequirePermission permission="orders"><OrdersNew statusFilter="delivered" /></RequirePermission>} />

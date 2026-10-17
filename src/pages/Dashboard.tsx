@@ -322,7 +322,7 @@ export default function Dashboard() {
         <div className="card">
           <div className="card-header">
             <h2>Recent Orders</h2>
-            <Link to="/orders" className="btn btn-secondary btn-sm">View All</Link>
+            <Link to="/orders-management" className="btn btn-secondary btn-sm">View All</Link>
           </div>
           {recentOrders.length === 0 ? (
             <div className="empty-state-box">
