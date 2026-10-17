@@ -1,45 +1,37 @@
-// Channel-mix card: two stat tiles side-by-side, one per channel.
-// Each tile carries: label, hero number, +/-% vs prior period, 30-day sparkline.
-// POS is the dominant hue; Online is muted (or carries a "Quiet" status tag if zero).
-// This replaces a 2-slice donut, which is a known anti-pattern when one slice is 0.
+// Channel-mix card: single line chart with two series — POS (primary ink) and
+// Online (muted). Replaces the two-stat-tile version; the chart form reads
+// "how are these two channels moving against each other?" which is the question
+// a person running a business actually has. The chart is honest when Online is
+// flat at 0 for the whole period — that line still draws, it just hugs the axis.
 
-import Sparkline from "./Sparkline";
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
-interface ChannelPoint {
-  date: string;
-  online?: number;
-  pos?: number;
-}
+import { formatShortDate } from "../../utils/format";
+import type { TrendPoint } from "../../types";
 
 interface ChannelStatTileProps {
   online: number;
   pos: number;
-  /** Daily series for the selected range. Optional — sparkline falls back to count only. */
-  series?: ChannelPoint[];
+  /** Daily series for the selected range. Optional — chart falls back to a placeholder. */
+  series?: TrendPoint[];
 }
 
-interface TileConfig {
-  key: "online" | "pos";
-  label: string;
-  value: number;
-  color: string;
-  sparkColor: string;
-  // When value is 0, the tile is the empty state: muted ink + status tag.
-  empty: boolean;
-}
-
-// Compute "+X%" by comparing the most recent half of the series to the
-// prior half. Returns null if either half has zero (avoids divide-by-zero
-// and "infinity%" noise on small samples).
-function deltaPct(series: number[]): number | null {
-  if (series.length < 4) return null;
-  const mid = Math.floor(series.length / 2);
-  const prior = series.slice(0, mid).reduce((s, v) => s + v, 0);
-  const recent = series.slice(mid).reduce((s, v) => s + v, 0);
-  if (prior === 0) {
-    if (recent === 0) return 0;
-    return null; // undefined jump from 0 → N is uninformative as a percent
-  }
+// Compare the most recent half of the series to the prior half.
+// Returns null if either half is zero (avoids "infinity%" noise on small samples).
+function deltaPct(values: number[]): number | null {
+  if (values.length < 4) return null;
+  const mid = Math.floor(values.length / 2);
+  const prior = values.slice(0, mid).reduce((s, v) => s + v, 0);
+  const recent = values.slice(mid).reduce((s, v) => s + v, 0);
+  if (prior === 0) return null;
   return ((recent - prior) / prior) * 100;
 }
 
@@ -52,75 +44,105 @@ function formatDelta(pct: number | null): { text: string; tone: "up" | "down" | 
 }
 
 export default function ChannelStatTile({ online, pos, series }: ChannelStatTileProps) {
-  const onlineSeries = (series ?? [])
-    .map(p => p.online ?? 0)
-    // Replace a single zero-only day with a flat zero so the sparkline still renders something.
-    .map(v => Math.max(0, v));
-  const posSeries = (series ?? [])
-    .map(p => p.pos ?? 0)
-    .map(v => Math.max(0, v));
+  // Normalize: never pass null/undefined into Recharts; always a real array.
+  const data = (series ?? []).map(p => ({
+    date: p.date,
+    online: Math.max(0, p.online ?? 0),
+    pos: Math.max(0, p.pos ?? 0),
+  }));
 
-  const tiles: TileConfig[] = [
-    {
-      key: "online",
-      label: "Online",
-      value: online,
-      color: "var(--c-series-1)",
-      sparkColor: "var(--c-series-1)",
-      empty: online === 0,
-    },
-    {
-      key: "pos",
-      label: "POS",
-      value: pos,
-      color: "var(--c-series-2)",
-      sparkColor: "var(--c-series-2)",
-      empty: pos === 0,
-    },
-  ];
+  const onlineSeries = data.map(d => d.online);
+  const posSeries = data.map(d => d.pos);
+
+  const onlineDelta = formatDelta(deltaPct(onlineSeries));
+  const posDelta = formatDelta(deltaPct(posSeries));
 
   return (
-    <div className="channel-grid">
-      {tiles.map(tile => {
-        const seriesForTile = tile.key === "online" ? onlineSeries : posSeries;
-        const sparkValues =
-          seriesForTile.length >= 2 ? seriesForTile : Array.from({ length: 2 }, () => tile.value);
-        const delta = deltaPct(seriesForTile);
-        const d = formatDelta(delta);
+    <div className="channel-wrap">
+      {/* Headline: totals + deltas per channel */}
+      <div className="channel-headline">
+        <div className="channel-headline-row">
+          <span className="channel-headline-swatch" style={{ background: "var(--c-series-2)" }} aria-hidden="true" />
+          <span className="channel-headline-label">POS</span>
+          <span className="channel-headline-number">{pos.toLocaleString("en-IN")}</span>
+          {posDelta.tone !== "na" && (
+            <span className={`channel-headline-delta channel-headline-delta--${posDelta.tone}`}>
+              {posDelta.tone === "up" ? "▲" : posDelta.tone === "down" ? "▼" : "•"} {posDelta.text}
+            </span>
+          )}
+        </div>
+        <div className="channel-headline-row">
+          <span className="channel-headline-swatch channel-headline-swatch--muted" aria-hidden="true" />
+          <span className="channel-headline-label">Online</span>
+          <span className="channel-headline-number">{online.toLocaleString("en-IN")}</span>
+          {onlineDelta.tone !== "na" && (
+            <span className={`channel-headline-delta channel-headline-delta--${onlineDelta.tone}`}>
+              {onlineDelta.tone === "up" ? "▲" : onlineDelta.tone === "down" ? "▼" : "•"} {onlineDelta.text}
+            </span>
+          )}
+          {online === 0 && <span className="channel-headline-status">Quiet</span>}
+        </div>
+      </div>
 
-        return (
-          <div
-            key={tile.key}
-            className={tile.empty ? "channel-tile channel-tile--empty" : "channel-tile"}
-          >
-            <div className="channel-tile-head">
-              <span className="channel-tile-swatch" style={{ background: tile.color }} aria-hidden="true" />
-              <span className="channel-tile-label">{tile.label}</span>
-              {tile.empty && <span className="channel-tile-status">Quiet</span>}
-              {!tile.empty && d.tone !== "na" && (
-                <span className={`channel-tile-delta channel-tile-delta--${d.tone}`}>
-                  {d.tone === "up" ? "▲" : d.tone === "down" ? "▼" : "•"} {d.text}
-                </span>
-              )}
-            </div>
-            <div className="channel-tile-number">
-              {tile.value.toLocaleString("en-IN")}
-            </div>
-            <div className="channel-tile-caption">
-              {tile.empty ? "No orders this period" : "orders this period"}
-            </div>
-            <div className="channel-tile-spark" aria-hidden="true">
-              <Sparkline
-                values={sparkValues}
-                width={140}
-                height={36}
-                color={tile.empty ? "var(--color-charcoal-muted)" : tile.sparkColor}
-                fill={!tile.empty}
-              />
-            </div>
-          </div>
-        );
-      })}
+      {/* Single line chart, both channels on shared y-axis */}
+      <div className="channel-chart">
+        <ResponsiveContainer width="100%" height={180}>
+          <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+            <CartesianGrid stroke="var(--c-grid)" vertical={false} strokeDasharray="" />
+            <XAxis
+              dataKey="date"
+              tickFormatter={v => formatShortDate(v as string)}
+              stroke="var(--c-axis-text)"
+              fontSize={11}
+              tickLine={false}
+              axisLine={false}
+              minTickGap={32}
+            />
+            <YAxis
+              allowDecimals={false}
+              stroke="var(--c-axis-text)"
+              fontSize={11}
+              tickLine={false}
+              axisLine={false}
+              width={36}
+            />
+            <Tooltip
+              contentStyle={{
+                background: "var(--color-white)",
+                border: "1px solid var(--border-color)",
+                borderRadius: 6,
+                fontSize: 12,
+                color: "var(--color-charcoal)",
+              }}
+              cursor={{ stroke: "var(--border-color)", strokeDasharray: "3 3" }}
+              labelFormatter={label => formatShortDate(label as string, { withYear: false, withMonth: true })}
+              formatter={(value: number, name: string) => [value.toLocaleString("en-IN"), name]}
+            />
+            <Line
+              type="monotone"
+              dataKey="pos"
+              name="POS"
+              stroke="var(--c-series-2)"
+              strokeWidth={2}
+              dot={false}
+              activeDot={{ r: 4, stroke: "var(--color-white)", strokeWidth: 2 }}
+              isAnimationActive={false}
+            />
+            <Line
+              type="monotone"
+              dataKey="online"
+              name="Online"
+              stroke="var(--c-series-1)"
+              strokeOpacity={online === 0 ? 0.35 : 1}
+              strokeWidth={1.75}
+              strokeDasharray={online === 0 ? "3 3" : undefined}
+              dot={false}
+              activeDot={{ r: 4, stroke: "var(--color-white)", strokeWidth: 2 }}
+              isAnimationActive={false}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }

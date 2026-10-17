@@ -716,64 +716,87 @@
 }
 
 /* =========================================================================
-   Channel mix — two stat tiles side by side
+   Channel mix — single line chart with two series
    ========================================================================= */
 
-.channel-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+.channel-wrap {
+  display: flex;
+  flex-direction: column;
   gap: 0.75rem;
   width: 100%;
 }
 
-@media (max-width: 480px) {
-  .channel-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.channel-tile {
+.channel-headline {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
-  padding: 0.9rem;
-  background: var(--color-ivory);
-  border-radius: 10px;
-  border: 1px solid var(--border-color-light);
-  min-width: 0;
+  gap: 0.35rem;
 }
 
-.channel-tile--empty {
-  background: transparent;
-  border-style: dashed;
-  border-color: var(--border-color);
-  opacity: 0.85;
-}
-
-.channel-tile-head {
+.channel-headline-row {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  font-size: 0.78rem;
-  color: var(--color-charcoal-muted);
+  gap: 0.5rem;
+  font-size: 0.85rem;
   min-width: 0;
-  flex-wrap: wrap;
 }
 
-.channel-tile-swatch {
+.channel-headline-swatch {
   width: 10px;
   height: 10px;
   border-radius: 3px;
   flex-shrink: 0;
 }
 
-.channel-tile-label {
+.channel-headline-swatch--muted {
+  background: var(--c-series-1);
+  opacity: 0.45;
+}
+
+.channel-headline-label {
   color: var(--color-charcoal);
   font-weight: 600;
   letter-spacing: 0.02em;
 }
 
-.channel-tile-status {
+.channel-headline-number {
+  color: var(--color-charcoal);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.channel-headline-delta {
+  margin-left: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+}
+
+.channel-headline-delta--up {
+  color: #15803d;
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.channel-headline-delta--down {
+  color: #b91c1c;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.channel-headline-delta--flat {
+  color: var(--color-charcoal-muted);
+  background: var(--color-pearl);
+}
+
+.channel-headline-delta--na {
+  margin-left: 0.25rem;
+  font-size: 0.7rem;
+  color: var(--color-charcoal-muted);
+}
+
+.channel-headline-status {
+  margin-left: 0.25rem;
   font-size: 0.65rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -785,61 +808,8 @@
   border: 1px solid rgba(245, 158, 11, 0.25);
 }
 
-.channel-tile--empty .channel-tile-label {
-  color: var(--color-charcoal-muted);
-}
-
-.channel-tile-delta {
-  margin-left: auto;
-  font-size: 0.72rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  padding: 0.1rem 0.4rem;
-  border-radius: 999px;
-}
-
-.channel-tile-delta--up {
-  color: #15803d;
-  background: rgba(34, 197, 94, 0.12);
-}
-
-.channel-tile-delta--down {
-  color: #b91c1c;
-  background: rgba(239, 68, 68, 0.12);
-}
-
-.channel-tile-delta--flat {
-  color: var(--color-charcoal-muted);
-  background: var(--color-pearl);
-}
-
-.channel-tile-delta--na {
-  margin-left: auto;
-  font-size: 0.7rem;
-  color: var(--color-charcoal-muted);
-}
-
-.channel-tile-number {
-  font-size: 1.85rem;
-  font-weight: 700;
-  color: var(--color-charcoal);
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-
-.channel-tile--empty .channel-tile-number {
-  color: var(--color-charcoal-muted);
-}
-
-.channel-tile-caption {
-  font-size: 0.72rem;
-  color: var(--color-charcoal-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.channel-tile-spark {
-  margin-top: 0.2rem;
+.channel-chart {
+  width: 100%;
 }
 
 /* =========================================================================
