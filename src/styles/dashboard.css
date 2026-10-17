@@ -565,7 +565,10 @@
 }
 
 /* =========================================================================
-   Sales by category — 100% stacked bar with direct labels
+   Sales by category — vertical bar chart
+   One bar per category, sorted biggest to smallest. Recharts BarChart
+   matches the trend-chart styling; per-bar value labels sit above each
+   bar via LabelList so the user sees share + figure at a glance.
    ========================================================================= */
 
 .cat-wrap {
@@ -573,6 +576,10 @@
   flex-direction: column;
   gap: 0.85rem;
   width: 100%;
+  /* Fill the card body so the chart grows into any leftover space
+     instead of leaving an empty band below it. */
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .cat-headline {
@@ -597,121 +604,28 @@
   letter-spacing: 0.05em;
 }
 
-.cat-stack {
-  display: flex;
+.cat-bars-chart {
   width: 100%;
-  height: 44px;
-  border-radius: 10px;
-  overflow: hidden;
-  background: var(--color-pearl);
-  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.05);
-}
-
-.cat-seg {
-  position: relative;
+  /* Let the chart take whatever vertical room is left after the
+     headline, so the card body hugs the content. */
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 0 0.6rem;
-  border-right: 2px solid var(--color-white);
-  min-width: 0;
-  transition: filter 0.15s ease;
-  cursor: default;
 }
 
-.cat-seg:last-child {
-  border-right: none;
+/* Tighter X-axis tick text so longer category names like "Shop by Color"
+   don't get clipped against the chart body. */
+.cat-bars-chart .recharts-cartesian-axis-tick text {
+  font-size: 11px;
+  fill: var(--color-charcoal);
 }
 
-.cat-seg:hover {
-  filter: brightness(1.06);
-}
-
-.cat-seg-label {
-  color: var(--color-white);
-  font-size: 0.78rem;
-  font-weight: 600;
-  line-height: 1.1;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  /* Soft shadow so white text stays legible on every segment hue. */
-  text-shadow: 0 1px 2px rgba(15, 23, 42, 0.25);
-}
-
-.cat-seg-pct {
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 0.68rem;
-  font-variant-numeric: tabular-nums;
-  font-weight: 500;
-  text-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
-}
-
-/* Out-of-segment labels for narrow slices: the segment itself stays slim
-   (still colors the slice), and the label/pill hovers just past the end. */
-.cat-seg:not(.cat-seg--inline) .cat-seg-label,
-.cat-seg:not(.cat-seg--inline) .cat-seg-pct {
-  position: absolute;
-  left: calc(100% + 2px);
-  top: 50%;
-  transform: translateY(-50%);
-  text-shadow: none;
-  background: var(--color-white);
-  color: var(--color-charcoal);
-  padding: 0.15rem 0.4rem;
-  border-radius: 4px;
-  border: 1px solid var(--border-color-light);
-  white-space: nowrap;
-  z-index: 1;
-}
-
-.cat-seg:not(.cat-seg--inline) .cat-seg-pct {
-  display: none; /* narrow slices: name only in the pill */
-}
-
-.cat-key {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem 0.85rem;
-}
-
-.cat-key-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.78rem;
-  color: var(--color-charcoal-muted);
-}
-
-.cat-key-swatch {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-  flex-shrink: 0;
-}
-
-.cat-key-name {
-  color: var(--color-charcoal);
-  font-weight: 500;
-}
-
-.cat-key-pct {
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  color: var(--color-charcoal);
-}
-
-@media (max-width: 520px) {
-  .cat-stack {
-    height: 56px;
-  }
-  .cat-seg-label {
-    font-size: 0.7rem;
+/* Slight tilt on the X-axis labels when names get long; Recharts uses
+   text-anchor middle by default, which is fine for the typical 4-6
+   category case. For narrower cards, fall back to a smaller font. */
+@media (max-width: 480px) {
+  .cat-bars-chart .recharts-cartesian-axis-tick text {
+    font-size: 10px;
   }
 }
 
