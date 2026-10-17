@@ -123,6 +123,43 @@
   border: 1px solid var(--border-color-light);
 }
 
+.stat-card-link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.stat-card-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: var(--border-color);
+}
+
+.stat-card-link:focus-visible {
+  outline: 2px solid var(--c-series-1);
+  outline-offset: 2px;
+}
+
+.stat-card-arrow {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  font-size: 1rem;
+  color: var(--color-charcoal-muted);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity 0.15s ease, transform 0.15s ease, color 0.15s ease;
+  line-height: 1;
+}
+
+.stat-card-link:hover .stat-card-arrow {
+  opacity: 1;
+  transform: translateX(0);
+  color: var(--color-charcoal);
+}
+
 .stat-icon {
   width: 44px;
   height: 44px;

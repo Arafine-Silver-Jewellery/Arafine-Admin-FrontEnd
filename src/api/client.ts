@@ -42,7 +42,7 @@ export const api = {
     request<any[]>(`/dashboard/recent-orders?limit=${limit}`),
   getLowStockProducts: (limit = 10) =>
     request<any[]>(`/dashboard/low-stock?limit=${limit}`),
-  getDashboardTrend: (params: { metric?: "revenue" | "orders"; range?: "7d" | "30d" | "90d" | "all" } = {}) => {
+  getDashboardTrend: (params: { metric?: "revenue" | "orders" | "products" | "users"; range?: "7d" | "30d" | "90d" | "all" } = {}) => {
     const q = new URLSearchParams();
     q.set("metric", params.metric ?? "revenue");
     q.set("range", params.range ?? "30d");
@@ -249,7 +249,7 @@ export const api = {
       limit?: number;
       search?: string;
       status?: string;
-      paymentStatus?: string;
+      paymentState?: string;
       orderChannel?: string;
       dateFrom?: string;
       dateTo?: string;
@@ -261,7 +261,7 @@ export const api = {
     if (params.limit) query.set("limit", params.limit.toString());
     if (params.search) query.set("search", params.search);
     if (params.status) query.set("status", params.status);
-    if (params.paymentStatus) query.set("paymentStatus", params.paymentStatus);
+    if (params.paymentState) query.set("paymentState", params.paymentState);
     if (params.orderChannel) query.set("orderChannel", params.orderChannel);
     if (params.dateFrom) query.set("dateFrom", params.dateFrom);
     if (params.dateTo) query.set("dateTo", params.dateTo);

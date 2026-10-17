@@ -133,7 +133,7 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
         search: searchQuery || undefined,
         status: currentStatus !== "all" ? currentStatus : undefined,
         orderChannel: channelFilter !== "all" ? channelFilter : undefined,
-        paymentStatus: filterPaymentStatus !== "all" ? filterPaymentStatus : undefined,
+        paymentState: filterPaymentStatus !== "all" ? filterPaymentStatus : undefined,
         dateFrom: filterDateFrom || undefined,
         dateTo: filterDateTo || undefined,
       }, controller.signal);

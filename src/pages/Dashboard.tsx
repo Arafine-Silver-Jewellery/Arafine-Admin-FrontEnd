@@ -42,7 +42,12 @@ export default function Dashboard() {
   const [channelBreakdown, setChannelBreakdown] = useState<BreakdownResponse | null>(null);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [lowStock, setLowStock] = useState<Product[]>([]);
-  const [sparkPoints, setSparkPoints] = useState<{ revenue: number[]; orders: number[] }>({ revenue: [], orders: [] });
+  const [sparkPoints, setSparkPoints] = useState<{ revenue: number[]; orders: number[]; products: number[]; users: number[] }>({
+    revenue: [],
+    orders: [],
+    products: [],
+    users: [],
+  });
 
   const [loading, setLoading] = useState(true);
   const [rangeLoading, setRangeLoading] = useState(false);
@@ -53,10 +58,12 @@ export default function Dashboard() {
     const ac = new AbortController();
     async function loadInitial() {
       try {
-        const [statsData, revenueData, ordersData, topData, catData, chData, recentData, lowStockData] = await Promise.all([
+        const [statsData, revenueData, ordersData, productsData, usersData, topData, catData, chData, recentData, lowStockData] = await Promise.all([
           api.getDashboardStats(),
           api.getDashboardTrend({ metric: "revenue", range: "30d" }),
           api.getDashboardTrend({ metric: "orders", range: "30d" }),
+          api.getDashboardTrend({ metric: "products", range: "30d" }),
+          api.getDashboardTrend({ metric: "users", range: "30d" }),
           api.getTopProducts({ limit: 8, range: "30d" }),
           api.getDashboardBreakdown({ dimension: "category", range: "30d" }),
           api.getDashboardBreakdown({ dimension: "channel", range: "30d" }),
@@ -74,6 +81,8 @@ export default function Dashboard() {
         setSparkPoints({
           revenue: (revenueData?.points ?? []).map((p: { value: number }) => p.value),
           orders: (ordersData?.points ?? []).map((p: { value: number }) => p.value),
+          products: (productsData?.points ?? []).map((p: { value: number }) => p.value),
+          users: (usersData?.points ?? []).map((p: { value: number }) => p.value),
         });
       }
       catch (err) {
@@ -96,9 +105,11 @@ export default function Dashboard() {
     const ac = new AbortController();
     async function refetchByRange() {
       try {
-        const [revenueData, ordersData, topData, catData, chData] = await Promise.all([
+        const [revenueData, ordersData, productsData, usersData, topData, catData, chData] = await Promise.all([
           api.getDashboardTrend({ metric: "revenue", range }),
           api.getDashboardTrend({ metric: "orders", range }),
+          api.getDashboardTrend({ metric: "products", range }),
+          api.getDashboardTrend({ metric: "users", range }),
           api.getTopProducts({ limit: 8, range }),
           api.getDashboardBreakdown({ dimension: "category", range }),
           api.getDashboardBreakdown({ dimension: "channel", range }),
@@ -111,6 +122,8 @@ export default function Dashboard() {
         setSparkPoints({
           revenue: (revenueData?.points ?? []).map((p: { value: number }) => p.value),
           orders: (ordersData?.points ?? []).map((p: { value: number }) => p.value),
+          products: (productsData?.points ?? []).map((p: { value: number }) => p.value),
+          users: (usersData?.points ?? []).map((p: { value: number }) => p.value),
         });
       }
       catch (err) {
@@ -171,6 +184,7 @@ export default function Dashboard() {
           bg="var(--c-tile-bg-1)"
           iconColor="var(--c-series-1)"
           icon="revenue"
+          to="/reports/earning"
         />
         <KpiTile
           label="Total Orders"
@@ -181,22 +195,29 @@ export default function Dashboard() {
           bg="var(--c-tile-bg-2)"
           iconColor="var(--c-series-2)"
           icon="orders"
+          to="/orders-management"
         />
         <KpiTile
           label="Active Products"
           value={(stats?.products.active || 0).toLocaleString()}
           sub={`${stats?.products.total || 0} total`}
+          spark={sparkPoints.products}
+          sparkColor="var(--c-series-3)"
           bg="var(--c-tile-bg-3)"
           iconColor="var(--c-series-3)"
           icon="products"
+          to="/products-module"
         />
         <KpiTile
           label="Total Users"
           value={(stats?.users.total || 0).toLocaleString()}
           sub={`${stats?.orders.today || 0} orders today`}
+          spark={sparkPoints.users}
+          sparkColor="var(--c-series-4)"
           bg="var(--c-tile-bg-4)"
           iconColor="var(--c-series-4)"
           icon="users"
+          to="/customers"
         />
       </div>
 
@@ -420,11 +441,12 @@ interface KpiTileProps {
   bg: string;
   iconColor: string;
   icon: "revenue" | "orders" | "products" | "users";
+  to: string;
 }
 
-function KpiTile({ label, value, sub, spark, sparkColor, bg, iconColor, icon }: KpiTileProps) {
+function KpiTile({ label, value, sub, spark, sparkColor, bg, iconColor, icon, to }: KpiTileProps) {
   return (
-    <div className="stat-card">
+    <Link to={to} className="stat-card stat-card-link">
       <div className="stat-icon" style={{ background: bg, color: iconColor }}>
         <KpiIcon kind={icon} />
       </div>
@@ -438,7 +460,8 @@ function KpiTile({ label, value, sub, spark, sparkColor, bg, iconColor, icon }: 
           </div>
         )}
       </div>
-    </div>
+      <span className="stat-card-arrow" aria-hidden="true">→</span>
+    </Link>
   );
 }
 

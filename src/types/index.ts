@@ -187,7 +187,7 @@ export interface TrendPoint {
 }
 
 export interface TrendResponse {
-  metric: "revenue" | "orders";
+  metric: "revenue" | "orders" | "products" | "users";
   range: DashboardRange;
   points: TrendPoint[];
 }
