@@ -201,11 +201,43 @@ export default function Dashboard() {
       </div>
 
       {/* Status counters */}
-      <div className="order-stats">
-        <StatusCounter value={stats?.orders.pending || 0} label="Pending" color="#fbbf24" />
-        <StatusCounter value={stats?.orders.processing || 0} label="Processing" color="#818cf8" />
-        <StatusCounter value={stats?.orders.shipped || 0} label="Shipped" color="#34d399" />
-        <StatusCounter value={stats?.orders.delivered || 0} label="Delivered" color="#22c55e" />
+      <div className="status-tiles">
+        <StatusTile
+          value={stats?.orders.pending || 0}
+          label="Pending"
+          sub="Awaiting confirmation"
+          color="#f59e0b"
+          bg="rgba(245, 158, 11, 0.12)"
+          to="/orders-management/pending"
+          iconKind="clock"
+        />
+        <StatusTile
+          value={stats?.orders.processing || 0}
+          label="Processing"
+          sub="Being prepared"
+          color="#818cf8"
+          bg="rgba(129, 140, 248, 0.14)"
+          to="/orders-management/processing"
+          iconKind="sync"
+        />
+        <StatusTile
+          value={stats?.orders.shipped || 0}
+          label="Shipped"
+          sub="On the way"
+          color="#10b981"
+          bg="rgba(16, 185, 129, 0.12)"
+          to="/orders-management/shipped"
+          iconKind="truck"
+        />
+        <StatusTile
+          value={stats?.orders.delivered || 0}
+          label="Delivered"
+          sub="Completed"
+          color="#22c55e"
+          bg="rgba(34, 197, 94, 0.12)"
+          to="/orders-management/delivered"
+          iconKind="check"
+        />
       </div>
 
       {/* Trend charts row */}
@@ -410,15 +442,72 @@ function KpiTile({ label, value, sub, spark, sparkColor, bg, iconColor, icon }: 
   );
 }
 
-function StatusCounter({ value, label, color }: { value: number; label: string; color: string }) {
+function StatusTile({
+  value,
+  label,
+  sub,
+  color,
+  bg,
+  to,
+  iconKind,
+}: {
+  value: number;
+  label: string;
+  sub: string;
+  color: string;
+  bg: string;
+  to: string;
+  iconKind: "clock" | "sync" | "truck" | "check";
+}) {
   return (
-    <div className="order-stat">
-      <span className="order-stat-value" style={{ color }}>
-        {value.toLocaleString()}
-      </span>
-      <span className="order-stat-label">{label}</span>
-    </div>
+    <Link to={to} className="status-tile">
+      <div className="status-tile-icon" style={{ background: bg, color }}>
+        <StatusIcon kind={iconKind} />
+      </div>
+      <div className="status-tile-info">
+        <span className="status-tile-value" style={{ color }}>{value.toLocaleString()}</span>
+        <span className="status-tile-label">{label}</span>
+        <span className="status-tile-sub">{sub}</span>
+      </div>
+      <span className="status-tile-arrow" aria-hidden="true">→</span>
+    </Link>
   );
+}
+
+function StatusIcon({ kind }: { kind: "clock" | "sync" | "truck" | "check" }) {
+  switch (kind) {
+    case "clock":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+      );
+    case "sync":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="23 4 23 10 17 10" />
+          <polyline points="1 20 1 14 7 14" />
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+        </svg>
+      );
+    case "truck":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="1" y="3" width="15" height="13" />
+          <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+          <circle cx="5.5" cy="18.5" r="2.5" />
+          <circle cx="18.5" cy="18.5" r="2.5" />
+        </svg>
+      );
+    case "check":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+          <polyline points="22 4 12 14.01 9 11.01" />
+        </svg>
+      );
+  }
 }
 
 function KpiIcon({ kind }: { kind: "revenue" | "orders" | "products" | "users" }) {

@@ -27,12 +27,16 @@ export default function DashboardSkeleton() {
         ))}
       </div>
 
-      {/* Status counters */}
-      <div className="order-stats skeleton-counters">
+      {/* Status tiles */}
+      <div className="status-tiles">
         {[0, 1, 2, 3].map(i => (
-          <div className="order-stat" key={i}>
-            <div className="skeleton skeleton-counter-value" />
-            <div className="skeleton skeleton-counter-label" />
+          <div className="status-tile skeleton-card" key={i}>
+            <div className="skeleton skeleton-icon" />
+            <div className="status-tile-info">
+              <div className="skeleton skeleton-value" style={{ width: "50%", height: 22, marginBottom: 6 }} />
+              <div className="skeleton skeleton-label" style={{ width: "70%", height: 9, marginBottom: 4 }} />
+              <div className="skeleton skeleton-label" style={{ width: "50%", height: 8 }} />
+            </div>
           </div>
         ))}
       </div>
