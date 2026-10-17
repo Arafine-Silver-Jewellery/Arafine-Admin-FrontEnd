@@ -15,6 +15,7 @@ import {
   CategoryDonut,
   ChannelStatTile,
   ChartCard,
+  DashboardSkeleton,
   DateRangePicker,
   OrdersTrendChart,
   RevenueTrendChart,
@@ -125,7 +126,7 @@ export default function Dashboard() {
   }, [range, loading]);
 
   if (loading) {
-    return <div className="loading">Loading dashboard...</div>;
+    return <DashboardSkeleton />;
   }
 
   if (error && !stats) {
