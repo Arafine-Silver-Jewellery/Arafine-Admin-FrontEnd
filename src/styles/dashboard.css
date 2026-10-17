@@ -219,6 +219,21 @@
    Status tiles — clickable cards with icon, count, label, sub-label
    ========================================================================= */
 
+.status-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.status-section-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-charcoal);
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+}
+
 .status-tiles {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

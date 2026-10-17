@@ -226,45 +226,92 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Status counters */}
-      <div className="status-tiles">
-        <StatusTile
-          value={stats?.orders.pending || 0}
-          label="Pending"
-          sub="Awaiting confirmation"
-          color="#f59e0b"
-          bg="rgba(245, 158, 11, 0.12)"
-          to="/orders-management/pending"
-          iconKind="clock"
-        />
-        <StatusTile
-          value={stats?.orders.processing || 0}
-          label="Processing"
-          sub="Being prepared"
-          color="#818cf8"
-          bg="rgba(129, 140, 248, 0.14)"
-          to="/orders-management/processing"
-          iconKind="sync"
-        />
-        <StatusTile
-          value={stats?.orders.shipped || 0}
-          label="Shipped"
-          sub="On the way"
-          color="#10b981"
-          bg="rgba(16, 185, 129, 0.12)"
-          to="/orders-management/shipped"
-          iconKind="truck"
-        />
-        <StatusTile
-          value={stats?.orders.delivered || 0}
-          label="Delivered"
-          sub="Completed"
-          color="#22c55e"
-          bg="rgba(34, 197, 94, 0.12)"
-          to="/orders-management/delivered"
-          iconKind="check"
-        />
-      </div>
+      {/* Status counters — Orders */}
+      <section className="status-section">
+        <h2 className="status-section-title">Orders</h2>
+        <div className="status-tiles">
+          <StatusTile
+            value={stats?.orders.pending || 0}
+            label="Pending"
+            sub="Awaiting confirmation"
+            color="#f59e0b"
+            bg="rgba(245, 158, 11, 0.12)"
+            to="/orders-management/pending"
+            iconKind="clock"
+          />
+          <StatusTile
+            value={stats?.orders.processing || 0}
+            label="Processing"
+            sub="Being prepared"
+            color="#818cf8"
+            bg="rgba(129, 140, 248, 0.14)"
+            to="/orders-management/processing"
+            iconKind="sync"
+          />
+          <StatusTile
+            value={stats?.orders.shipped || 0}
+            label="Shipped"
+            sub="On the way"
+            color="#10b981"
+            bg="rgba(16, 185, 129, 0.12)"
+            to="/orders-management/shipped"
+            iconKind="truck"
+          />
+          <StatusTile
+            value={stats?.orders.delivered || 0}
+            label="Delivered"
+            sub="Completed"
+            color="#22c55e"
+            bg="rgba(34, 197, 94, 0.12)"
+            to="/orders-management/delivered"
+            iconKind="check"
+          />
+        </div>
+      </section>
+
+      {/* Status counters — Products. Mirrors the orders row above; same .status-tiles
+          grid + .status-tile card styles. */}
+      <section className="status-section">
+        <h2 className="status-section-title">Products</h2>
+        <div className="status-tiles">
+          <StatusTile
+            value={stats?.products.active || 0}
+            label="Active"
+            sub="Live on store"
+            color="#10b981"
+            bg="rgba(16, 185, 129, 0.12)"
+            to="/products"
+            iconKind="eye"
+          />
+          <StatusTile
+            value={stats?.products.inactive || 0}
+            label="Inactive"
+            sub="Hidden from store"
+            color="#94a3b8"
+            bg="rgba(148, 163, 184, 0.14)"
+            to="/products"
+            iconKind="eye-off"
+          />
+          <StatusTile
+            value={stats?.products.lowStock || 0}
+            label="Low stock"
+            sub="Restock soon"
+            color="#f59e0b"
+            bg="rgba(245, 158, 11, 0.12)"
+            to="/products"
+            iconKind="alert-triangle"
+          />
+          <StatusTile
+            value={stats?.products.outOfStock || 0}
+            label="Out of stock"
+            sub="Sold out"
+            color="#ef4444"
+            bg="rgba(239, 68, 68, 0.12)"
+            to="/products"
+            iconKind="x-circle"
+          />
+        </div>
+      </section>
 
       {/* Trend charts row */}
       <div className="chart-row chart-row-2">
@@ -489,7 +536,7 @@ function StatusTile({
   color: string;
   bg: string;
   to: string;
-  iconKind: "clock" | "sync" | "truck" | "check";
+  iconKind: "clock" | "sync" | "truck" | "check" | "eye" | "eye-off" | "alert-triangle" | "x-circle";
 }) {
   return (
     <Link to={to} className="status-tile">
@@ -506,7 +553,7 @@ function StatusTile({
   );
 }
 
-function StatusIcon({ kind }: { kind: "clock" | "sync" | "truck" | "check" }) {
+function StatusIcon({ kind }: { kind: "clock" | "sync" | "truck" | "check" | "eye" | "eye-off" | "alert-triangle" | "x-circle" }) {
   switch (kind) {
     case "clock":
       return (
@@ -537,6 +584,38 @@ function StatusIcon({ kind }: { kind: "clock" | "sync" | "truck" | "check" }) {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
           <polyline points="22 4 12 14.01 9 11.01" />
+        </svg>
+      );
+    case "eye":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      );
+    case "eye-off":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+          <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+          <line x1="1" y1="1" x2="23" y2="23" />
+        </svg>
+      );
+    case "alert-triangle":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+          <line x1="12" y1="9" x2="12" y2="13" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
+        </svg>
+      );
+    case "x-circle":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="15" y1="9" x2="9" y2="15" />
+          <line x1="9" y1="9" x2="15" y2="15" />
         </svg>
       );
   }

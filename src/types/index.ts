@@ -155,7 +155,9 @@ export interface DashboardStats {
   products: {
     total: number;
     active: number;
+    inactive: number;
     lowStock: number;
+    outOfStock: number;
   };
   categories: {
     total: number;
