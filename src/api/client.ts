@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "../config/env";
+import type { Address, CustomerAddressInput } from "../types";
 
 interface ApiResponse<T> {
   data?: T;
@@ -311,7 +312,21 @@ export const api = {
     customerPhone?: string;
     customerFirstName?: string;
     customerLastName?: string;
-    customerAddress?: string;
+    // Structured address typed at POS. When present, the cashier has
+    // filled the full address (full name through pincode); the backend
+    // saves it to the customer's profile (or uses it as a one-off
+    // shipping snapshot, depending on the `saveAddressToProfile` flag
+    // and the customer's existing address count). When omitted, the
+    // order uses the legacy "In-Store Purchase" placeholder.
+    customerAddress?: CustomerAddressInput;
+    // Optional id of one of the customer's saved addresses. When set, the
+    // order's shipping snapshot is taken from the Address row instead of
+    // `customerAddress`.
+    customerAddressId?: string;
+    // When the cashier types a new address for a customer who already has
+    // 1+ addresses, this flag controls whether to persist a new Address
+    // row. Ignored when the customer has 0 addresses (auto-saved).
+    saveAddressToProfile?: boolean;
     isWalkIn?: boolean;
     paymentMethod: "cash" | "card" | "upi";
     paymentReference?: string;
@@ -385,6 +400,9 @@ export const api = {
         body: JSON.stringify(data),
       }
     ),
+
+  getPOSCustomerAddresses: (customerId: string) =>
+    request<{ data: Address[] }>(`/pos/customers/${customerId}/addresses`),
 
   // Users/Customers
   getUsers: (params: {

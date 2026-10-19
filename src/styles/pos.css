@@ -554,219 +554,6 @@
 }
 
 
-/* Bill/Receipt Modal */
-.bill-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.bill-modal {
-  background: #fff;
-  border-radius: 12px;
-  width: 100%;
-  max-width: 400px;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-}
-
-.bill-modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.bill-modal-header h2 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.bill-close-btn {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: #6b7280;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: all 0.2s;
-}
-
-.bill-close-btn:hover {
-  background: #f3f4f6;
-  color: #1f2937;
-}
-
-.bill-content {
-  padding: 1.5rem;
-  overflow-y: auto;
-  flex: 1;
-  font-family: 'Courier New', monospace;
-  font-size: 0.875rem;
-}
-
-.receipt-header {
-  text-align: center;
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px dashed #d1d5db;
-}
-
-.receipt-header h1 {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #1f2937;
-  margin-bottom: 0.25rem;
-}
-
-.receipt-header p {
-  color: #6b7280;
-  font-size: 0.75rem;
-}
-
-.receipt-info {
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px dashed #d1d5db;
-}
-
-.receipt-info p {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 0.25rem;
-  font-size: 0.8rem;
-}
-
-.receipt-items {
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px dashed #d1d5db;
-}
-
-.receipt-items-header {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
-  font-weight: bold;
-  font-size: 0.75rem;
-  color: #6b7280;
-  margin-bottom: 0.5rem;
-  text-transform: uppercase;
-}
-
-.receipt-item {
-  margin-bottom: 0.5rem;
-}
-
-.receipt-item-name {
-  font-weight: 600;
-  font-size: 0.8rem;
-  color: #1f2937;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.receipt-item-details {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.75rem;
-  color: #6b7280;
-}
-
-.receipt-summary {
-  margin-bottom: 1rem;
-}
-
-.receipt-summary p {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 0.25rem;
-  font-size: 0.85rem;
-}
-
-.receipt-summary .total {
-  font-weight: bold;
-  font-size: 1rem;
-  color: #1f2937;
-  border-top: 1px solid #1f2937;
-  padding-top: 0.5rem;
-  margin-top: 0.5rem;
-}
-
-.receipt-footer {
-  text-align: center;
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px dashed #d1d5db;
-}
-
-.receipt-footer p {
-  font-size: 0.75rem;
-  color: #6b7280;
-}
-
-.bill-modal-actions {
-  display: flex;
-  gap: 1rem;
-  padding: 1rem 1.5rem;
-  border-top: 1px solid #e5e7eb;
-}
-
-.btn-print {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  background: #1f2937;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-print:hover {
-  background: #374151;
-}
-
-.btn-done {
-  flex: 1;
-  padding: 0.75rem 1rem;
-  background: #f3f4f6;
-  color: #1f2937;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-done:hover {
-  background: #e5e7eb;
-}
-
-
 /* Hold Orders Modal */
 .hold-modal-overlay {
   position: fixed;
@@ -1922,6 +1709,57 @@
   cursor: not-allowed;
 }
 
+/* Two-step customer flow ────────────────────────────────────────── */
+
+/* Phase 1 wrapper: just the phone input + search button. Pads a bit
+ * more so the phone input sits centered-ish in the modal. */
+.customer-phone-phase {
+  padding: 0.5rem 0 0.75rem;
+}
+
+.customer-phase-hint {
+  margin: 0 0 1rem;
+  padding: 0.625rem 0.75rem;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 6px;
+  color: #3730a3;
+  font-size: 0.825rem;
+  line-height: 1.4;
+}
+
+/* Phase 2 wrapper. The "Change number" link sits at the very top so
+ * the cashier can always back out without scrolling. */
+.customer-details-phase {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.customer-change-number {
+  align-self: flex-start;
+  margin-bottom: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background: transparent;
+  border: none;
+  color: #4f46e5;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.customer-change-number:hover {
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.customer-change-number:focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: 1px;
+}
+
 /* Search Results */
 .customer-search-results {
   margin-bottom: 1.25rem;
@@ -2009,6 +1847,19 @@
   flex-shrink: 0;
   margin-top: 1px;
   color: #b45309;
+}
+
+/* Softer variant for the "new customer? enter manually" hint vs the
+ * amber "missing name" warning. Same shape, neutral palette so it
+ * doesn't read as an error. */
+.customer-form-notice--hint {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #3730a3;
+}
+
+.customer-form-notice--hint svg {
+  color: #4f46e5;
 }
 
 .customer-result-phone {
@@ -2333,5 +2184,266 @@
   .pos-billing-header {
     flex-wrap: wrap;
     gap: 0.5rem;
+  }
+}
+
+/* ============================================================
+ * Customer address picker (POS modal)
+ * ============================================================ */
+
+.customer-address-section {
+  margin-top: 0.25rem;
+}
+
+.customer-address-loading {
+  padding: 0.625rem 0.75rem;
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.customer-address-hint {
+  padding: 0.625rem 0.75rem;
+  font-size: 0.82rem;
+  color: #6b7280;
+  background: #f9fafb;
+  border: 1px dashed #d1d5db;
+  border-radius: 6px;
+  line-height: 1.4;
+}
+
+.pos-address-section-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.pos-address-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.pos-address-radio {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  cursor: pointer;
+  background: #fff;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.pos-address-radio:hover {
+  border-color: #cbd5e1;
+  background: #f9fafb;
+}
+
+.pos-address-radio--selected {
+  border-color: #4f46e5;
+  background: #eef2ff;
+}
+
+.pos-address-radio input[type="radio"] {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+  accent-color: #4f46e5;
+  cursor: pointer;
+}
+
+.pos-address-radio-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.pos-address-radio-header {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+}
+
+.pos-address-label-chip {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #4338ca;
+  background: #e0e7ff;
+  border-radius: 999px;
+  text-transform: capitalize;
+}
+
+.pos-address-default-badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #047857;
+  background: #d1fae5;
+  border-radius: 999px;
+}
+
+.pos-address-draft-badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #b45309;
+  background: #fef3c7;
+  border-radius: 999px;
+}
+
+.pos-address-radio-summary {
+  font-size: 0.82rem;
+  color: #4b5563;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.pos-address-radio--override {
+  border-style: dashed;
+}
+
+.pos-address-override-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.pos-address-override-input {
+  margin-top: 0.375rem;
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  font-size: 0.875rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: #fff;
+  color: #111827;
+  box-sizing: border-box;
+}
+
+.pos-address-override-input:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15);
+}
+
+.pos-address-save-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: #4b5563;
+  cursor: pointer;
+  line-height: 1.4;
+}
+
+.pos-address-save-checkbox input[type="checkbox"] {
+  margin-top: 0.15rem;
+  flex-shrink: 0;
+  accent-color: #4f46e5;
+  cursor: pointer;
+}
+
+/* Structured address form (used by the "Different for this order" and
+ * "no saved addresses" paths). Mirrors the customer-frontend's
+ * `.co-addr-form` styling so the cashier sees the same fields the
+ * customer would on the storefront. */
+.pos-addr-form-wrap {
+  margin-top: 0.5rem;
+}
+
+.pos-addr-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.375rem;
+}
+
+.pos-addr-form__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.pos-addr-form__row--3col {
+  grid-template-columns: 1fr 1fr 0.85fr;
+}
+
+.pos-addr-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.pos-addr-field label {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.pos-addr-required {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.pos-addr-field input {
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  font-size: 0.85rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: #fff;
+  color: #111827;
+  box-sizing: border-box;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.pos-addr-field input:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15);
+}
+
+.pos-addr-field input.has-error {
+  border-color: #dc2626;
+}
+
+.pos-addr-field input.has-error:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.15);
+}
+
+.pos-addr-field__error {
+  font-size: 0.7rem;
+  color: #dc2626;
+  padding-left: 0.1rem;
+  line-height: 1.2;
+}
+
+.pos-addr-form__hint {
+  margin: 0.5rem 0 0;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.72rem;
+  color: #6b7280;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  line-height: 1.35;
+}
+
+@media (max-width: 640px) {
+  .pos-addr-form__row,
+  .pos-addr-form__row--3col {
+    grid-template-columns: 1fr;
   }
 }
