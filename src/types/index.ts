@@ -189,6 +189,7 @@ export interface User {
   mobileNumber: string;
   firstName: string;
   lastName: string;
+  email: string | null;
   status: "active" | "suspended" | "deleted";
   createdAt: string;
   updatedAt: string;

@@ -312,6 +312,9 @@ export const api = {
     customerPhone?: string;
     customerFirstName?: string;
     customerLastName?: string;
+    // Optional. Cashier-typed email. Only persisted if the user has no
+    // email on file (existing emails are never overwritten from the till).
+    customerEmail?: string | null;
     // Structured address typed at POS. When present, the cashier has
     // filled the full address (full name through pincode); the backend
     // saves it to the customer's profile (or uses it as a one-off
@@ -383,17 +386,17 @@ export const api = {
 
   // POS Customers
   searchPOSCustomers: (phone: string) =>
-    request<{ data: { id: string; mobileNumber: string; firstName: string; lastName: string; fullName: string }[] }>(
+    request<{ data: { id: string; mobileNumber: string; firstName: string; lastName: string; email: string | null; fullName: string }[] }>(
       `/pos/customers/search?phone=${encodeURIComponent(phone)}`
     ),
-  
+
   getPOSCustomerByPhone: (phone: string) =>
-    request<{ data: { id: string; mobileNumber: string; firstName: string; lastName: string; fullName: string } }>(
+    request<{ data: { id: string; mobileNumber: string; firstName: string; lastName: string; email: string | null; fullName: string } }>(
       `/pos/customers/by-phone/${encodeURIComponent(phone)}`
     ),
-  
-  createPOSCustomer: (data: { mobileNumber: string; firstName: string; lastName?: string }) =>
-    request<{ message: string; data: { id: string; mobileNumber: string; firstName: string; lastName: string; fullName: string; isNew: boolean } }>(
+
+  createPOSCustomer: (data: { mobileNumber: string; firstName: string; lastName?: string; email?: string | null }) =>
+    request<{ message: string; data: { id: string; mobileNumber: string; firstName: string; lastName: string; email: string | null; fullName: string; isNew: boolean } }>(
       "/pos/customers",
       {
         method: "POST",

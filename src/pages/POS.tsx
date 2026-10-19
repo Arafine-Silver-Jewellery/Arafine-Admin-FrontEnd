@@ -191,8 +191,9 @@ export default function POS() {
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerFirstName, setCustomerFirstName] = useState("");
   const [customerLastName, setCustomerLastName] = useState("");
-  const [searchResults, setSearchResults] = useState<{ id: string; mobileNumber: string; firstName: string; lastName: string; fullName: string }[]>([]);
-  const [selectedCustomer, setSelectedCustomer] = useState<{ id: string; mobileNumber: string; firstName: string; lastName: string; fullName: string } | null>(null);
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [searchResults, setSearchResults] = useState<{ id: string; mobileNumber: string; firstName: string; lastName: string; email: string | null; fullName: string }[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<{ id: string; mobileNumber: string; firstName: string; lastName: string; email: string | null; fullName: string } | null>(null);
   const [isSearching, setIsSearching] = useState(false);
 
   // Address picker state (used when the selected customer has saved addresses).
@@ -319,6 +320,7 @@ export default function POS() {
     setCustomerPhone("");
     setCustomerFirstName("");
     setCustomerLastName("");
+    setCustomerEmail("");
     setSearchResults([]);
     setSelectedCustomer(null);
     // Reset address picker state
@@ -351,7 +353,16 @@ export default function POS() {
   }
 
   function updateOverrideField(field: keyof CustomerAddressInput, value: string) {
-    setOverrideAddress((prev) => ({ ...prev, [field]: value }));
+    // Strip non-digits on the phone and pincode fields. These have a strict
+    // numeric format; if we let letters through, the cashier sees a red
+    // "Enter a 6-digit pincode" error mid-typing, which is noisy. Filtering
+    // at write-time means the format error never fires for these fields
+    // — only the "Required" check can trip them.
+    const cleaned =
+      field === "phone" || field === "postalCode"
+        ? value.replace(/\D/g, "")
+        : value;
+    setOverrideAddress((prev) => ({ ...prev, [field]: cleaned }));
     if (overrideErrors[field]) {
       setOverrideErrors((prev) => ({ ...prev, [field]: undefined }));
     }
@@ -446,11 +457,12 @@ export default function POS() {
     }
   }
 
-  function selectCustomer(customer: { id: string; mobileNumber: string; firstName: string; lastName: string; fullName: string }) {
+  function selectCustomer(customer: { id: string; mobileNumber: string; firstName: string; lastName: string; email: string | null; fullName: string }) {
     setSelectedCustomer(customer);
     setCustomerPhone(customer.mobileNumber);
     setCustomerFirstName(customer.firstName);
     setCustomerLastName(customer.lastName);
+    setCustomerEmail(customer.email ?? "");
     setSearchResults([]);
     // Reset the address picker so a different customer's addresses don't
     // bleed into the UI before the fetch resolves.
@@ -476,6 +488,7 @@ export default function POS() {
     setSearchResults([]);
     setCustomerFirstName("");
     setCustomerLastName("");
+    setCustomerEmail("");
     setCustomerAddresses([]);
     setSelectedAddressId(null);
     setUseOverride(false);
@@ -588,6 +601,10 @@ export default function POS() {
         customerFirstName,
         customerLastName,
         customerName: `${customerFirstName} ${customerLastName}`.trim(),
+        // Optional. The backend writes it only if the user has no email on
+        // file, so this is safe to send every time. Empty string is
+        // collapsed to undefined so the BE treats it as "no change".
+        customerEmail: customerEmail.trim() || undefined,
       };
 
       // Address: prefer a picked saved address; otherwise the structured
@@ -1775,6 +1792,11 @@ export default function POS() {
                           )}
                         </div>
                         <div className="selected-customer-phone">{selectedCustomer.mobileNumber}</div>
+                        <div className="selected-customer-email">
+                          {selectedCustomer.email?.trim() || (
+                            <span className="selected-customer-email--missing">No email on file</span>
+                          )}
+                        </div>
                       </div>
                       <button className="selected-customer-clear" onClick={goBackToPhone} title="Change number">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
@@ -1784,6 +1806,45 @@ export default function POS() {
                       </button>
                     </div>
                   )}
+
+                  {/* Email-only block for existing customers who have no
+                      email on file. Shown for a selected customer only when
+                      the main customer-form (with First/Last name) is hidden
+                      — i.e. the customer already has a name, so the only
+                      thing the cashier can usefully add is an email. The
+                      backend will write the email only if the field is
+                      empty, so a no-op is safe. */}
+                  {selectedCustomer
+                    && (selectedCustomer.firstName || "").trim()
+                    && (selectedCustomer.lastName || "").trim()
+                    && !selectedCustomer.email?.trim()
+                    && (
+                      <div className="customer-form">
+                        <div className="customer-form-notice">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="16" x2="12" y2="12"/>
+                            <line x1="12" y1="8" x2="12.01" y2="8"/>
+                          </svg>
+                          <span>
+                            This customer has no email on file. Add it below
+                            if they want a digital receipt — it will be saved
+                            on their profile.
+                          </span>
+                        </div>
+                        <div className="customer-form-row">
+                          <div className="customer-form-group customer-form-group--full">
+                            <label>Email (optional)</label>
+                            <input
+                              type="email"
+                              placeholder="name@example.com"
+                              value={customerEmail}
+                              onChange={(e) => setCustomerEmail(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                   {/* Search Results — shown when search returned matches but
                       none has been picked yet. */}
@@ -1864,6 +1925,17 @@ export default function POS() {
                             placeholder="Last name"
                             value={customerLastName}
                             onChange={(e) => setCustomerLastName(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <div className="customer-form-row">
+                        <div className="customer-form-group customer-form-group--full">
+                          <label>Email (optional)</label>
+                          <input
+                            type="email"
+                            placeholder="name@example.com"
+                            value={customerEmail}
+                            onChange={(e) => setCustomerEmail(e.target.value)}
                           />
                         </div>
                       </div>
