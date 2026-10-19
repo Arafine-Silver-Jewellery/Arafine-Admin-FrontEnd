@@ -286,13 +286,20 @@ export default function POS() {
   }
 
   async function handleCustomerContinue() {
-    // Validate required fields - always required now
+    // Validate required fields
     if (!customerPhone || customerPhone.length < 10) {
       showToast("Please enter a valid 10-digit mobile number", "warning");
       return;
     }
-    if (!customerFirstName.trim()) {
-      showToast("Please enter customer's first name", "warning");
+
+    // For an existing customer who already has a name on file, the cashier
+    // doesn't need to re-enter it. For everyone else (new customer, or an
+    // existing customer whose profile has no name) the first name is
+    // required so the order has something to print on the shipping label.
+    const selectedHasName = !!(selectedCustomer
+      && ((selectedCustomer.firstName || "").trim() || (selectedCustomer.lastName || "").trim()));
+    if (!selectedHasName && !customerFirstName.trim()) {
+      showToast("Please enter the customer's first name", "warning");
       return;
     }
 
@@ -1559,10 +1566,18 @@ export default function POS() {
               {selectedCustomer && (
                 <div className="selected-customer-info">
                   <div className="selected-customer-avatar">
-                    {getCustomerInitials(selectedCustomer.fullName || selectedCustomer.firstName)}
+                    {getCustomerInitials(
+                      selectedCustomer.fullName ||
+                      selectedCustomer.firstName ||
+                      selectedCustomer.mobileNumber
+                    )}
                   </div>
                   <div className="selected-customer-details">
-                    <div className="selected-customer-name">{selectedCustomer.fullName}</div>
+                    <div className="selected-customer-name">
+                      {selectedCustomer.fullName?.trim() || (
+                        <span className="selected-customer-name--missing">No name on file</span>
+                      )}
+                    </div>
                     <div className="selected-customer-phone">{selectedCustomer.mobileNumber}</div>
                   </div>
                   <button className="selected-customer-clear" onClick={clearSelectedCustomer} title="Clear">
@@ -1631,67 +1646,71 @@ export default function POS() {
                             {getCustomerInitials(customer.fullName || customer.firstName)}
                           </div>
                           <div className="customer-result-info">
-                            <div className="customer-result-name">{customer.fullName}</div>
+                            <div className="customer-result-name">
+                              {customer.fullName?.trim() || (
+                                <span className="customer-result-name--missing">No name on file</span>
+                              )}
+                            </div>
                             <div className="customer-result-phone">{customer.mobileNumber}</div>
                           </div>
                         </div>
                       ))}
                     </div>
                   )}
-
-                  {/* Customer Form - Only show when searched and NO results found (new customer) */}
-                  {hasSearched && searchResults.length === 0 && (
-                    <div className="customer-form">
-                      <div className="customer-form-title">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-                          <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                          <circle cx="8.5" cy="7" r="4"/>
-                          <line x1="20" y1="8" x2="20" y2="14"/>
-                          <line x1="23" y1="11" x2="17" y2="11"/>
-                        </svg>
-                        New Customer Details
-                      </div>
-
-                      <div className="customer-form-row">
-                        <div className="customer-form-group">
-                          <label>First Name <span>*</span></label>
-                          <input
-                            type="text"
-                            placeholder="First name"
-                            value={customerFirstName}
-                            onChange={(e) => setCustomerFirstName(e.target.value)}
-                          />
-                        </div>
-                        <div className="customer-form-group">
-                          <label>Last Name</label>
-                          <input
-                            type="text"
-                            placeholder="Last name"
-                            value={customerLastName}
-                            onChange={(e) => setCustomerLastName(e.target.value)}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="customer-form-row">
-                        <div className="customer-form-group full-width">
-                          <label>Address (Optional)</label>
-                          <input
-                            type="text"
-                            placeholder="Delivery address"
-                            value={customerAddress}
-                            onChange={(e) => setCustomerAddress(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </>
               )}
 
-              {/* Address field for selected customer */}
-              {selectedCustomer && (
+              {/* Customer Form - shown only when there's a name to capture:
+                  - new customer (search returned no match), or
+                  - selected existing customer with no name on file.
+                  Selected customers who already have a name don't need the
+                  form at all - the selected-customer card above is enough. */}
+              {((!selectedCustomer && hasSearched && searchResults.length === 0)
+                || (selectedCustomer
+                  && !((selectedCustomer.firstName || "").trim() || (selectedCustomer.lastName || "").trim())))
+                && (
                 <div className="customer-form">
+                  {selectedCustomer
+                    && !((selectedCustomer.firstName || "").trim() || (selectedCustomer.lastName || "").trim())
+                    && (
+                      <div className="customer-form-notice">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                          <circle cx="12" cy="12" r="10"/>
+                          <line x1="12" y1="16" x2="12" y2="12"/>
+                          <line x1="12" y1="8" x2="12.01" y2="8"/>
+                        </svg>
+                        <span>
+                          This customer signed up with mobile only. Add their
+                          name below — it will be saved on the order and on
+                          their profile.
+                        </span>
+                      </div>
+                    )}
+
+                  <div className="customer-form-row">
+                    <div className="customer-form-group">
+                      <label>
+                        First Name
+                        <span style={{color: '#ef4444'}}> *</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="First name"
+                        value={customerFirstName}
+                        onChange={(e) => setCustomerFirstName(e.target.value)}
+                      />
+                    </div>
+                    <div className="customer-form-group">
+                      <label>Last Name</label>
+                      <input
+                        type="text"
+                        placeholder="Last name"
+                        value={customerLastName}
+                        onChange={(e) => setCustomerLastName(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
                   <div className="customer-form-row">
                     <div className="customer-form-group full-width">
                       <label>Address (Optional)</label>
@@ -1714,7 +1733,17 @@ export default function POS() {
               <button
                 className="customer-btn-continue"
                 onClick={handleCustomerContinue}
-                disabled={isPlacingOrder || (!selectedCustomer && (!customerPhone || customerPhone.length < 10 || !customerFirstName.trim()))}
+                disabled={(() => {
+                  if (isPlacingOrder) return true;
+                  if (!selectedCustomer) {
+                    return !customerPhone || customerPhone.length < 10 || !customerFirstName.trim();
+                  }
+                  // For an existing customer with a name on file, the cashier
+                  // can place the order without re-typing the name. For an
+                  // existing customer missing a name, the cashier must fill it.
+                  const selectedHasName = !!((selectedCustomer.firstName || "").trim() || (selectedCustomer.lastName || "").trim());
+                  return !selectedHasName && !customerFirstName.trim();
+                })()}
               >
                 {isPlacingOrder ? "Processing..." : "Place Order"}
               </button>

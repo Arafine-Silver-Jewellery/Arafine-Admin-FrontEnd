@@ -1984,6 +1984,33 @@
   color: #1f2937;
 }
 
+.customer-result-name--missing,
+.selected-customer-name--missing {
+  font-style: italic;
+  font-weight: 400;
+  color: #b45309;
+}
+
+.customer-form-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  margin-bottom: 0.75rem;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 6px;
+  color: #78350f;
+  font-size: 0.825rem;
+  line-height: 1.4;
+}
+
+.customer-form-notice svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: #b45309;
+}
+
 .customer-result-phone {
   font-size: 0.8rem;
   color: #6b7280;
