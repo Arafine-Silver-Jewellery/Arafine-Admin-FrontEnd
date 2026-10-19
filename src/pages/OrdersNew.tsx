@@ -3,7 +3,8 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
-import { DataTable, StatusDropdown, FilterDrawer } from "../components";
+import { DataTable, StatusDropdown, FilterDrawer, ReceiptModal } from "../components";
+import type { Order as SharedOrder } from "../types";
 import "../styles/ui-kit.css";
 
 type OrderStatus = "all" | "pending" | "confirmed" | "processing" | "packaging" | "shipped" | "out_for_delivery" | "delivered" | "returned" | "failed_to_deliver" | "cancelled";
@@ -80,7 +81,6 @@ interface OrdersNewProps {
 export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
   const navigate = useNavigate();
   const invoiceRef = useRef<HTMLDivElement>(null);
-  const receiptRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -279,15 +279,6 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
       alert("Failed to load receipt");
     } finally {
       setLoadingInvoice(false);
-    }
-  }
-
-  function printReceipt() {
-    if (!receiptRef.current || !selectedOrder) return;
-    const printWindow = window.open("", "_blank", "width=400,height=600");
-    if (printWindow) {
-      printWindow.document.write(`<!DOCTYPE html><html><head><title>Receipt - ${selectedOrder.orderNumber}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Courier New',monospace;padding:10px;font-size:12px;max-width:300px;margin:0 auto}</style></head><body>${receiptRef.current.innerHTML}<script>window.onload=function(){window.print()}</script></body></html>`);
-      printWindow.document.close();
     }
   }
 
@@ -562,24 +553,13 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
         </div>
       )}
 
-      {/* Receipt Modal */}
+      {/* Receipt Modal — shared <ReceiptModal> so this matches
+       * the POS receipt exactly. */}
       {showReceipt && selectedOrder && (
-        <div className="ak-modal-overlay" onClick={() => setShowReceipt(false)}>
-          <div className="ak-modal" style={{ maxWidth: "360px" }} onClick={(e) => e.stopPropagation()}>
-            <div className="ak-modal__header">
-              <h2 className="ak-modal__title">Receipt</h2>
-              <button type="button" className="ak-modal__close" onClick={() => setShowReceipt(false)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg></button>
-            </div>
-            <div className="ak-modal__body" ref={receiptRef} style={{ fontFamily: "'Courier New', monospace", fontSize: "12px" }}>
-              <div style={{ textAlign: "center", marginBottom: "1rem", paddingBottom: "0.75rem", borderBottom: "1px dashed #000" }}><h1 style={{ fontSize: "1.1rem", marginBottom: "0.25rem" }}>ARAFINE</h1><p style={{ fontSize: "0.7rem" }}>Silver Jewellery</p></div>
-              <div style={{ marginBottom: "1rem", paddingBottom: "0.75rem", borderBottom: "1px dashed #000" }}><div style={{ display: "flex", justifyContent: "space-between" }}><span>Order:</span><span>{selectedOrder.orderNumber}</span></div><div style={{ display: "flex", justifyContent: "space-between" }}><span>Date:</span><span>{formatDateTime(selectedOrder.createdAt)}</span></div></div>
-              <div style={{ marginBottom: "1rem", paddingBottom: "0.75rem", borderBottom: "1px dashed #000" }}>{selectedOrder.items?.map((item) => (<div key={item.id} style={{ marginBottom: "0.5rem" }}><div style={{ fontWeight: 600 }}>{item.productName}</div><div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}><span>{item.quantity} x {formatPrice(item.unitPricePaise)}</span><span>{formatPrice(item.totalPricePaise)}</span></div></div>))}</div>
-              <div><div style={{ display: "flex", justifyContent: "space-between" }}><span>Subtotal</span><span>{formatPrice(selectedOrder.subtotalPaise)}</span></div>{selectedOrder.discountPaise > 0 && <div style={{ display: "flex", justifyContent: "space-between" }}><span>Discount</span><span>-{formatPrice(selectedOrder.discountPaise)}</span></div>}<div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, borderTop: "1px solid #000", paddingTop: "0.5rem", marginTop: "0.5rem" }}><span>TOTAL</span><span>{formatPrice(selectedOrder.totalPaise)}</span></div></div>
-              <div style={{ textAlign: "center", marginTop: "1rem", fontSize: "10px", color: "#666" }}>Thank you for shopping with us!</div>
-            </div>
-            <div className="ak-modal__footer"><button type="button" className="ak-btn ak-btn--primary ak-btn--block" onClick={printReceipt}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></svg>Print Receipt</button></div>
-          </div>
-        </div>
+        <ReceiptModal
+          order={selectedOrder as SharedOrder}
+          onClose={() => setShowReceipt(false)}
+        />
       )}
     </div>
   );

@@ -1,0 +1,120 @@
+/* Shared receipt styles — used by the POS flow (after placing an order)
+ * and the Admin Orders list (when viewing a placed order). The classes
+ * here are the single source of truth for receipt layout; both consumers
+ * wrap the <Receipt> component in their own modal chrome.
+ *
+ * Layout assumptions:
+ *   - The .receipt container is wrapped in a scrollable modal body
+ *     (max-width ~360px) and is meant to be printable on a thermal
+ *     receipt printer.
+ *   - Sections are separated by 1px dashed dividers (#d1d5db).
+ *   - All copy uses Courier New monospace at ~12–14px to match a
+ *     physical receipt's look.
+ */
+
+.receipt {
+  padding: 1.5rem;
+  font-family: "Courier New", monospace;
+  font-size: 0.875rem;
+  color: #1f2937;
+}
+
+.receipt-header {
+  text-align: center;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px dashed #d1d5db;
+}
+
+.receipt-header h1 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+}
+
+.receipt-header p {
+  color: #6b7280;
+  font-size: 0.75rem;
+}
+
+.receipt-info {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px dashed #d1d5db;
+}
+
+.receipt-info p {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+  font-size: 0.8rem;
+}
+
+.receipt-items {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px dashed #d1d5db;
+}
+
+.receipt-items-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  font-weight: bold;
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+}
+
+.receipt-item {
+  margin-bottom: 0.5rem;
+}
+
+.receipt-item-name {
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.receipt-item-details {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.receipt-summary {
+  margin-bottom: 1rem;
+}
+
+.receipt-summary p {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.receipt-summary .total {
+  font-weight: bold;
+  font-size: 1rem;
+  color: #1f2937;
+  border-top: 1px solid #1f2937;
+  padding-top: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.receipt-footer {
+  text-align: center;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px dashed #d1d5db;
+}
+
+.receipt-footer p {
+  font-size: 0.75rem;
+  color: #6b7280;
+}

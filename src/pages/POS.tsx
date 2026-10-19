@@ -1,7 +1,95 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { api } from "../api/client";
-import { FilterDrawer, StatusDropdown } from "../components";
+import { FilterDrawer, StatusDropdown, ReceiptModal } from "../components";
+import type { Address, CustomerAddressInput, Order } from "../types";
 import "../styles/pos.css";
+
+// Per-field limits for the POS address form. Mirrors the customer-frontend's
+// `lib/addressValidation.ts` and the backend Zod schema. India-specific
+// tightening: phone = 10 digits, pincode = 6 digits.
+const POS_ADDRESS_LIMITS = {
+  fullName:     { max: 100 },
+  phone:        { max: 10 },
+  addressLine1: { max: 200 },
+  addressLine2: { max: 200 },
+  city:         { max: 100 },
+  state:        { max: 100 },
+  country:      { max: 100 },
+  postalCode:   { max: 6 },
+  landmark:     { max: 200 },
+} as const;
+
+const POS_REQUIRED_FIELDS: (keyof CustomerAddressInput)[] = [
+  "fullName", "phone", "addressLine1", "city", "state", "postalCode",
+];
+
+const PHONE_RE = /^\d{10}$/;
+const PIN_RE = /^\d{6}$/;
+
+const EMPTY_OVERRIDE: CustomerAddressInput = {
+  fullName: "",
+  phone: "",
+  addressLine1: "",
+  addressLine2: "",
+  city: "",
+  state: "",
+  country: "India",
+  postalCode: "",
+  landmark: "",
+};
+
+type OverrideErrors = Partial<Record<keyof CustomerAddressInput, string>>;
+
+/** Validate a single field on the POS address form. */
+function validateOverrideField(
+  field: keyof CustomerAddressInput,
+  value: string,
+): string | null {
+  const isRequired = POS_REQUIRED_FIELDS.includes(field);
+  const v = (value ?? "").trim();
+  if (isRequired && !v) {
+    return "Required";
+  }
+  if (v) {
+    if (field === "phone" && !PHONE_RE.test(v)) {
+      return "Enter a 10-digit mobile number";
+    }
+    if (field === "postalCode" && !PIN_RE.test(v)) {
+      return "Enter a 6-digit pincode";
+    }
+  }
+  return null;
+}
+
+/** Validate the full POS address form. */
+function validateOverrideForm(values: CustomerAddressInput): {
+  isValid: boolean;
+  errors: OverrideErrors;
+} {
+  const errors: OverrideErrors = {};
+  (Object.keys(values) as (keyof CustomerAddressInput)[]).forEach((field) => {
+    const err = validateOverrideField(field, values[field] ?? "");
+    if (err) errors[field] = err;
+  });
+  return { isValid: Object.keys(errors).length === 0, errors };
+}
+
+/** First non-null error in field-tab order, used as a toast summary. */
+function firstOverrideError(errors: OverrideErrors): string | null {
+  const order: (keyof CustomerAddressInput)[] = [
+    "fullName", "phone", "addressLine1", "addressLine2", "city",
+    "state", "postalCode", "landmark",
+  ];
+  for (const k of order) {
+    if (errors[k]) return errors[k]!;
+  }
+  return null;
+}
+
+/** True if every required field is non-empty (regardless of format). */
+function isOverrideStructurallyFilled(values: CustomerAddressInput): boolean {
+  return POS_REQUIRED_FIELDS.every((f) => (values[f] ?? "").trim().length > 0);
+}
 
 interface Product {
   id: string;
@@ -25,21 +113,6 @@ interface Pagination {
   limit: number;
   total: number;
   totalPages: number;
-}
-
-interface OrderBill {
-  orderNumber: string;
-  date: Date;
-  items: CartItem[];
-  subTotal: number;
-  productDiscount: number;
-  couponCode?: string;
-  extraDiscount: number;
-  total: number;
-  paymentMethod: "cash" | "card" | "upi";
-  paymentReference?: string;
-  paidAmount: number;
-  change: number;
 }
 
 interface HoldOrderItem {
@@ -84,9 +157,8 @@ export default function POS() {
   const [couponCode, setCouponCode] = useState("");
   const [extraDiscount, setExtraDiscount] = useState(0);
   const [showBill, setShowBill] = useState(false);
-  const [currentBill, setCurrentBill] = useState<OrderBill | null>(null);
-  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
-  const billRef = useRef<HTMLDivElement>(null);
+  const [currentBill, setCurrentBill] = useState<Order | null>(null);  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+
 
   // Hold orders state
   const [holdOrders, setHoldOrders] = useState<HoldOrder[]>([]);
@@ -119,11 +191,34 @@ export default function POS() {
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerFirstName, setCustomerFirstName] = useState("");
   const [customerLastName, setCustomerLastName] = useState("");
-  const [customerAddress, setCustomerAddress] = useState("");
-  const [searchResults, setSearchResults] = useState<{ id: string; mobileNumber: string; firstName: string; lastName: string; fullName: string }[]>([]);
-  const [selectedCustomer, setSelectedCustomer] = useState<{ id: string; mobileNumber: string; firstName: string; lastName: string; fullName: string } | null>(null);
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [searchResults, setSearchResults] = useState<{ id: string; mobileNumber: string; firstName: string; lastName: string; email: string | null; fullName: string }[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<{ id: string; mobileNumber: string; firstName: string; lastName: string; email: string | null; fullName: string } | null>(null);
   const [isSearching, setIsSearching] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
+
+  // Address picker state (used when the selected customer has saved addresses).
+  // `useOverride` flips between "use a saved address" and "type a one-off".
+  const [customerAddresses, setCustomerAddresses] = useState<Address[]>([]);
+  const [isLoadingAddresses, setIsLoadingAddresses] = useState(false);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [useOverride, setUseOverride] = useState(false);
+  const [saveOverrideToProfile, setSaveOverrideToProfile] = useState(false);
+
+  // Two-step customer flow:
+  //   "phone"   — only the mobile-number input + Search button are visible.
+  //   "details" — name form / selected-customer card + address section +
+  //               Continue button are visible (the rest of the modal).
+  // The cashier MUST search before the rest of the modal opens. From the
+  // details phase they can hit "Change number" to go back.
+  const [searchPhase, setSearchPhase] = useState<"phone" | "details">("phone");
+
+  // Structured address typed at POS. Used by the "Different for this order"
+  // path AND the "no saved addresses" path so the cashier sees the same
+  // fields as the storefront. Pre-filled with the customer's name/phone
+  // when a customer is selected; reset to empty otherwise.
+  const [overrideAddress, setOverrideAddress] = useState<CustomerAddressInput>(EMPTY_OVERRIDE);
+  // Per-field validation errors for the structured form. Empty object = ok.
+  const [overrideErrors, setOverrideErrors] = useState<OverrideErrors>({});
 
   // Filter drawer state
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);
@@ -225,15 +320,112 @@ export default function POS() {
     setCustomerPhone("");
     setCustomerFirstName("");
     setCustomerLastName("");
-    setCustomerAddress("");
+    setCustomerEmail("");
     setSearchResults([]);
     setSelectedCustomer(null);
-    setHasSearched(false);
+    // Reset address picker state
+    setCustomerAddresses([]);
+    setSelectedAddressId(null);
+    setUseOverride(false);
+    setSaveOverrideToProfile(false);
+    // Reset structured address form
+    setOverrideAddress(EMPTY_OVERRIDE);
+    setOverrideErrors({});
+    // Start in the phone-entry phase; the details phase opens after a search.
+    setSearchPhase("phone");
     setShowCustomerModal(true);
   }
 
   function closeCustomerModal() {
     setShowCustomerModal(false);
+  }
+
+  // ── Address form helpers ──
+  // Pre-fill the structured form from the selected customer (name + phone)
+  // so the cashier only types the address fields.
+  function prefillOverrideFromCustomer(customer: typeof selectedCustomer) {
+    if (!customer) return;
+    setOverrideAddress((prev) => ({
+      ...prev,
+      fullName: customer.fullName?.trim() || `${customer.firstName ?? ""} ${customer.lastName ?? ""}`.trim() || prev.fullName,
+      phone: customer.mobileNumber || prev.phone,
+    }));
+  }
+
+  function updateOverrideField(field: keyof CustomerAddressInput, value: string) {
+    // Strip non-digits on the phone and pincode fields. These have a strict
+    // numeric format; if we let letters through, the cashier sees a red
+    // "Enter a 6-digit pincode" error mid-typing, which is noisy. Filtering
+    // at write-time means the format error never fires for these fields
+    // — only the "Required" check can trip them.
+    const cleaned =
+      field === "phone" || field === "postalCode"
+        ? value.replace(/\D/g, "")
+        : value;
+    setOverrideAddress((prev) => ({ ...prev, [field]: cleaned }));
+    if (overrideErrors[field]) {
+      setOverrideErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
+  }
+
+  function validateOverrideFieldOnBlur(field: keyof CustomerAddressInput) {
+    const err = validateOverrideField(field, overrideAddress[field] ?? "");
+    setOverrideErrors((prev) => ({ ...prev, [field]: err ?? undefined }));
+  }
+
+  // Render a single field in the structured form. Used by both the
+  // "Different for this order" path (inside the override radio) and the
+  // "no saved addresses" path so the cashier sees the same fields as the
+  // storefront. Errors are pulled from the shared `overrideErrors` state.
+  function renderOverrideField(
+    field: keyof CustomerAddressInput,
+    label: string,
+    opts?: { required?: boolean; type?: string; placeholder?: string; maxLength?: number; className?: string },
+  ) {
+    const required = opts?.required ?? POS_REQUIRED_FIELDS.includes(field);
+    const err = overrideErrors[field];
+    return (
+      <div className={`pos-addr-field${opts?.className ? ` ${opts.className}` : ""}`}>
+        <label>
+          {label}
+          {required && <span className="pos-addr-required" aria-hidden="true"> *</span>}
+        </label>
+        <input
+          type={opts?.type ?? "text"}
+          inputMode={opts?.type === "tel" ? "numeric" : undefined}
+          placeholder={opts?.placeholder}
+          value={overrideAddress[field] ?? ""}
+          onChange={(e) => updateOverrideField(field, e.target.value)}
+          onBlur={() => validateOverrideFieldOnBlur(field)}
+          maxLength={opts?.maxLength ?? POS_ADDRESS_LIMITS[field].max}
+          className={err ? "has-error" : undefined}
+          aria-invalid={err ? "true" : undefined}
+        />
+        {err && <div className="pos-addr-field__error">{err}</div>}
+      </div>
+    );
+  }
+
+  // Render the full structured address form. Reused in two places so the
+  // cashier sees identical fields whether they're filling a one-off for a
+  // returning customer or typing a first address for a brand-new one.
+  function renderOverrideForm() {
+    return (
+      <div className="pos-addr-form">
+        <div className="pos-addr-form__row">
+          {renderOverrideField("fullName", "Full name")}
+          {renderOverrideField("phone", "Phone", { type: "tel", placeholder: "10-digit mobile" })}
+        </div>
+        {renderOverrideField("addressLine1", "Address line 1", { placeholder: "House no, building, street" })}
+        {renderOverrideField("addressLine2", "Address line 2", { required: false, placeholder: "Area, colony (optional)" })}
+        <div className="pos-addr-form__row pos-addr-form__row--3col">
+          {renderOverrideField("city", "City")}
+          {renderOverrideField("state", "State")}
+          {renderOverrideField("postalCode", "Pincode", { type: "tel", placeholder: "6-digit" })}
+        </div>
+        {renderOverrideField("landmark", "Landmark", { required: false, placeholder: "Near ... (optional)" })}
+      </div>
+    );
   }
 
   async function handleCustomerSearch() {
@@ -243,17 +435,20 @@ export default function POS() {
     }
 
     setIsSearching(true);
-    setHasSearched(false);
     try {
       const response = await api.searchPOSCustomers(customerPhone);
       setSearchResults(response.data || []);
-      setHasSearched(true);
-      
+
       if (response.data.length === 0) {
         // No results - show message
         showToast("No customer found. Enter details to create new.", "info");
         setSelectedCustomer(null);
       }
+
+      // Move to the details phase whether the search found matches or not.
+      // The cashier now sees the name form (no match) or the result list
+      // (match) plus the address section and Continue button.
+      setSearchPhase("details");
     } catch (error) {
       console.error("Failed to search customers:", error);
       showToast("Failed to search customers", "error");
@@ -262,19 +457,67 @@ export default function POS() {
     }
   }
 
-  function selectCustomer(customer: { id: string; mobileNumber: string; firstName: string; lastName: string; fullName: string }) {
+  function selectCustomer(customer: { id: string; mobileNumber: string; firstName: string; lastName: string; email: string | null; fullName: string }) {
     setSelectedCustomer(customer);
     setCustomerPhone(customer.mobileNumber);
     setCustomerFirstName(customer.firstName);
     setCustomerLastName(customer.lastName);
+    setCustomerEmail(customer.email ?? "");
     setSearchResults([]);
+    // Reset the address picker so a different customer's addresses don't
+    // bleed into the UI before the fetch resolves.
+    setCustomerAddresses([]);
+    setSelectedAddressId(null);
+    setUseOverride(false);
+    setSaveOverrideToProfile(false);
+    // Pre-fill the structured form with the customer's name/phone so the
+    // cashier only types the address fields.
+    prefillOverrideFromCustomer(customer);
+    // Fire-and-forget fetch of the customer's saved addresses so the modal
+    // can show a Home/Office radio list when they have any.
+    void fetchCustomerAddresses(customer.id);
   }
 
-  function clearSelectedCustomer() {
+  // Go back to the phone-entry phase from the details phase. Keeps the
+  // typed phone so the cashier can correct a typo, but discards the
+  // search results, selection, typed name, and address form so they
+  // start fresh. Also bound to the "x" on the selected-customer card
+  // — clearing the selection and going back are the same action here.
+  function goBackToPhone() {
     setSelectedCustomer(null);
-    setCustomerPhone("");
+    setSearchResults([]);
     setCustomerFirstName("");
     setCustomerLastName("");
+    setCustomerEmail("");
+    setCustomerAddresses([]);
+    setSelectedAddressId(null);
+    setUseOverride(false);
+    setSaveOverrideToProfile(false);
+    setOverrideAddress(EMPTY_OVERRIDE);
+    setOverrideErrors({});
+    setSearchPhase("phone");
+  }
+
+  async function fetchCustomerAddresses(customerId: string) {
+    setIsLoadingAddresses(true);
+    try {
+      const response = await api.getPOSCustomerAddresses(customerId);
+      const list = response.data || [];
+      setCustomerAddresses(list);
+      // Pre-select the default address (the backend already returns
+      // is-default-first, so the first item is the default when present).
+      const def = list.find(a => a.isDefault) ?? list[0];
+      setSelectedAddressId(def ? def.id : null);
+      setUseOverride(false);
+    } catch (error) {
+      // A failure here shouldn't block the order — cashier can still type a
+      // one-off. We just log and leave the address list empty.
+      console.warn("Failed to fetch customer addresses:", error);
+      setCustomerAddresses([]);
+      setSelectedAddressId(null);
+    } finally {
+      setIsLoadingAddresses(false);
+    }
   }
 
   function getCustomerInitials(name: string): string {
@@ -301,6 +544,19 @@ export default function POS() {
     if (!selectedHasName && !customerFirstName.trim()) {
       showToast("Please enter the customer's first name", "warning");
       return;
+    }
+
+    // If the cashier picked "Different for this order" and started typing,
+    // validate the form now so errors are visible while the modal is still
+    // open. An empty override is fine (falls back to "In-Store Purchase");
+    // only a partially-filled form needs to be re-checked.
+    if (useOverride && isOverrideStructurallyFilled(overrideAddress)) {
+      const { isValid, errors } = validateOverrideForm(overrideAddress);
+      if (!isValid) {
+        setOverrideErrors(errors);
+        showToast(firstOverrideError(errors) ?? "Please fix the address errors", "warning");
+        return;
+      }
     }
 
     // Close modal and proceed with order
@@ -345,34 +601,67 @@ export default function POS() {
         customerFirstName,
         customerLastName,
         customerName: `${customerFirstName} ${customerLastName}`.trim(),
-        customerAddress: customerAddress || undefined,
+        // Optional. The backend writes it only if the user has no email on
+        // file, so this is safe to send every time. Empty string is
+        // collapsed to undefined so the BE treats it as "no change".
+        customerEmail: customerEmail.trim() || undefined,
       };
+
+      // Address: prefer a picked saved address; otherwise the structured
+      // override (the backend decides whether to persist it). If the
+      // override is structurally empty, send nothing — the backend falls
+      // back to the "In-Store Purchase" placeholder.
+      if (selectedAddressId && !useOverride) {
+        orderData.customerAddressId = selectedAddressId;
+      }
+      else if (isOverrideStructurallyFilled(overrideAddress)) {
+        // Validate before sending. The override is also validated on
+        // submit (in handleCustomerContinue), so this is a defensive
+        // double-check.
+        const { isValid, errors } = validateOverrideForm(overrideAddress);
+        if (!isValid) {
+          setOverrideErrors(errors);
+          showToast(firstOverrideError(errors) ?? "Please fix the address errors", "warning");
+          setIsPlacingOrder(false);
+          return;
+        }
+        // Strip the empty optional fields the backend treats as null.
+        const payload: CustomerAddressInput = {
+          fullName: overrideAddress.fullName.trim(),
+          phone: overrideAddress.phone.trim(),
+          addressLine1: overrideAddress.addressLine1.trim(),
+          city: overrideAddress.city.trim(),
+          state: overrideAddress.state.trim(),
+          postalCode: overrideAddress.postalCode.trim(),
+          country: overrideAddress.country?.trim() || "India",
+          ...(overrideAddress.addressLine2?.trim()
+            ? { addressLine2: overrideAddress.addressLine2.trim() }
+            : {}),
+          ...(overrideAddress.landmark?.trim()
+            ? { landmark: overrideAddress.landmark.trim() }
+            : {}),
+        };
+        orderData.customerAddress = payload;
+        // Only meaningful when the customer already has 1+ addresses, but
+        // harmless to send either way — the backend ignores it on the
+        // zero-address path.
+        orderData.saveAddressToProfile = saveOverrideToProfile;
+      }
 
       // Call API to create POS order
       const response = await api.createPOSOrder(orderData);
 
-      // Create bill data from response
+      // Pass the order response directly to the shared Receipt component.
+      // The backend already populates all the fields the receipt needs
+      // (subtotalPaise, discountPaise, extraDiscountPaise, totalPaise,
+      // paidAmountPaise, changeAmountPaise, couponCode, paymentMethod,
+      // paymentReference, items with productName/unitPricePaise/
+      // totalPricePaise). Previously the POS built a local OrderBill
+      // with cart-derived values; the shared receipt uses the canonical
+      // Order shape so the cashier and the admin see identical receipts.
       const order = response.data;
-      const finalTotal = Number(order.totalPaise);
-      const changeAmount = Math.max(0, paidAmountPaise - finalTotal);
-      const trimmedUpiRef = paymentMethod === "upi" ? upiTransactionId.trim() : undefined;
 
-      const bill: OrderBill = {
-        orderNumber: order.orderNumber,
-        date: new Date(order.createdAt),
-        items: [...cart],
-        subTotal: Number(order.subtotalPaise),
-        productDiscount,
-        couponCode: couponCode.trim() || undefined,
-        extraDiscount: extraDiscountPaise,
-        total: finalTotal,
-        paymentMethod,
-        paymentReference: trimmedUpiRef,
-        paidAmount: paidAmountPaise,
-        change: changeAmount,
-      };
-
-      setCurrentBill(bill);
+      setCurrentBill(order);
       setShowBill(true);
 
       // Clear cart after successful order
@@ -779,60 +1068,6 @@ export default function POS() {
     openCustomerModal();
   }
 
-  function handlePrintBill() {
-    if (!billRef.current) return;
-
-    const printContent = billRef.current.innerHTML;
-    const printWindow = window.open("", "_blank", "width=400,height=600");
-    
-    if (printWindow) {
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Receipt - ${currentBill?.orderNumber}</title>
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { 
-              font-family: 'Courier New', monospace; 
-              padding: 10px;
-              font-size: 12px;
-              max-width: 300px;
-              margin: 0 auto;
-            }
-            .receipt-header { text-align: center; margin-bottom: 15px; border-bottom: 1px dashed #000; padding-bottom: 10px; }
-            .receipt-header h1 { font-size: 18px; margin-bottom: 5px; }
-            .receipt-header p { font-size: 11px; color: #333; }
-            .receipt-info { margin-bottom: 15px; border-bottom: 1px dashed #000; padding-bottom: 10px; }
-            .receipt-info p { display: flex; justify-content: space-between; margin-bottom: 3px; }
-            .receipt-items { margin-bottom: 15px; border-bottom: 1px dashed #000; padding-bottom: 10px; }
-            .receipt-item { margin-bottom: 8px; }
-            .receipt-item-name { font-weight: bold; }
-            .receipt-item-details { display: flex; justify-content: space-between; font-size: 11px; }
-            .receipt-summary { margin-bottom: 15px; }
-            .receipt-summary p { display: flex; justify-content: space-between; margin-bottom: 3px; }
-            .receipt-summary .total { font-weight: bold; font-size: 14px; border-top: 1px solid #000; padding-top: 5px; margin-top: 5px; }
-            .receipt-footer { text-align: center; margin-top: 15px; font-size: 11px; }
-            @media print {
-              body { padding: 0; }
-            }
-          </style>
-        </head>
-        <body>
-          ${printContent}
-          <script>
-            window.onload = function() {
-              window.print();
-              window.onafterprint = function() { window.close(); }
-            }
-          </script>
-        </body>
-        </html>
-      `);
-      printWindow.document.close();
-    }
-  }
-
   function closeBillModal() {
     setShowBill(false);
     setCurrentBill(null);
@@ -1115,88 +1350,14 @@ export default function POS() {
         </div>
       </div>
 
-      {/* Bill/Receipt Modal */}
+      {/* Bill/Receipt Modal — shared <ReceiptModal> so this matches
+       * the Admin Orders receipt exactly. */}
       {showBill && currentBill && (
-        <div className="bill-modal-overlay" onClick={closeBillModal}>
-          <div className="bill-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="bill-modal-header">
-              <h2>Order Receipt</h2>
-              <button className="bill-close-btn" onClick={closeBillModal}>×</button>
-            </div>
-            
-            <div className="bill-content" ref={billRef}>
-              <div className="receipt-header">
-                <h1>ARAFINE</h1>
-                <p>Premium Jewelry Store</p>
-                <p>Thank you for shopping with us!</p>
-              </div>
-
-              <div className="receipt-info">
-                <p><span>Order No:</span> <span>{currentBill.orderNumber}</span></p>
-                <p><span>Date:</span> <span>{currentBill.date.toLocaleDateString("en-IN")}</span></p>
-                <p><span>Time:</span> <span>{currentBill.date.toLocaleTimeString("en-IN")}</span></p>
-                <p><span>Payment:</span> <span>{currentBill.paymentMethod.toUpperCase()}</span></p>
-                {currentBill.paymentMethod === "upi" && currentBill.paymentReference && (
-                  <p><span>UPI Ref:</span> <span>{currentBill.paymentReference}</span></p>
-                )}
-              </div>
-
-              <div className="receipt-items">
-                <p className="receipt-items-header">
-                  <span>Item</span>
-                  <span>Qty</span>
-                  <span>Price</span>
-                </p>
-                {currentBill.items.map((item) => (
-                  <div key={item.product.id} className="receipt-item">
-                    <div className="receipt-item-name">{item.product.name}</div>
-                    <div className="receipt-item-details">
-                      <span>{item.quantity} x {formatPrice(item.product.pricePaise)}</span>
-                      <span>{formatPrice(item.product.pricePaise * item.quantity)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="receipt-summary">
-                <p><span>Sub Total:</span> <span>{formatPrice(currentBill.subTotal)}</span></p>
-                {currentBill.productDiscount > 0 && (
-                  <p><span>Product Discount:</span> <span>-{formatPrice(currentBill.productDiscount)}</span></p>
-                )}
-                {currentBill.couponCode && (
-                  <p><span>Coupon Code:</span> <span>{currentBill.couponCode}</span></p>
-                )}
-                {currentBill.extraDiscount > 0 && (
-                  <p><span>Extra Discount:</span> <span>-{formatPrice(currentBill.extraDiscount)}</span></p>
-                )}
-                <p className="total"><span>Total:</span> <span>{formatPrice(currentBill.total)}</span></p>
-                <p><span>Paid:</span> <span>{formatPrice(currentBill.paidAmount)}</span></p>
-                {currentBill.change > 0 && (
-                  <p><span>Change:</span> <span>{formatPrice(currentBill.change)}</span></p>
-                )}
-              </div>
-
-              <div className="receipt-footer">
-                <p>*** Thank You! Visit Again ***</p>
-                <p>www.arafine.com</p>
-              </div>
-            </div>
-
-            <div className="bill-modal-actions">
-              <button className="btn-print" onClick={handlePrintBill}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-                  <polyline points="6 9 6 2 18 2 18 9" />
-                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-                  <rect x="6" y="14" width="12" height="8" />
-                </svg>
-                Print Receipt
-              </button>
-              <button className="btn-done" onClick={closeBillModal}>
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
+        <ReceiptModal
+          order={currentBill}
+          onClose={closeBillModal}
+          title="Order Receipt"
+        />
       )}
 
       {/* Hold Orders Modal */}
@@ -1539,59 +1700,13 @@ export default function POS() {
             </div>
 
             <div className="customer-modal-content">
-              {/* Order Summary */}
-              <div className="customer-order-summary">
-                <h4>Order Summary</h4>
-                <div className="customer-order-row">
-                  <span>Items:</span>
-                  <span>{cart.reduce((sum, item) => sum + item.quantity, 0)}</span>
-                </div>
-                <div className="customer-order-row">
-                  <span>Sub Total:</span>
-                  <span>{formatPrice(subTotal)}</span>
-                </div>
-                {(couponCode || extraDiscount > 0) && (
-                  <div className="customer-order-row">
-                    <span>Discounts:</span>
-                    <span>-{formatPrice(extraDiscount * 100)}</span>
-                  </div>
-                )}
-                <div className="customer-order-row total">
-                  <span>Total:</span>
-                  <span>{formatPrice(Math.max(0, total))}</span>
-                </div>
-              </div>
-
-              {/* Selected Customer Display */}
-              {selectedCustomer && (
-                <div className="selected-customer-info">
-                  <div className="selected-customer-avatar">
-                    {getCustomerInitials(
-                      selectedCustomer.fullName ||
-                      selectedCustomer.firstName ||
-                      selectedCustomer.mobileNumber
-                    )}
-                  </div>
-                  <div className="selected-customer-details">
-                    <div className="selected-customer-name">
-                      {selectedCustomer.fullName?.trim() || (
-                        <span className="selected-customer-name--missing">No name on file</span>
-                      )}
-                    </div>
-                    <div className="selected-customer-phone">{selectedCustomer.mobileNumber}</div>
-                  </div>
-                  <button className="selected-customer-clear" onClick={clearSelectedCustomer} title="Clear">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-                      <line x1="18" y1="6" x2="6" y2="18"/>
-                      <line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                  </button>
-                </div>
-              )}
-
-              {/* Phone Search - only show if no customer selected */}
-              {!selectedCustomer && (
-                <>
+              {searchPhase === "phone" ? (
+                /* ── Phase 1: only the phone input + Search button ── */
+                <div className="customer-phone-phase">
+                  <p className="customer-phase-hint">
+                    Enter the customer's mobile number to find them on file or
+                    create a new profile.
+                  </p>
                   <div className="customer-phone-search">
                     <label>Mobile Number <span style={{color: '#ef4444'}}>*</span></label>
                     <div className="customer-phone-input-wrapper">
@@ -1599,14 +1714,10 @@ export default function POS() {
                         type="tel"
                         placeholder="Enter 10-digit mobile number"
                         value={customerPhone}
+                        autoFocus
                         onChange={(e) => {
                           const value = e.target.value.replace(/\D/g, "").slice(0, 10);
                           setCustomerPhone(value);
-                          // Clear search results when typing
-                          if (searchResults.length > 0 || hasSearched) {
-                            setSearchResults([]);
-                            setHasSearched(false);
-                          }
                         }}
                         onKeyDown={(e) => e.key === "Enter" && customerPhone.length >= 3 && handleCustomerSearch()}
                       />
@@ -1629,9 +1740,115 @@ export default function POS() {
                       </button>
                     </div>
                   </div>
+                </div>
+              ) : (
+                /* ── Phase 2: everything else (name, address, continue) ── */
+                <div className="customer-details-phase">
+                  <button
+                    type="button"
+                    className="customer-change-number"
+                    onClick={goBackToPhone}
+                  >
+                    ← Change number
+                  </button>
 
-                  {/* Search Results */}
-                  {searchResults.length > 0 && (
+                  {/* Order Summary */}
+                  <div className="customer-order-summary">
+                    <h4>Order Summary</h4>
+                    <div className="customer-order-row">
+                      <span>Items:</span>
+                      <span>{cart.reduce((sum, item) => sum + item.quantity, 0)}</span>
+                    </div>
+                    <div className="customer-order-row">
+                      <span>Sub Total:</span>
+                      <span>{formatPrice(subTotal)}</span>
+                    </div>
+                    {(couponCode || extraDiscount > 0) && (
+                      <div className="customer-order-row">
+                        <span>Discounts:</span>
+                        <span>-{formatPrice(extraDiscount * 100)}</span>
+                      </div>
+                    )}
+                    <div className="customer-order-row total">
+                      <span>Total:</span>
+                      <span>{formatPrice(Math.max(0, total))}</span>
+                    </div>
+                  </div>
+
+                  {/* Selected Customer Display */}
+                  {selectedCustomer && (
+                    <div className="selected-customer-info">
+                      <div className="selected-customer-avatar">
+                        {getCustomerInitials(
+                          selectedCustomer.fullName ||
+                          selectedCustomer.firstName ||
+                          selectedCustomer.mobileNumber
+                        )}
+                      </div>
+                      <div className="selected-customer-details">
+                        <div className="selected-customer-name">
+                          {selectedCustomer.fullName?.trim() || (
+                            <span className="selected-customer-name--missing">No name on file</span>
+                          )}
+                        </div>
+                        <div className="selected-customer-phone">{selectedCustomer.mobileNumber}</div>
+                        <div className="selected-customer-email">
+                          {selectedCustomer.email?.trim() || (
+                            <span className="selected-customer-email--missing">No email on file</span>
+                          )}
+                        </div>
+                      </div>
+                      <button className="selected-customer-clear" onClick={goBackToPhone} title="Change number">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                          <line x1="18" y1="6" x2="6" y2="18"/>
+                          <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Email-only block for existing customers who have no
+                      email on file. Shown for a selected customer only when
+                      the main customer-form (with First/Last name) is hidden
+                      — i.e. the customer already has a name, so the only
+                      thing the cashier can usefully add is an email. The
+                      backend will write the email only if the field is
+                      empty, so a no-op is safe. */}
+                  {selectedCustomer
+                    && (selectedCustomer.firstName || "").trim()
+                    && (selectedCustomer.lastName || "").trim()
+                    && !selectedCustomer.email?.trim()
+                    && (
+                      <div className="customer-form">
+                        <div className="customer-form-notice">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="16" x2="12" y2="12"/>
+                            <line x1="12" y1="8" x2="12.01" y2="8"/>
+                          </svg>
+                          <span>
+                            This customer has no email on file. Add it below
+                            if they want a digital receipt — it will be saved
+                            on their profile.
+                          </span>
+                        </div>
+                        <div className="customer-form-row">
+                          <div className="customer-form-group customer-form-group--full">
+                            <label>Email (optional)</label>
+                            <input
+                              type="email"
+                              placeholder="name@example.com"
+                              value={customerEmail}
+                              onChange={(e) => setCustomerEmail(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Search Results — shown when search returned matches but
+                      none has been picked yet. */}
+                  {!selectedCustomer && searchResults.length > 0 && (
                     <div className="customer-search-results">
                       <div className="customer-search-results-header">
                         Found {searchResults.length} customer(s) - Click to select
@@ -1657,72 +1874,167 @@ export default function POS() {
                       ))}
                     </div>
                   )}
-                </>
-              )}
 
-              {/* Customer Form - shown only when there's a name to capture:
-                  - new customer (search returned no match), or
-                  - selected existing customer with no name on file.
-                  Selected customers who already have a name don't need the
-                  form at all - the selected-customer card above is enough. */}
-              {((!selectedCustomer && hasSearched && searchResults.length === 0)
-                || (selectedCustomer
-                  && !((selectedCustomer.firstName || "").trim() || (selectedCustomer.lastName || "").trim())))
-                && (
-                <div className="customer-form">
-                  {selectedCustomer
-                    && !((selectedCustomer.firstName || "").trim() || (selectedCustomer.lastName || "").trim())
+                  {/* Customer Form - shown whenever there's a name to capture:
+                      - no customer selected AND no search results to pick from
+                        (covers "search returned no match"),
+                      - OR selected existing customer with no name on file.
+                      Selected customers who already have a name don't need the
+                      form at all - the selected-customer card above is enough.
+                      The form is hidden while search results are visible so it
+                      doesn't crowd the mid-decision view. */}
+                  {((!selectedCustomer && searchResults.length === 0)
+                    || (selectedCustomer
+                      && !((selectedCustomer.firstName || "").trim() || (selectedCustomer.lastName || "").trim())))
                     && (
-                      <div className="customer-form-notice">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-                          <circle cx="12" cy="12" r="10"/>
-                          <line x1="12" y1="16" x2="12" y2="12"/>
-                          <line x1="12" y1="8" x2="12.01" y2="8"/>
-                        </svg>
-                        <span>
-                          This customer signed up with mobile only. Add their
-                          name below — it will be saved on the order and on
-                          their profile.
-                        </span>
+                    <div className="customer-form">
+                      {selectedCustomer
+                        && !((selectedCustomer.firstName || "").trim() || (selectedCustomer.lastName || "").trim())
+                        && (
+                          <div className="customer-form-notice">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                              <circle cx="12" cy="12" r="10"/>
+                              <line x1="12" y1="16" x2="12" y2="12"/>
+                              <line x1="12" y1="8" x2="12.01" y2="8"/>
+                            </svg>
+                            <span>
+                              This customer signed up with mobile only. Add their
+                              name below — it will be saved on the order and on
+                              their profile.
+                            </span>
+                          </div>
+                        )}
+
+                      <div className="customer-form-row">
+                        <div className="customer-form-group">
+                          <label>
+                            First Name
+                            <span style={{color: '#ef4444'}}> *</span>
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="First name"
+                            value={customerFirstName}
+                            onChange={(e) => setCustomerFirstName(e.target.value)}
+                          />
+                        </div>
+                        <div className="customer-form-group">
+                          <label>Last Name</label>
+                          <input
+                            type="text"
+                            placeholder="Last name"
+                            value={customerLastName}
+                            onChange={(e) => setCustomerLastName(e.target.value)}
+                          />
+                        </div>
                       </div>
-                    )}
+                      <div className="customer-form-row">
+                        <div className="customer-form-group customer-form-group--full">
+                          <label>Email (optional)</label>
+                          <input
+                            type="email"
+                            placeholder="name@example.com"
+                            value={customerEmail}
+                            onChange={(e) => setCustomerEmail(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
-                  <div className="customer-form-row">
-                    <div className="customer-form-group">
-                      <label>
-                        First Name
-                        <span style={{color: '#ef4444'}}> *</span>
+                  {/* Address section - shown in phase 2 only.
+                      Two shapes:
+                      - Customer has 1+ saved addresses → radio list of saved
+                        addresses with an "Override" option at the bottom.
+                      - Customer has 0 saved addresses / no selection → the
+                        structured address form (auto-saved as default on
+                        backend, or skipped for the "In-Store Purchase"
+                        placeholder). */}
+                  <div className="customer-address-section">
+                {isLoadingAddresses && selectedCustomer ? (
+                  <div className="customer-address-loading">Loading saved addresses…</div>
+                ) : !selectedCustomer && searchResults.length > 0 ? (
+                  /* Search results visible but no customer picked yet —
+                     hide the empty form so it doesn't compete with the
+                     selection list. Once the cashier picks a row, this
+                     section re-renders with their addresses (or the
+                     pre-filled structured form for new customers). */
+                  <div className="customer-address-hint">
+                    Select a customer above to see their saved addresses or
+                    enter a new one.
+                  </div>
+                ) : selectedCustomer && customerAddresses.length > 0 ? (
+                  <div className="pos-address-list">
+                    <div className="pos-address-section-label">Delivery address</div>
+                    {customerAddresses.map((a) => (
+                      <label
+                        key={a.id}
+                        className={`pos-address-radio ${selectedAddressId === a.id && !useOverride ? "pos-address-radio--selected" : ""}`}
+                      >
+                        <input
+                          type="radio"
+                          name="customer-address"
+                          checked={selectedAddressId === a.id && !useOverride}
+                          onChange={() => {
+                            setUseOverride(false);
+                            setSelectedAddressId(a.id);
+                          }}
+                        />
+                        <div className="pos-address-radio-body">
+                          <div className="pos-address-radio-header">
+                            {a.label && <span className="pos-address-label-chip">{a.label}</span>}
+                            {a.isDefault && <span className="pos-address-default-badge">Default</span>}
+                            {a.isDraft && <span className="pos-address-draft-badge">Draft</span>}
+                          </div>
+                          <div className="pos-address-radio-summary">
+                            {[a.addressLine1, a.addressLine2, a.city, a.state, a.postalCode]
+                              .filter(Boolean)
+                              .join(", ")}
+                          </div>
+                        </div>
                       </label>
+                    ))}
+                    <label
+                      className={`pos-address-radio pos-address-radio--override ${useOverride ? "pos-address-radio--selected" : ""}`}
+                    >
                       <input
-                        type="text"
-                        placeholder="First name"
-                        value={customerFirstName}
-                        onChange={(e) => setCustomerFirstName(e.target.value)}
+                        type="radio"
+                        name="customer-address"
+                        checked={useOverride}
+                        onChange={() => {
+                          setUseOverride(true);
+                          setSelectedAddressId(null);
+                        }}
                       />
-                    </div>
-                    <div className="customer-form-group">
-                      <label>Last Name</label>
-                      <input
-                        type="text"
-                        placeholder="Last name"
-                        value={customerLastName}
-                        onChange={(e) => setCustomerLastName(e.target.value)}
-                      />
-                    </div>
+                      <div className="pos-address-radio-body">
+                        <div className="pos-address-override-label">Different for this order</div>
+                        {useOverride && (
+                          <>
+                            {renderOverrideForm()}
+                            <label className="pos-address-save-checkbox">
+                              <input
+                                type="checkbox"
+                                checked={saveOverrideToProfile}
+                                onChange={(e) => setSaveOverrideToProfile(e.target.checked)}
+                              />
+                              <span>Save this as a new address on the customer's profile</span>
+                            </label>
+                          </>
+                        )}
+                      </div>
+                    </label>
                   </div>
-
-                  <div className="customer-form-row">
-                    <div className="customer-form-group full-width">
-                      <label>Address (Optional)</label>
-                      <input
-                        type="text"
-                        placeholder="Delivery address"
-                        value={customerAddress}
-                        onChange={(e) => setCustomerAddress(e.target.value)}
-                      />
-                    </div>
+                ) : (
+                  <div className="pos-addr-form-wrap">
+                    {renderOverrideForm()}
+                    <p className="pos-addr-form__hint">
+                      First address on file — auto-saved as default. Leave blank to skip and use the
+                      “In-Store Purchase” placeholder.
+                    </p>
                   </div>
+                )}
                 </div>
+              </div>
               )}
             </div>
 
@@ -1730,23 +2042,25 @@ export default function POS() {
               <button className="customer-btn-cancel" onClick={closeCustomerModal}>
                 Cancel
               </button>
-              <button
-                className="customer-btn-continue"
-                onClick={handleCustomerContinue}
-                disabled={(() => {
-                  if (isPlacingOrder) return true;
-                  if (!selectedCustomer) {
-                    return !customerPhone || customerPhone.length < 10 || !customerFirstName.trim();
-                  }
-                  // For an existing customer with a name on file, the cashier
-                  // can place the order without re-typing the name. For an
-                  // existing customer missing a name, the cashier must fill it.
-                  const selectedHasName = !!((selectedCustomer.firstName || "").trim() || (selectedCustomer.lastName || "").trim());
-                  return !selectedHasName && !customerFirstName.trim();
-                })()}
-              >
-                {isPlacingOrder ? "Processing..." : "Place Order"}
-              </button>
+              {searchPhase === "details" && (
+                <button
+                  className="customer-btn-continue"
+                  onClick={handleCustomerContinue}
+                  disabled={(() => {
+                    if (isPlacingOrder) return true;
+                    if (!selectedCustomer) {
+                      return !customerPhone || customerPhone.length < 10 || !customerFirstName.trim();
+                    }
+                    // For an existing customer with a name on file, the cashier
+                    // can place the order without re-typing the name. For an
+                    // existing customer missing a name, the cashier must fill it.
+                    const selectedHasName = !!((selectedCustomer.firstName || "").trim() || (selectedCustomer.lastName || "").trim());
+                    return !selectedHasName && !customerFirstName.trim();
+                  })()}
+                >
+                  {isPlacingOrder ? "Processing..." : "Place Order"}
+                </button>
+              )}
             </div>
           </div>
         </div>

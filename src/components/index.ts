@@ -6,6 +6,8 @@ export { default as TagInput } from "./TagInput";
 export { default as FilterDrawer } from "./FilterDrawer";
 export { default as SearchBar } from "./SearchBar";
 export { default as StatusDropdown } from "./StatusDropdown";
+export { Receipt } from "./Receipt";
+export { ReceiptModal } from "./ReceiptModal";
 
 // Layout
 export { default as Layout } from "./Layout";

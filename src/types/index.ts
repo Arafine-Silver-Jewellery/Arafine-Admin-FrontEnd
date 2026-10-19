@@ -82,6 +82,7 @@ export interface Order {
   changeAmountPaise: number | null;
   couponCode: string | null;
   paymentMethod: string | null;
+  paymentReference: string | null;
   shippingAddress: ShippingAddress;
   shippingProvider: string | null;
   trackingNumber: string | null;
@@ -123,6 +124,48 @@ export interface ShippingAddress {
   landmark?: string;
 }
 
+// A row in the customer's address book. Different from ShippingAddress:
+// this is the persisted record, has a label, and tracks draft/source
+// metadata for the POS ↔ storefront flow.
+export interface Address {
+  id: string;
+  type: "shipping" | "billing";
+  label: string | null;
+  fullName: string;
+  phone: string;
+  addressLine1: string;
+  addressLine2: string | null;
+  city: string;
+  state: string;
+  country: string;
+  postalCode: string;
+  landmark: string | null;
+  isDefault: boolean;
+  isDraft: boolean;
+  source: "customer" | "pos";
+}
+
+/**
+ * Structured address typed by the cashier at POS. Mirrors the customer-side
+ * `Address` shape (minus id / isDefault / isDraft / source) so the cashier
+ * sees the same fields as the storefront's "Add address" form.
+ *
+ * All fields except `addressLine2` and `landmark` are required — the
+ * cashier either types the full address or skips it (which falls back to
+ * the "In-Store Purchase" placeholder).
+ */
+export interface CustomerAddressInput {
+  fullName: string;
+  phone: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state: string;
+  country?: string;
+  postalCode: string;
+  landmark?: string;
+}
+
 export type OrderStatus =
   | "pending"
   | "confirmed"
@@ -146,6 +189,7 @@ export interface User {
   mobileNumber: string;
   firstName: string;
   lastName: string;
+  email: string | null;
   status: "active" | "suspended" | "deleted";
   createdAt: string;
   updatedAt: string;
