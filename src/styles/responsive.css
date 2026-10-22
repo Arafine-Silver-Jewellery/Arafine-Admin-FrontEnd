@@ -286,22 +286,38 @@
 }
 
 /* Dropdown Menu */
+/* Rendered into a portal on <body> (see StatusDropdown.tsx) and positioned
+   from JS against the trigger's viewport rect, because `.ak-page-body` clips
+   its children with `overflow: hidden`. `top` / `left` / `min-width` are set
+   inline — nothing positional belongs in this rule. */
 .ak-status-dropdown__menu {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: auto;
-  min-width: 100%;
+  position: fixed;
   width: max-content;
   max-width: calc(100vw - 2rem);
-  max-height: 280px;
+  max-height: calc(100vh - 7rem);
   overflow-y: auto;
+  /* Keep a scroll inside the menu from chaining to the page behind it. */
+  overscroll-behavior: contain;
   background: var(--surface);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
-  z-index: 100;
+  /* Above the layout chrome (1100) and modals (1000) now that it's on <body>. */
+  z-index: 1200;
   animation: ak-dropdown-appear 0.15s ease-out;
+}
+
+/* The menu scrolls silently otherwise — a WebKit overlay scrollbar is nearly
+   invisible, so a clipped last option just looks like it isn't there. */
+.ak-status-dropdown__menu::-webkit-scrollbar {
+  width: 8px;
+}
+.ak-status-dropdown__menu::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+}
+.ak-status-dropdown__menu::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 @keyframes ak-dropdown-appear {
