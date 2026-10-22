@@ -388,23 +388,13 @@
   cursor: pointer;
 }
 
-/* ── Draft badge ─────────────────────────────────────────── */
-/* The Status toggle is binary (active / not active), so a draft and an
-   inactive product both render as "off" without this. */
-.ak-draft-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: 999px;
-  border: 1px solid var(--color-champagne, #b78d3f);
-  color: var(--color-champagne-dark, #96722f);
-  background: var(--color-champagne-muted, #ecdcbf);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  line-height: 1.6;
-  white-space: nowrap;
+/* ── Locked toggle ───────────────────────────────────────── */
+/* Drafts can't be switched on from the list — they have to be posted
+   first — so the control stays put but reads as unavailable. */
+.ak-toggle--locked .ak-toggle__slider {
+  background: var(--border-color, #e4e7ec);
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 /* ── Toggle switch ───────────────────────────────────────── */

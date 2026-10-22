@@ -155,13 +155,14 @@ export default function ProductList({ filter = "" }: { filter?: StatusFilter }) 
   }
 
   async function toggleStatus(product: Product) {
-    // Never flip a draft to active from this list. The form's price gate is
-    // client-side only and the admin update schema has no price rule, so this
-    // toggle is a one-click path to publishing a half-finished, zero-priced
-    // product — which the storefront would then serve and let people add to
-    // cart. Send drafts to the form instead.
+    // A draft can't be switched on from here. The form's price gate is
+    // client-side only and the admin update schema has no price rule, so
+    // flipping a draft to active from the list would publish a half-finished,
+    // zero-priced product that the storefront would then serve and let people
+    // add to cart. Say why instead of silently doing nothing — the switch still
+    // looks locked, so a dead click would read as a broken page.
     if (product.status === "draft") {
-      navigate(`/products-module/edit/${product.id}`);
+      toast.warning(`“${product.name}” is still a draft. Post it from the product form before turning it on.`);
       return;
     }
 
@@ -376,15 +377,26 @@ export default function ProductList({ filter = "" }: { filter?: StatusFilter }) 
     {
       key: "status",
       header: "Status",
-      render: (product: Product) => (
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }} onClick={(e) => e.stopPropagation()}>
-          {product.status === "draft" && <span className="ak-draft-badge">Draft</span>}
-          <label className="ak-toggle">
-            <input type="checkbox" checked={product.status === "active"} onChange={() => toggleStatus(product)} />
+      render: (product: Product) => {
+        // The switch is deliberately still clickable on a draft — the click is
+        // what surfaces the "post it first" explanation. Blocking it with
+        // `disabled` would leave no way to find out why it won't budge.
+        const isDraft = product.status === "draft";
+        return (
+          <label
+            className={`ak-toggle${isDraft ? " ak-toggle--locked" : ""}`}
+            onClick={(e) => e.stopPropagation()}
+            title={isDraft ? "Post this product before it can be turned on" : undefined}
+          >
+            <input
+              type="checkbox"
+              checked={product.status === "active"}
+              onChange={() => toggleStatus(product)}
+            />
             <span className="ak-toggle__slider" />
           </label>
-        </div>
-      ),
+        );
+      },
     },
     {
       key: "actions",
