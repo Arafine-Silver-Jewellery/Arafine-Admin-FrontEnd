@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
 import { useToast } from "../../components/Toast";
@@ -98,7 +98,13 @@ export default function ProductList({ filter = "" }: { filter?: "" | "active" | 
     setSelectedIds(new Set());
   }, [currentPage, itemsPerPage, debouncedSearch, statusFilter]);
 
+  // Rows stay on screen while a refetch is in flight, so a stale response
+  // landing last would be visible. This sequence number lets us drop any
+  // response a newer request has already superseded.
+  const requestSeq = useRef(0);
+
   async function loadProducts() {
+    const seq = ++requestSeq.current;
     setLoading(true);
     try {
       const response = await api.getProducts({
@@ -108,14 +114,18 @@ export default function ProductList({ filter = "" }: { filter?: "" | "active" | 
         status: statusFilter === "out_of_stock" ? undefined : statusFilter || undefined,
         stock: statusFilter === "out_of_stock" ? "out" : undefined,
       });
+
+      if (seq !== requestSeq.current) return;
+
       setProducts(response.data || []);
       setTotalItems(response.pagination?.total || 0);
       setTotalPages(response.pagination?.totalPages || 0);
     } catch (error) {
+      if (seq !== requestSeq.current) return;
       console.error("Failed to load products:", error);
       toast.error("Failed to load products");
     } finally {
-      setLoading(false);
+      if (seq === requestSeq.current) setLoading(false);
     }
   }
 
