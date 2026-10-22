@@ -1091,17 +1091,17 @@
 }
 
 /* Toast */
+/* Layout belongs to toast.css. This file only re-skins the colour variants
+   below — the `position: fixed; top; right` that used to sit here pinned every
+   toast to the same corner, so a burst of them stacked on top of each other
+   instead of forming a column. The container is the positioned element now. */
 .toast {
-  position: fixed;
-  top: 20px;
-  right: 20px;
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 14px 20px;
   border-radius: 10px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  z-index: 9999;
   animation: toastSlideIn 0.3s ease-out;
   max-width: 400px;
 }
