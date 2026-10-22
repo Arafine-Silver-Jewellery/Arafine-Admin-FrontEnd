@@ -339,32 +339,6 @@
   transform: translateX(20px);
 }
 
-.anp-toggle-small {
-  width: 36px;
-  height: 20px;
-}
-
-.anp-toggle-small .anp-toggle-slider:before {
-  height: 14px;
-  width: 14px;
-}
-
-.anp-toggle-small input:checked + .anp-toggle-slider:before {
-  transform: translateX(16px);
-}
-
-/* Label with toggle */
-.anp-label-with-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.75rem;
-}
-
-.anp-label-with-toggle label {
-  margin-bottom: 0;
-}
-
 /* Rich Editor */
 .anp-rich-editor {
   border: 1px solid #e5e7eb;
@@ -804,66 +778,42 @@
   line-height: 1;
 }
 
-.anp-color-picker {
+/* Fixed three-finish range — see COLOR_PRESETS in AddNewProduct.tsx. */
+.anp-color-presets {
   display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.anp-color-preset {
+  display: inline-flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
   background: #fff;
-}
-
-.anp-color-picker input[type="color"] {
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  background: transparent;
-}
-
-.anp-color-input {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
   border: 1px solid #e5e7eb;
   border-radius: 6px;
-  padding: 0 0.75rem;
-}
-
-.anp-color-input span {
-  color: #6b7280;
-  font-size: 0.875rem;
-}
-
-.anp-color-input input {
-  flex: 1;
-  border: none;
-  padding: 0.625rem 0;
-  font-size: 0.875rem;
-  font-family: monospace;
-  text-transform: uppercase;
-  outline: none;
-}
-
-.anp-btn-primary {
-  padding: 0.625rem 1rem;
-  background: #9a7b4f;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  color: #374151;
   cursor: pointer;
-  transition: background 0.2s;
-  white-space: nowrap;
+  transition: border-color 0.2s, background 0.2s;
 }
 
-.anp-btn-primary:hover {
-  background: #7d6440;
+.anp-color-preset:hover {
+  border-color: #9a7b4f;
+}
+
+.anp-color-preset--selected {
+  border-color: #9a7b4f;
+  background: #fdf8ef;
+  font-weight: 500;
+}
+
+/* Ring the swatch so the selected finish is obvious without relying on the
+   chip's tint alone. */
+.anp-color-preset--selected .anp-color-dot {
+  box-shadow: 0 0 0 2px #fff, 0 0 0 3px #9a7b4f;
 }
 
 /* Attribute Tags */
@@ -1112,13 +1062,5 @@
   .anp-btn-submit {
     width: 100%;
     text-align: center;
-  }
-
-  .anp-color-picker {
-    flex-wrap: wrap;
-  }
-
-  .anp-color-input {
-    min-width: 120px;
   }
 }

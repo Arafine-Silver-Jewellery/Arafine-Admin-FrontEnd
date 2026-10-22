@@ -42,6 +42,16 @@ interface FormData {
   metaIndex: "index" | "noindex";
 }
 
+// The range only comes in these three finishes, so the Variations card offers
+// them as a fixed set rather than a free colour picker — an arbitrary hex let
+// products drift outside the range the storefront and the warehouse stock.
+// `hex` is what gets stored on the product, so it has to stay stable.
+const COLOR_PRESETS = [
+  { id: "gold-plated", name: "Gold Plated", hex: "#D4AF37" },
+  { id: "rose-gold-platinum", name: "Rose Gold Platinum", hex: "#B76E79" },
+  { id: "silver", name: "Silver", hex: "#C0C0C0" },
+] as const;
+
 const initialFormData: FormData = {
   name: "",
   sku: "",
@@ -192,7 +202,6 @@ export default function AddNewProduct() {
   
   // Product variation toggle
   const [hasVariations, setHasVariations] = useState(false);
-  const [enableColors, setEnableColors] = useState(false);
   const [selectedColors, setSelectedColors] = useState<{ id: string; name: string; hex?: string }[]>([]);
   const [selectedAttributes, setSelectedAttributes] = useState<{ id: string; name: string }[]>([]);
   const [colorWiseImages, setColorWiseImages] = useState<{ colorId: string; colorName: string; images: { file: File | null; preview: string }[] }[]>([]);
@@ -323,7 +332,6 @@ export default function AddNewProduct() {
         setHasVariations(true);
         
         if (product.colors && product.colors.length > 0) {
-          setEnableColors(true);
           setSelectedColors(product.colors.map((c: any) => ({
             id: c.id,
             name: c.name,
@@ -610,6 +618,29 @@ export default function AddNewProduct() {
     setFormData(prev => ({ ...prev, sku: `${prefix}-${random}` }));
   }
 
+  function removeColor(colorId: string) {
+    setSelectedColors(prev => prev.filter(c => c.id !== colorId));
+    // `colorWiseImages` carries a row per colour, so it has to drop in step or
+    // the uploads would survive for a colour that's no longer selected.
+    setColorWiseImages(prev => prev.filter(c => c.colorId !== colorId));
+  }
+
+  /** Matches on hex, not the preset id — colours loaded from an existing
+   *  product carry the database's UUID, so a preset id never matches those. */
+  function findSelectedColor(hex: string) {
+    return selectedColors.find(c => c.hex?.toUpperCase() === hex.toUpperCase());
+  }
+
+  function toggleColor(preset: (typeof COLOR_PRESETS)[number]) {
+    const existing = findSelectedColor(preset.hex);
+    if (existing) {
+      removeColor(existing.id);
+      return;
+    }
+    setSelectedColors(prev => [...prev, { id: preset.id, name: preset.name, hex: preset.hex }]);
+    setColorWiseImages(prev => [...prev, { colorId: preset.id, colorName: preset.name, images: [] }]);
+  }
+
   async function handleSubmit(asDraft = false) {
     // Still required on a draft: generateSlug() needs a name, and without
     // this you'd accumulate a list of rows all called "New Product".
@@ -728,7 +759,7 @@ export default function AddNewProduct() {
         productData.images = allImages;
       }
 
-      if (hasVariations && enableColors && selectedColors.length > 0) {
+      if (hasVariations && selectedColors.length > 0) {
         const colorsWithUploadedImages = await Promise.all(
           colorWiseImages.map(async (colorItem) => {
             const uploadedImages = await Promise.all(
@@ -810,7 +841,6 @@ export default function AddNewProduct() {
       setMetaImagePreview("");
       setExistingMetaImageUrl("");
       setHasVariations(false);
-      setEnableColors(false);
       setSelectedColors([]);
       setSelectedAttributes([]);
       setColorWiseImages([]);
@@ -1115,7 +1145,6 @@ export default function AddNewProduct() {
                     onChange={(e) => {
                       setHasVariations(e.target.checked);
                       if (!e.target.checked) {
-                        setEnableColors(false);
                         setSelectedColors([]);
                         setSelectedAttributes([]);
                         setColorWiseImages([]);
@@ -1130,26 +1159,9 @@ export default function AddNewProduct() {
               <div>
                 <div className="anp-row-2">
                   <div className="anp-form-group">
-                    <div className="anp-label-with-toggle">
-                      <label>Colors</label>
-                      <label className="anp-toggle anp-toggle-small">
-                        <input
-                          type="checkbox"
-                          checked={enableColors}
-                          onChange={(e) => {
-                            setEnableColors(e.target.checked);
-                            if (!e.target.checked) {
-                              setSelectedColors([]);
-                              setColorWiseImages([]);
-                            }
-                          }}
-                        />
-                        <span className="anp-toggle-slider"></span>
-                      </label>
-                    </div>
-                    
-                    {enableColors && (
-                      <>
+                    <label>Colors</label>
+
+                    <>
                         {selectedColors.length > 0 && (
                           <div className="anp-color-tags">
                             {selectedColors.map(color => (
@@ -1158,41 +1170,31 @@ export default function AddNewProduct() {
                                 {color.name}
                                 <button
                                   type="button"
-                                  onClick={() => {
-                                    setSelectedColors(prev => prev.filter(c => c.id !== color.id));
-                                    setColorWiseImages(prev => prev.filter(c => c.colorId !== color.id));
-                                  }}
+                                  aria-label={`Remove ${color.name}`}
+                                  onClick={() => removeColor(color.id)}
                                 >×</button>
                               </span>
                             ))}
                           </div>
                         )}
-                        <div className="anp-color-picker">
-                          <input type="color" id="colorPicker" />
-                          <div className="anp-color-input">
-                            <span>#</span>
-                            <input type="text" id="colorNameInput" placeholder="F54927" maxLength={6} />
-                          </div>
-                          <button
-                            type="button"
-                            className="anp-btn-primary"
-                            onClick={() => {
-                              const colorPicker = document.getElementById("colorPicker") as HTMLInputElement;
-                              const colorNameInput = document.getElementById("colorNameInput") as HTMLInputElement;
-                              const hex = colorPicker?.value?.toUpperCase() || "#000000";
-                              const colorName = colorNameInput?.value?.toUpperCase() || hex.replace("#", "");
-                              
-                              if (selectedColors.some(c => c.hex?.toUpperCase() === hex)) return;
-                              
-                              const newColor = { id: `color-${Date.now()}`, name: `#${colorName}`, hex: hex };
-                              setSelectedColors(prev => [...prev, newColor]);
-                              setColorWiseImages(prev => [...prev, { colorId: newColor.id, colorName: newColor.name, images: [] }]);
-                              if (colorNameInput) colorNameInput.value = "";
-                            }}
-                          >Add Color</button>
+                        <div className="anp-color-presets">
+                          {COLOR_PRESETS.map(preset => {
+                            const isSelected = !!findSelectedColor(preset.hex);
+                            return (
+                              <button
+                                key={preset.id}
+                                type="button"
+                                className={`anp-color-preset${isSelected ? " anp-color-preset--selected" : ""}`}
+                                aria-pressed={isSelected}
+                                onClick={() => toggleColor(preset)}
+                              >
+                                <span className="anp-color-dot" style={{ background: preset.hex }} />
+                                {preset.name}
+                              </button>
+                            );
+                          })}
                         </div>
-                      </>
-                    )}
+                    </>
                   </div>
 
                   <div className="anp-form-group">
@@ -1225,7 +1227,7 @@ export default function AddNewProduct() {
                 </div>
 
                 {/* Color-wise images */}
-                {enableColors && selectedColors.length > 0 && (
+                {selectedColors.length > 0 && (
                   <div className="anp-color-images">
                     <h4>Product Color Wise Images</h4>
                     <p className="anp-hint">Upload images for each color variation.</p>
