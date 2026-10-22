@@ -14,6 +14,12 @@ interface Column<T> {
 interface DataTableProps<T> {
   columns: Column<T>[];
   data: T[];
+  /**
+   * True while a request is in flight. The table picks its own in-flight
+   * presentation from the data: full loader when there is nothing to show yet,
+   * dimmed rows + progress bar when a refetch is replacing rows already on
+   * screen. Callers should not expect `loading` to blank the table.
+   */
   loading?: boolean;
   loadingText?: string;
   emptyIcon?: "search" | "box" | "file" | "users" | "cart" | "bell" | "folder" | "image";
@@ -56,8 +62,19 @@ export default function DataTable<T>({
 }: DataTableProps<T>) {
   const hasPagination = currentPage !== undefined && totalPages !== undefined && onPageChange !== undefined;
 
+  // Two distinct in-flight states, driven off the single `loading` prop:
+  //
+  //   - Nothing on screen yet  -> full loader, replacing everything. Correct for
+  //     the first paint of a page.
+  //   - Rows already rendered   -> keep them, dim them, show a progress bar. A
+  //     filter/page/search change must not blank the table the user is reading;
+  //     replacing 20 rows with one spinner row collapses the table height and
+  //     makes the page jump, which reads as a full reload rather than a refresh.
+  const showLoader = loading && data.length === 0;
+  const showRefresh = loading && data.length > 0;
+
   return (
-    <div className={`ak-table-wrapper ${className}`}>
+    <div className={`ak-table-wrapper ${showRefresh ? "ak-table-wrapper--refreshing" : ""} ${className}`}>
       <div className="ak-table-scroll">
         <table className="ak-table">
           <thead>
@@ -73,7 +90,7 @@ export default function DataTable<T>({
             </tr>
           </thead>
           <tbody>
-            {loading ? (
+            {showLoader ? (
               <tr>
                 <td colSpan={columns.length} className="ak-table__loading">
                   <div className="ak-table__loader">
@@ -118,7 +135,7 @@ export default function DataTable<T>({
         </table>
       </div>
 
-      {hasPagination && !loading && data.length > 0 && (
+      {hasPagination && data.length > 0 && (
         <div className="ak-table__footer">
           <Pagination
             currentPage={currentPage}

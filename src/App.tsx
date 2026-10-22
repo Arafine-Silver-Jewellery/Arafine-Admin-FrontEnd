@@ -75,6 +75,7 @@ function App() {
             <Route path="products-module" element={<RequirePermission permission="products-module"><ProductList /></RequirePermission>} />
             <Route path="products-module/active" element={<RequirePermission permission="products-module"><ProductList filter="active" /></RequirePermission>} />
             <Route path="products-module/inactive" element={<RequirePermission permission="products-module"><ProductList filter="inactive" /></RequirePermission>} />
+            <Route path="products-module/drafts" element={<RequirePermission permission="products-module"><ProductList filter="draft" /></RequirePermission>} />
             <Route path="products-module/out-of-stock" element={<RequirePermission permission="products-module"><ProductList filter="out_of_stock" /></RequirePermission>} />
             <Route path="products-module/add-new" element={<RequirePermission permission="products-module"><AddNewProduct /></RequirePermission>} />
             <Route path="products-module/view/:id" element={<RequirePermission permission="products-module"><ProductView /></RequirePermission>} />

@@ -101,6 +101,11 @@ export default function SubCategories() {
     loadParentCategories();
   }, []);
 
+  // Rows stay on screen while a refetch is in flight, so a stale response
+  // landing last would be visible. This sequence number lets us drop any
+  // response a newer request has already superseded.
+  const requestSeq = useRef(0);
+
   // Load sub categories with pagination
   useEffect(() => {
     loadSubCategories();
@@ -116,30 +121,31 @@ export default function SubCategories() {
   }
 
   async function loadSubCategories() {
+    const seq = ++requestSeq.current;
     setLoading(true);
     try {
       const response = await api.getSubCategories({
         page: currentPage,
         limit: itemsPerPage,
         search: debouncedSearch || undefined,
+        isActive: statusFilter === "active" ? true : statusFilter === "inactive" ? false : undefined,
       });
-      let data = response.data || [];
 
-      // Apply status filter
-      if (statusFilter === "active") {
-        data = data.filter((c: Category) => c.isActive);
-      } else if (statusFilter === "inactive") {
-        data = data.filter((c: Category) => !c.isActive);
-      }
+      if (seq !== requestSeq.current) return;
 
-      setSubCategories(data);
-      setTotalItems(response.pagination?.total || data.length);
+      // The status filter is applied by the BE *before* it paginates, so the
+      // `total` we render in the header pill already accounts for it. Filtering
+      // here in JS would have left the pill showing the unfiltered total while
+      // the table showed only the matching rows.
+      setSubCategories(response.data || []);
+      setTotalItems(response.pagination?.total || 0);
       setTotalPages(response.pagination?.totalPages || 1);
     } catch (error) {
+      if (seq !== requestSeq.current) return;
       console.error("Failed to load sub categories:", error);
       toast.error("Failed to load sub categories");
     } finally {
-      setLoading(false);
+      if (seq === requestSeq.current) setLoading(false);
     }
   }
 
@@ -148,7 +154,7 @@ export default function SubCategories() {
     if (!subCategory) return;
     try {
       await api.updateCategory(id, { isActive: !subCategory.isActive });
-      setSubCategories((prev) => prev.map((cat) => (cat.id === id ? { ...cat, isActive: !cat.isActive } : cat)));
+      setSubCategories((prev) => prev.map((c) => (c.id === id ? { ...c, isActive: !subCategory.isActive } : c)));
       toast.success(`Sub category ${!subCategory.isActive ? "activated" : "deactivated"}`);
     } catch (error) {
       console.error("Failed to update sub category status:", error);
@@ -423,7 +429,7 @@ export default function SubCategories() {
             </div>
           </div>
           <div className="ak-toolbar__filters">
-            <StatusDropdown options={statusFilterOptions} value={statusFilter} onChange={setStatusFilter} placeholder="All Status" size="sm" />
+            <StatusDropdown options={statusFilterOptions} value={statusFilter} onChange={(v) => { setStatusFilter(v); setCurrentPage(1); }} placeholder="All Status" size="sm" />
           </div>
         </div>
 

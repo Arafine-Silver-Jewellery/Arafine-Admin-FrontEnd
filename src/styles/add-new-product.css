@@ -1,0 +1,1066 @@
+/* ================================================
+   ADD NEW PRODUCT - Redesigned Layout Styles
+   ================================================ */
+
+.anp-container {
+  /* No top padding: .main-content-inner in layout.css already applies
+     --page-pad-y (1.5rem). Repeating it here stacked two full paddings and
+     pushed both columns ~24px down before anything was drawn. Sides and
+     bottom keep their padding — .anp-footer bleeds against those. */
+  padding: 0 1.5rem 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Error Banner */
+.anp-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Loading */
+.anp-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem;
+  color: #6b7280;
+}
+
+.anp-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #9a7b4f;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Main Layout */
+.anp-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .anp-layout {
+    grid-template-columns: 1fr;
+  }
+  
+  .anp-sidebar {
+    order: -1;
+  }
+}
+
+/* Sections */
+.anp-section {
+  margin-bottom: 1.5rem;
+}
+
+.anp-section-header {
+  margin-bottom: 1rem;
+}
+
+/* Section headers now live INSIDE .anp-card so every card in the main column
+   starts level with the first card in the sidebar. */
+.anp-card > .anp-section-header,
+.anp-card > .anp-section-header-with-toggle {
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.anp-section-header h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 0.25rem 0;
+}
+
+.anp-section-header p {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.anp-section-header-with-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.anp-section-header-with-toggle h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 0.25rem 0;
+}
+
+.anp-section-header-with-toggle p {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* Cards */
+.anp-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 1.5rem;
+}
+
+.anp-sidebar-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.anp-sidebar-card h3 {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 0.75rem 0;
+}
+
+/* Form Groups */
+.anp-form-group {
+  margin-bottom: 1.25rem;
+}
+
+.anp-form-group:last-child {
+  margin-bottom: 0;
+}
+
+.anp-form-group label {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.anp-form-group input[type="text"],
+.anp-form-group input[type="number"],
+.anp-form-group input[type="url"],
+.anp-form-group select,
+.anp-form-group textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #1f2937;
+  background: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.anp-form-group input:focus,
+.anp-form-group select:focus,
+.anp-form-group textarea:focus {
+  outline: none;
+  border-color: #9a7b4f;
+  box-shadow: 0 0 0 3px rgba(154, 123, 79, 0.1);
+}
+
+.anp-form-group input::placeholder,
+.anp-form-group textarea::placeholder {
+  color: #9ca3af;
+}
+
+.anp-form-group select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.25rem;
+  padding-right: 2.5rem;
+}
+
+.anp-form-group select:disabled {
+  background-color: #f9fafb;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.anp-form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* Row layouts */
+.anp-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.anp-row-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .anp-row-2,
+  .anp-row-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Input with button */
+.anp-input-with-btn {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.anp-input-with-btn input {
+  flex: 1;
+}
+
+.anp-btn-generate {
+  padding: 0.75rem 1rem;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.anp-btn-generate:hover {
+  background: #e5e7eb;
+}
+
+/* Input with prefix */
+.anp-input-prefix {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.anp-input-prefix span {
+  position: absolute;
+  left: 1rem;
+  color: #6b7280;
+  font-size: 0.875rem;
+  pointer-events: none;
+}
+
+.anp-input-prefix input {
+  padding-left: 2rem;
+}
+
+/* Input with select */
+.anp-input-with-select {
+  display: flex;
+  gap: 0;
+}
+
+.anp-input-with-select input {
+  flex: 1;
+  border-radius: 8px 0 0 8px;
+  border-right: none;
+}
+
+.anp-input-with-select select {
+  width: 100px;
+  border-radius: 0 8px 8px 0;
+  padding-right: 2rem;
+}
+
+/* Toggle Switch */
+.anp-toggle {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.anp-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.anp-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: #d1d5db;
+  transition: 0.3s;
+  border-radius: 24px;
+}
+
+.anp-toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background: white;
+  transition: 0.3s;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.anp-toggle input:checked + .anp-toggle-slider {
+  background: #9a7b4f;
+}
+
+.anp-toggle input:checked + .anp-toggle-slider:before {
+  transform: translateX(20px);
+}
+
+/* Rich Editor */
+.anp-rich-editor {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.anp-editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: 0.5rem;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.anp-editor-toolbar button {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #374151;
+  transition: all 0.15s;
+}
+
+.anp-editor-toolbar button:hover {
+  background: #e5e7eb;
+}
+
+.anp-toolbar-divider {
+  width: 1px;
+  height: 20px;
+  background: #e5e7eb;
+  margin: 0 4px;
+}
+
+.anp-editor-content {
+  min-height: 120px;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  outline: none;
+}
+
+.anp-editor-content:empty:before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+/* Visibility Card */
+.anp-visibility-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.anp-visibility-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.anp-visibility-item:first-of-type {
+  padding-top: 0;
+}
+
+.anp-visibility-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.anp-visibility-desc {
+  display: block;
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.125rem;
+}
+
+/* Product Images Grid */
+.anp-product-images-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.anp-product-image-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.anp-product-image-item.primary {
+  border: 2px solid #9a7b4f;
+}
+
+.anp-product-image-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.anp-primary-badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  background: #9a7b4f;
+  color: #fff;
+  font-size: 0.625rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.anp-image-actions {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.anp-product-image-item:hover .anp-image-actions {
+  opacity: 1;
+}
+
+.anp-image-actions button {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.anp-image-actions button:first-child {
+  background: #fff;
+  color: #9a7b4f;
+  border: 1px solid #9a7b4f;
+}
+
+.anp-image-actions button:last-child {
+  background: #ef4444;
+  color: #fff;
+}
+
+/* Upload Area */
+.anp-upload-area {
+  border: 2px dashed #e5e7eb;
+  border-radius: 8px;
+  padding: 2rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #fafafa;
+}
+
+.anp-upload-area:hover {
+  border-color: #9a7b4f;
+  background: #fdf9f3;
+}
+
+.anp-upload-area svg {
+  width: 32px;
+  height: 32px;
+  stroke: #9ca3af;
+  margin-bottom: 0.75rem;
+}
+
+.anp-upload-area p {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.anp-upload-area strong {
+  color: #1f2937;
+}
+
+/* Hint text */
+.anp-hint {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin: 0.5rem 0 0 0;
+  line-height: 1.5;
+}
+
+/* Gallery Grid */
+.anp-gallery-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.anp-gallery-item {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.anp-gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.anp-gallery-item button {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.anp-gallery-item:hover button {
+  opacity: 1;
+}
+
+.anp-gallery-add {
+  width: 80px;
+  height: 80px;
+  border: 2px dashed #e5e7eb;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #9ca3af;
+  transition: all 0.2s;
+  gap: 4px;
+}
+
+.anp-gallery-add:hover {
+  border-color: #9a7b4f;
+  color: #9a7b4f;
+}
+
+.anp-gallery-add svg {
+  width: 20px;
+  height: 20px;
+}
+
+.anp-gallery-add span {
+  font-size: 0.6875rem;
+}
+
+/* SEO Preview */
+.anp-seo-preview {
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.anp-seo-url {
+  display: block;
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-bottom: 0.25rem;
+}
+
+.anp-seo-title {
+  display: block;
+  font-size: 1rem;
+  color: #9a7b4f;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.anp-seo-desc {
+  display: block;
+  font-size: 0.8125rem;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+/* Meta Image */
+.anp-meta-image-preview {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.anp-meta-image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.anp-meta-image-preview button {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.anp-meta-image-upload {
+  width: 100px;
+  height: 100px;
+  border: 2px dashed #e5e7eb;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #9ca3af;
+  transition: all 0.2s;
+  gap: 4px;
+}
+
+.anp-meta-image-upload:hover {
+  border-color: #9a7b4f;
+  color: #9a7b4f;
+}
+
+.anp-meta-image-upload svg {
+  width: 20px;
+  height: 20px;
+}
+
+.anp-meta-image-upload span {
+  font-size: 0.75rem;
+}
+
+/* Radio Group */
+.anp-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+/* Scoped to beat `.anp-form-group label` (0,1,1), which otherwise wins on
+   specificity and turns each option into an uppercase 11px block element —
+   killing the flex `gap` below and gluing the radio to its label. */
+.anp-form-group .anp-radio {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: #374151;
+  text-transform: none;
+  letter-spacing: normal;
+  margin-bottom: 0;
+}
+
+.anp-radio input {
+  width: 18px;
+  height: 18px;
+  accent-color: #9a7b4f;
+}
+
+/* Color Picker Section */
+.anp-color-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.anp-color-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+}
+
+.anp-color-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.anp-color-tag button {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* Fixed three-finish range — see COLOR_PRESETS in AddNewProduct.tsx. */
+.anp-color-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.anp-color-preset {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  color: #374151;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.anp-color-preset:hover {
+  border-color: #9a7b4f;
+}
+
+.anp-color-preset--selected {
+  border-color: #9a7b4f;
+  background: #fdf8ef;
+  font-weight: 500;
+}
+
+/* Ring the swatch so the selected finish is obvious without relying on the
+   chip's tint alone. */
+.anp-color-preset--selected .anp-color-dot {
+  box-shadow: 0 0 0 2px #fff, 0 0 0 3px #9a7b4f;
+}
+
+/* Attribute Tags */
+.anp-attr-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.anp-attr-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  background: #f3f4f6;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  color: #374151;
+}
+
+.anp-attr-tag button {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* Color Wise Images */
+.anp-color-images {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.anp-color-images h4 {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 0.25rem 0;
+}
+
+.anp-color-image-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  margin-top: 0.75rem;
+}
+
+.anp-color-label {
+  min-width: 80px;
+  padding: 0.5rem 1rem;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #3b82f6;
+  text-align: center;
+}
+
+.anp-color-image-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.anp-color-image-item {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.anp-color-image-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.anp-color-image-item button {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.anp-color-image-add {
+  width: 60px;
+  height: 60px;
+  border: 2px dashed #d1d5db;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #9ca3af;
+  gap: 2px;
+  transition: all 0.2s;
+}
+
+.anp-color-image-add:hover {
+  border-color: #9a7b4f;
+  color: #9a7b4f;
+}
+
+.anp-color-image-add svg {
+  width: 18px;
+  height: 18px;
+}
+
+.anp-color-image-add span {
+  font-size: 0.625rem;
+}
+
+/* Footer */
+.anp-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  background: #fff;
+  border-top: 1px solid #e5e7eb;
+  /* No negative left/right bleed: this bar sits inside .anp-main, whose
+     column is exactly as wide as the cards above it. The -1.5rem sides were
+     written for a card-relative footer and pushed it 48px wider than the
+     form. The bottom -1.5rem still pulls it onto the container's bottom
+     padding edge. */
+  margin: 1.5rem 0 -1.5rem 0;
+  border-radius: 0 0 12px 12px;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+
+.anp-footer-note {
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+.anp-footer-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.anp-btn-reset {
+  padding: 0.75rem 1.5rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.anp-btn-reset:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.anp-btn-draft {
+  padding: 0.75rem 1.5rem;
+  background: #fff;
+  border: 1px solid #9a7b4f;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #9a7b4f;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.anp-btn-draft:hover {
+  background: #fdf9f3;
+}
+
+.anp-btn-submit {
+  padding: 0.75rem 1.5rem;
+  background: #9a7b4f;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.anp-btn-submit:hover {
+  background: #7d6440;
+}
+
+.anp-btn-reset:disabled,
+.anp-btn-draft:disabled,
+.anp-btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .anp-container {
+    padding: 0 1rem 1rem;
+  }
+
+  .anp-card {
+    padding: 1rem;
+  }
+
+  .anp-footer {
+    flex-direction: column;
+    gap: 1rem;
+    margin: 1.5rem -1rem -1rem -1rem;
+    padding: 1rem;
+  }
+
+  .anp-footer-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .anp-btn-reset,
+  .anp-btn-draft,
+  .anp-btn-submit {
+    width: 100%;
+    text-align: center;
+  }
+}

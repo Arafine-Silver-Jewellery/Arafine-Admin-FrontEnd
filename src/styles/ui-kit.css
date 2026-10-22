@@ -388,6 +388,15 @@
   cursor: pointer;
 }
 
+/* ── Locked toggle ───────────────────────────────────────── */
+/* Drafts can't be switched on from the list — they have to be posted
+   first — so the control stays put but reads as unavailable. */
+.ak-toggle--locked .ak-toggle__slider {
+  background: var(--border-color, #e4e7ec);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
 /* ── Toggle switch ───────────────────────────────────────── */
 .ak-toggle {
   position: relative;
@@ -652,11 +661,40 @@
    DATA TABLE COMPONENT
    ============================================================ */
 .ak-table-wrapper {
+  position: relative;
   background: var(--surface);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
+}
+
+/* Refetching: rows already on screen stay put (dimmed and inert) so changing a
+   filter or a page doesn't collapse the table height and jump the layout. A
+   2px bar along the top edge carries the "updating" signal instead. */
+.ak-table-wrapper--refreshing .ak-table-scroll {
+  opacity: 0.5;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.ak-table-wrapper--refreshing::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-champagne), transparent);
+  background-size: 40% 100%;
+  background-repeat: no-repeat;
+  animation: ak-refresh-sweep 1.1s ease-in-out infinite;
+}
+
+@keyframes ak-refresh-sweep {
+  0%   { background-position: -40% 0; }
+  100% { background-position: 140% 0; }
 }
 
 .ak-table-scroll {

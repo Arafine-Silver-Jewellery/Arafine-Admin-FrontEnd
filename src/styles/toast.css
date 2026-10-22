@@ -32,6 +32,34 @@
   }
 }
 
+/* Exit state. The node stays mounted for the length of this animation (see
+   EXIT_MS in Toast.tsx) so the toasts below it slide up as one leaves instead
+   of blinking out. `forwards` holds the end state so it doesn't pop back. */
+.toast--leaving {
+  animation: slideOut 0.22s ease forwards;
+  pointer-events: none;
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(28px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+  .toast--leaving {
+    animation: none;
+  }
+}
+
 .toast-icon {
   flex-shrink: 0;
   width: 24px;

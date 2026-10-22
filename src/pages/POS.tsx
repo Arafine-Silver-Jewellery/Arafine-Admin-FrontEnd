@@ -1309,9 +1309,19 @@ export default function POS() {
           <div className="paid-amount">
             <span>Paid Amount:</span>
             <input
-              type="number"
+              // text + inputMode="decimal" instead of type="number": the native
+              // number input renders those up/down stepper arrows, which get in
+              // the way when a cashier is typing a tendered amount. Mobile still
+              // gets a numeric keypad from inputMode.
+              type="text"
+              inputMode="decimal"
               value={paidAmount}
-              onChange={(e) => setPaidAmount(e.target.value)}
+              onChange={(e) => {
+                const raw = e.target.value;
+                // Keep it numeric in the field — digits plus at most one decimal
+                // point, so the payload stays a valid amount.
+                if (/^\d*\.?\d*$/.test(raw)) setPaidAmount(raw);
+              }}
               placeholder="0"
             />
           </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
 import { useToast } from "../../components/Toast";
@@ -39,18 +39,21 @@ interface Product {
   updatedAt: string;
 }
 
-const statusFilterOptions = [
-  { value: "", label: "All Status", color: "neutral" as const, path: "/products-module" },
-  { value: "active", label: "Active", color: "success" as const, path: "/products-module/active" },
-  { value: "inactive", label: "Inactive", color: "neutral" as const, path: "/products-module/inactive" },
-  { value: "out_of_stock", label: "Out of Stock", color: "danger" as const, path: "/products-module/out-of-stock" },
+type StatusFilter = "" | "active" | "inactive" | "out_of_stock" | "draft";
+
+const statusFilterOptions: { value: StatusFilter; label: string; color: "neutral" | "success" | "danger"; path: string }[] = [
+  { value: "", label: "All Status", color: "neutral", path: "/products-module" },
+  { value: "active", label: "Active", color: "success", path: "/products-module/active" },
+  { value: "inactive", label: "Inactive", color: "neutral", path: "/products-module/inactive" },
+  { value: "draft", label: "Draft", color: "neutral", path: "/products-module/drafts" },
+  { value: "out_of_stock", label: "Out of Stock", color: "danger", path: "/products-module/out-of-stock" },
 ];
 
-export default function ProductList({ filter = "" }: { filter?: "" | "active" | "inactive" | "out_of_stock" }) {
+export default function ProductList({ filter = "" }: { filter?: StatusFilter }) {
   const navigate = useNavigate();
   const toast = useToast();
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"" | "active" | "inactive" | "out_of_stock">(filter);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(filter);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -98,7 +101,13 @@ export default function ProductList({ filter = "" }: { filter?: "" | "active" | 
     setSelectedIds(new Set());
   }, [currentPage, itemsPerPage, debouncedSearch, statusFilter]);
 
+  // Rows stay on screen while a refetch is in flight, so a stale response
+  // landing last would be visible. This sequence number lets us drop any
+  // response a newer request has already superseded.
+  const requestSeq = useRef(0);
+
   async function loadProducts() {
+    const seq = ++requestSeq.current;
     setLoading(true);
     try {
       const response = await api.getProducts({
@@ -108,14 +117,18 @@ export default function ProductList({ filter = "" }: { filter?: "" | "active" | 
         status: statusFilter === "out_of_stock" ? undefined : statusFilter || undefined,
         stock: statusFilter === "out_of_stock" ? "out" : undefined,
       });
+
+      if (seq !== requestSeq.current) return;
+
       setProducts(response.data || []);
       setTotalItems(response.pagination?.total || 0);
       setTotalPages(response.pagination?.totalPages || 0);
     } catch (error) {
+      if (seq !== requestSeq.current) return;
       console.error("Failed to load products:", error);
       toast.error("Failed to load products");
     } finally {
-      setLoading(false);
+      if (seq === requestSeq.current) setLoading(false);
     }
   }
 
@@ -142,6 +155,17 @@ export default function ProductList({ filter = "" }: { filter?: "" | "active" | 
   }
 
   async function toggleStatus(product: Product) {
+    // A draft can't be switched on from here. The form's price gate is
+    // client-side only and the admin update schema has no price rule, so
+    // flipping a draft to active from the list would publish a half-finished,
+    // zero-priced product that the storefront would then serve and let people
+    // add to cart. Say why instead of silently doing nothing — the switch still
+    // looks locked, so a dead click would read as a broken page.
+    if (product.status === "draft") {
+      toast.warning(`“${product.name}” is still a draft. Post it from the product form before turning it on.`);
+      return;
+    }
+
     try {
       const newStatus = product.status === "active" ? "inactive" : "active";
       await api.updateProduct(product.id, { status: newStatus });
@@ -353,12 +377,26 @@ export default function ProductList({ filter = "" }: { filter?: "" | "active" | 
     {
       key: "status",
       header: "Status",
-      render: (product: Product) => (
-        <label className="ak-toggle" onClick={(e) => e.stopPropagation()}>
-          <input type="checkbox" checked={product.status === "active"} onChange={() => toggleStatus(product)} />
-          <span className="ak-toggle__slider" />
-        </label>
-      ),
+      render: (product: Product) => {
+        // The switch is deliberately still clickable on a draft — the click is
+        // what surfaces the "post it first" explanation. Blocking it with
+        // `disabled` would leave no way to find out why it won't budge.
+        const isDraft = product.status === "draft";
+        return (
+          <label
+            className={`ak-toggle${isDraft ? " ak-toggle--locked" : ""}`}
+            onClick={(e) => e.stopPropagation()}
+            title={isDraft ? "Post this product before it can be turned on" : undefined}
+          >
+            <input
+              type="checkbox"
+              checked={product.status === "active"}
+              onChange={() => toggleStatus(product)}
+            />
+            <span className="ak-toggle__slider" />
+          </label>
+        );
+      },
     },
     {
       key: "actions",

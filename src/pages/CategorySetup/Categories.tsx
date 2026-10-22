@@ -98,36 +98,42 @@ export default function Categories() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // Rows stay on screen while a refetch is in flight, so a stale response
+  // landing last would be visible. This sequence number lets us drop any
+  // response a newer request has already superseded.
+  const requestSeq = useRef(0);
+
   // Load categories
   useEffect(() => {
     loadCategories();
   }, [currentPage, itemsPerPage, debouncedSearch, statusFilter]);
 
   async function loadCategories() {
+    const seq = ++requestSeq.current;
     setLoading(true);
     try {
       const response = await api.getCategories({
         page: currentPage,
         limit: itemsPerPage,
         search: debouncedSearch || undefined,
+        isActive: statusFilter === "active" ? true : statusFilter === "inactive" ? false : undefined,
       });
-      let data = response.data || [];
-      
-      // Apply status filter
-      if (statusFilter === "active") {
-        data = data.filter((c: Category) => c.isActive);
-      } else if (statusFilter === "inactive") {
-        data = data.filter((c: Category) => !c.isActive);
-      }
-      
-      setCategories(data);
-      setTotalItems(response.pagination?.total || data.length);
+
+      if (seq !== requestSeq.current) return;
+
+      // The status filter is applied by the BE *before* it paginates, so the
+      // `total` we render in the header pill already accounts for it. Filtering
+      // here in JS would have left the pill showing the unfiltered total while
+      // the table showed only the matching rows.
+      setCategories(response.data || []);
+      setTotalItems(response.pagination?.total || 0);
       setTotalPages(response.pagination?.totalPages || 1);
     } catch (error) {
+      if (seq !== requestSeq.current) return;
       console.error("Failed to load categories:", error);
       toast.error("Failed to load categories");
     } finally {
-      setLoading(false);
+      if (seq === requestSeq.current) setLoading(false);
     }
   }
 
@@ -136,7 +142,7 @@ export default function Categories() {
     if (!category) return;
     try {
       await api.updateCategory(id, { isActive: !category.isActive });
-      setCategories((prev) => prev.map((cat) => (cat.id === id ? { ...cat, isActive: !cat.isActive } : cat)));
+      setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, isActive: !category.isActive } : c)));
       toast.success(`Category ${!category.isActive ? "activated" : "deactivated"}`);
     } catch (error) {
       console.error("Failed to update category status:", error);
@@ -403,7 +409,7 @@ export default function Categories() {
             </div>
           </div>
           <div className="ak-toolbar__filters">
-            <StatusDropdown options={statusFilterOptions} value={statusFilter} onChange={setStatusFilter} placeholder="All Status" size="sm" />
+            <StatusDropdown options={statusFilterOptions} value={statusFilter} onChange={(v) => { setStatusFilter(v); setCurrentPage(1); }} placeholder="All Status" size="sm" />
           </div>
         </div>
 

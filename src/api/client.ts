@@ -161,11 +161,13 @@ export const api = {
     ),
 
   // Categories
-  getCategories: (params?: { page?: number; limit?: number; search?: string }) => {
+  getCategories: (params?: { page?: number; limit?: number; search?: string; isActive?: boolean }) => {
     const query = new URLSearchParams();
     if (params?.page) query.set("page", params.page.toString());
     if (params?.limit) query.set("limit", params.limit.toString());
     if (params?.search) query.set("search", params.search);
+    // `!== undefined`, not truthiness — `false` is a meaningful filter value.
+    if (params?.isActive !== undefined) query.set("isActive", String(params.isActive));
     const queryString = query.toString();
     return request<{
       data: any[];
@@ -175,12 +177,14 @@ export const api = {
   getAllCategories: () => request<any[]>("/categories/all"),
   
   // Sub Categories
-  getSubCategories: (params?: { page?: number; limit?: number; search?: string; parentId?: string }) => {
+  getSubCategories: (params?: { page?: number; limit?: number; search?: string; parentId?: string; isActive?: boolean }) => {
     const query = new URLSearchParams();
     if (params?.page) query.set("page", params.page.toString());
     if (params?.limit) query.set("limit", params.limit.toString());
     if (params?.search) query.set("search", params.search);
     if (params?.parentId) query.set("parentId", params.parentId);
+    // `!== undefined`, not truthiness — `false` is a meaningful filter value.
+    if (params?.isActive !== undefined) query.set("isActive", String(params.isActive));
     const queryString = query.toString();
     return request<{
       data: any[];
@@ -190,12 +194,14 @@ export const api = {
   getAllSubCategories: () => request<any[]>("/categories/sub/all"),
   
   // Sub Sub Categories
-  getSubSubCategories: (params?: { page?: number; limit?: number; search?: string; parentId?: string }) => {
+  getSubSubCategories: (params?: { page?: number; limit?: number; search?: string; parentId?: string; isActive?: boolean }) => {
     const query = new URLSearchParams();
     if (params?.page) query.set("page", params.page.toString());
     if (params?.limit) query.set("limit", params.limit.toString());
     if (params?.search) query.set("search", params.search);
     if (params?.parentId) query.set("parentId", params.parentId);
+    // `!== undefined`, not truthiness — `false` is a meaningful filter value.
+    if (params?.isActive !== undefined) query.set("isActive", String(params.isActive));
     const queryString = query.toString();
     return request<{
       data: any[];
