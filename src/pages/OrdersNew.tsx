@@ -67,6 +67,14 @@ const channelOptions = [
   { value: "pos", label: "POS", color: "brand" as const },
 ];
 
+// Badge rendered next to the Order ID. `pos` keeps the house champagne tint;
+// `online` takes the info tint so the two read as a matched pair and line up
+// with the "Online"/"POS" chips in the channel filter above the table.
+const channelBadges = {
+  pos: { label: "POS", className: "ak-badge--brand" },
+  online: { label: "Online", className: "ak-badge--info" },
+} as const;
+
 const paymentStatusOptions = [
   { value: "all", label: "All Payments", color: "neutral" as const },
   { value: "paid", label: "Paid", color: "success" as const },
@@ -309,12 +317,15 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     {
       key: "orderNumber",
       header: "Order ID",
-      render: (order: Order) => (
-        <div className="ak-order-id">
-          {order.orderNumber}
-          {order.orderChannel === "pos" && <span className="ak-badge ak-badge--brand" style={{ marginLeft: 6, fontSize: "0.65rem" }}>POS</span>}
-        </div>
-      ),
+      render: (order: Order) => {
+        const channel = channelBadges[order.orderChannel] ?? channelBadges.online;
+        return (
+          <div className="ak-order-id">
+            {order.orderNumber}
+            <span className={`ak-badge ${channel.className}`} style={{ marginLeft: 6, fontSize: "0.65rem" }}>{channel.label}</span>
+          </div>
+        );
+      },
     },
     {
       key: "createdAt",
