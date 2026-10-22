@@ -3,60 +3,13 @@
    ================================================ */
 
 .anp-container {
-  padding: 1.5rem;
+  /* No top padding: .main-content-inner in layout.css already applies
+     --page-pad-y (1.5rem). Repeating it here stacked two full paddings and
+     pushed both columns ~24px down before anything was drawn. Sides and
+     bottom keep their padding — .anp-footer bleeds against those. */
+  padding: 0 1.5rem 1.5rem;
   max-width: 1400px;
   margin: 0 auto;
-}
-
-/* Header */
-.anp-header {
-  margin-bottom: 1.5rem;
-}
-
-.anp-breadcrumb {
-  font-size: 0.8125rem;
-  color: #6b7280;
-  margin-bottom: 0.5rem;
-}
-
-.anp-breadcrumb-sep {
-  margin: 0 0.5rem;
-  color: #d1d5db;
-}
-
-.anp-header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.anp-header h1 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0;
-}
-
-.anp-btn-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #374151;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.anp-btn-back:hover {
-  background: #f9fafb;
-  border-color: #d1d5db;
 }
 
 /* Error Banner */
@@ -122,6 +75,15 @@
 
 .anp-section-header {
   margin-bottom: 1rem;
+}
+
+/* Section headers now live INSIDE .anp-card so every card in the main column
+   starts level with the first card in the sidebar. */
+.anp-card > .anp-section-header,
+.anp-card > .anp-section-header-with-toggle {
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f3f4f6;
 }
 
 .anp-section-header h2 {
@@ -603,38 +565,6 @@
   color: #1f2937;
 }
 
-/* Checklist */
-.anp-checklist {
-  display: flex;
-  flex-direction: column;
-  gap: 0.625rem;
-}
-
-.anp-checklist-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 0.8125rem;
-  color: #6b7280;
-}
-
-.anp-checklist-item.checked {
-  color: #1f2937;
-}
-
-.anp-checklist-dot {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 2px solid #d1d5db;
-  flex-shrink: 0;
-}
-
-.anp-checklist-item.checked .anp-checklist-dot {
-  background: #9a7b4f;
-  border-color: #9a7b4f;
-}
-
 /* Hint text */
 .anp-hint {
   font-size: 0.75rem;
@@ -816,13 +746,20 @@
   margin-top: 0.5rem;
 }
 
-.anp-radio {
+/* Scoped to beat `.anp-form-group label` (0,1,1), which otherwise wins on
+   specificity and turns each option into an uppercase 11px block element —
+   killing the flex `gap` below and gluing the radio to its label. */
+.anp-form-group .anp-radio {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   cursor: pointer;
   font-size: 0.875rem;
+  font-weight: 400;
   color: #374151;
+  text-transform: none;
+  letter-spacing: normal;
+  margin-bottom: 0;
 }
 
 .anp-radio input {
@@ -1146,17 +1083,7 @@
 /* Responsive */
 @media (max-width: 768px) {
   .anp-container {
-    padding: 1rem;
-  }
-
-  .anp-header-row {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .anp-btn-back {
-    width: 100%;
-    justify-content: center;
+    padding: 0 1rem 1rem;
   }
 
   .anp-card {

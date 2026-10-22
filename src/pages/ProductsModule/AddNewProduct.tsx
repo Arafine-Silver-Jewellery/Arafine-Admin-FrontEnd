@@ -606,16 +606,6 @@ export default function AddNewProduct() {
     setFormData(prev => ({ ...prev, sku: `${prefix}-${random}` }));
   }
 
-  // Validation checklist items
-  const validationChecklist = [
-    { label: "Product name", checked: formData.name.trim().length > 0 },
-    { label: "Description", checked: formData.description.trim().length > 0 },
-    { label: "Category", checked: selectedCategories.length > 0 || selectedMainCategory !== "" },
-    { label: "Unit price", checked: formData.pricePaise > 0 },
-    { label: "At least one image", checked: productImages.length > 0 },
-    { label: "Unit selected", checked: formData.unit !== "" },
-  ];
-
   async function handleSubmit() {
     if (!formData.name.trim()) {
       setError("Product name is required");
@@ -825,20 +815,9 @@ export default function AddNewProduct() {
 
   return (
     <div className="anp-container">
-      {/* Header */}
-      <div className="anp-header">
-        <div className="anp-breadcrumb">
-          <span>Products</span>
-          <span className="anp-breadcrumb-sep">/</span>
-          <span>Add New Product</span>
-        </div>
-        <div className="anp-header-row">
-          <h1>{isEditMode ? "Edit Product" : "Add New Product"}</h1>
-          <button className="anp-btn-back" onClick={() => navigate("/products-module")}>
-            Back to Product List
-          </button>
-        </div>
-      </div>
+      {/* No page header here on purpose: the app shell's <AppHeader /> owns
+          the title, and the breadcrumb + h1 + back link that used to sit in
+          this column duplicated it. The list is reachable from the sidebar. */}
 
       {error && (
         <div className="anp-error-banner">
@@ -856,11 +835,11 @@ export default function AddNewProduct() {
         <div className="anp-main">
           {/* Basic Information */}
           <section className="anp-section">
-            <div className="anp-section-header">
-              <h2>Basic Information</h2>
-              <p>Name and describe the product customers will see.</p>
-            </div>
             <div className="anp-card">
+              <div className="anp-section-header">
+                <h2>Basic Information</h2>
+                <p>Name and describe the product customers will see.</p>
+              </div>
               <div className="anp-form-group">
                 <label>PRODUCT NAME *</label>
                 <input
@@ -893,11 +872,11 @@ export default function AddNewProduct() {
 
           {/* Organization */}
           <section className="anp-section">
-            <div className="anp-section-header">
-              <h2>Organization</h2>
-              <p>Type, category and identifiers that help you and shoppers find it.</p>
-            </div>
             <div className="anp-card">
+              <div className="anp-section-header">
+                <h2>Organization</h2>
+                <p>Type, category and identifiers that help you and shoppers find it.</p>
+              </div>
               <div className="anp-row-2">
                 <div className="anp-form-group">
                   <label>PRODUCT TYPE</label>
@@ -1015,11 +994,11 @@ export default function AddNewProduct() {
 
           {/* Pricing & Inventory */}
           <section className="anp-section">
-            <div className="anp-section-header">
-              <h2>Pricing & Inventory</h2>
-              <p>Set what it costs, how much you have and when to be warned.</p>
-            </div>
             <div className="anp-card">
+              <div className="anp-section-header">
+                <h2>Pricing & Inventory</h2>
+                <p>Set what it costs, how much you have and when to be warned.</p>
+              </div>
               <div className="anp-row-3">
                 <div className="anp-form-group">
                   <label>UNIT PRICE (₹) *</label>
@@ -1107,31 +1086,32 @@ export default function AddNewProduct() {
 
           {/* Product Variations */}
           <section className="anp-section">
-            <div className="anp-section-header-with-toggle">
-              <div>
-                <h2>Product Variations</h2>
-                <p>Enable to add sizes, colors or other options with their own price and stock.</p>
+            <div className="anp-card">
+              <div className="anp-section-header-with-toggle">
+                <div>
+                  <h2>Product Variations</h2>
+                  <p>Enable to add sizes, colors or other options with their own price and stock.</p>
+                </div>
+                <label className="anp-toggle">
+                  <input
+                    type="checkbox"
+                    checked={hasVariations}
+                    onChange={(e) => {
+                      setHasVariations(e.target.checked);
+                      if (!e.target.checked) {
+                        setEnableColors(false);
+                        setSelectedColors([]);
+                        setSelectedAttributes([]);
+                        setColorWiseImages([]);
+                      }
+                    }}
+                  />
+                  <span className="anp-toggle-slider"></span>
+                </label>
               </div>
-              <label className="anp-toggle">
-                <input
-                  type="checkbox"
-                  checked={hasVariations}
-                  onChange={(e) => {
-                    setHasVariations(e.target.checked);
-                    if (!e.target.checked) {
-                      setEnableColors(false);
-                      setSelectedColors([]);
-                      setSelectedAttributes([]);
-                      setColorWiseImages([]);
-                    }
-                  }}
-                />
-                <span className="anp-toggle-slider"></span>
-              </label>
-            </div>
-            
-            {hasVariations && (
-              <div className="anp-card">
+
+              {hasVariations && (
+              <div>
                 <div className="anp-row-2">
                   <div className="anp-form-group">
                     <div className="anp-label-with-toggle">
@@ -1294,16 +1274,17 @@ export default function AddNewProduct() {
                   </div>
                 )}
               </div>
-            )}
+              )}
+            </div>
           </section>
 
           {/* Gallery & Video */}
           <section className="anp-section">
-            <div className="anp-section-header">
-              <h2>Gallery & Video</h2>
-              <p>Extra product images and an optional YouTube video.</p>
-            </div>
             <div className="anp-card">
+              <div className="anp-section-header">
+                <h2>Gallery & Video</h2>
+                <p>Extra product images and an optional YouTube video.</p>
+              </div>
               <div className="anp-gallery-grid">
                 {additionalImages.map((img, index) => (
                   <div key={index} className="anp-gallery-item">
@@ -1343,11 +1324,11 @@ export default function AddNewProduct() {
 
           {/* SEO */}
           <section className="anp-section">
-            <div className="anp-section-header">
-              <h2>SEO</h2>
-              <p>Control how this product appears in search results.</p>
-            </div>
             <div className="anp-card">
+              <div className="anp-section-header">
+                <h2>SEO</h2>
+                <p>Control how this product appears in search results.</p>
+              </div>
               {/* SEO Preview */}
               <div className="anp-seo-preview">
                 <span className="anp-seo-url">arafine.com › products › {formData.name ? generateSlug(formData.name) : "your-product"}</span>
@@ -1509,19 +1490,6 @@ export default function AddNewProduct() {
             />
             
             <p className="anp-hint">JPEG, PNG, JPG, WEBP · max 2MB each<br />Ratio 1:1 (500 × 500 px)</p>
-          </div>
-
-          {/* Ready to publish checklist */}
-          <div className="anp-sidebar-card">
-            <h3>Ready to publish?</h3>
-            <div className="anp-checklist">
-              {validationChecklist.map((item, index) => (
-                <div key={index} className={`anp-checklist-item ${item.checked ? "checked" : ""}`}>
-                  <span className="anp-checklist-dot"></span>
-                  <span>{item.label}</span>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </div>
