@@ -39,18 +39,21 @@ interface Product {
   updatedAt: string;
 }
 
-const statusFilterOptions = [
-  { value: "", label: "All Status", color: "neutral" as const, path: "/products-module" },
-  { value: "active", label: "Active", color: "success" as const, path: "/products-module/active" },
-  { value: "inactive", label: "Inactive", color: "neutral" as const, path: "/products-module/inactive" },
-  { value: "out_of_stock", label: "Out of Stock", color: "danger" as const, path: "/products-module/out-of-stock" },
+type StatusFilter = "" | "active" | "inactive" | "out_of_stock" | "draft";
+
+const statusFilterOptions: { value: StatusFilter; label: string; color: "neutral" | "success" | "danger"; path: string }[] = [
+  { value: "", label: "All Status", color: "neutral", path: "/products-module" },
+  { value: "active", label: "Active", color: "success", path: "/products-module/active" },
+  { value: "inactive", label: "Inactive", color: "neutral", path: "/products-module/inactive" },
+  { value: "draft", label: "Draft", color: "neutral", path: "/products-module/drafts" },
+  { value: "out_of_stock", label: "Out of Stock", color: "danger", path: "/products-module/out-of-stock" },
 ];
 
-export default function ProductList({ filter = "" }: { filter?: "" | "active" | "inactive" | "out_of_stock" }) {
+export default function ProductList({ filter = "" }: { filter?: StatusFilter }) {
   const navigate = useNavigate();
   const toast = useToast();
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"" | "active" | "inactive" | "out_of_stock">(filter);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(filter);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -152,6 +155,16 @@ export default function ProductList({ filter = "" }: { filter?: "" | "active" | 
   }
 
   async function toggleStatus(product: Product) {
+    // Never flip a draft to active from this list. The form's price gate is
+    // client-side only and the admin update schema has no price rule, so this
+    // toggle is a one-click path to publishing a half-finished, zero-priced
+    // product — which the storefront would then serve and let people add to
+    // cart. Send drafts to the form instead.
+    if (product.status === "draft") {
+      navigate(`/products-module/edit/${product.id}`);
+      return;
+    }
+
     try {
       const newStatus = product.status === "active" ? "inactive" : "active";
       await api.updateProduct(product.id, { status: newStatus });
@@ -364,10 +377,13 @@ export default function ProductList({ filter = "" }: { filter?: "" | "active" | 
       key: "status",
       header: "Status",
       render: (product: Product) => (
-        <label className="ak-toggle" onClick={(e) => e.stopPropagation()}>
-          <input type="checkbox" checked={product.status === "active"} onChange={() => toggleStatus(product)} />
-          <span className="ak-toggle__slider" />
-        </label>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }} onClick={(e) => e.stopPropagation()}>
+          {product.status === "draft" && <span className="ak-draft-badge">Draft</span>}
+          <label className="ak-toggle">
+            <input type="checkbox" checked={product.status === "active"} onChange={() => toggleStatus(product)} />
+            <span className="ak-toggle__slider" />
+          </label>
+        </div>
       ),
     },
     {

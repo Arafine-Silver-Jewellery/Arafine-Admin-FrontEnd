@@ -388,6 +388,25 @@
   cursor: pointer;
 }
 
+/* ── Draft badge ─────────────────────────────────────────── */
+/* The Status toggle is binary (active / not active), so a draft and an
+   inactive product both render as "off" without this. */
+.ak-draft-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--color-champagne, #b78d3f);
+  color: var(--color-champagne-dark, #96722f);
+  background: var(--color-champagne-muted, #ecdcbf);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
 /* ── Toggle switch ───────────────────────────────────────── */
 .ak-toggle {
   position: relative;

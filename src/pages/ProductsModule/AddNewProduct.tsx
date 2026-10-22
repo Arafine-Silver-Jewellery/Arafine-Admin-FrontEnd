@@ -23,7 +23,7 @@ interface FormData {
   costPricePaise: number;
   stockQuantity: number;
   lowStockThreshold: number;
-  status: "active" | "inactive";
+  status: "active" | "inactive" | "draft";
   isVisible: boolean;
   isFeatured: boolean;
   color: string;
@@ -262,7 +262,11 @@ export default function AddNewProduct() {
         costPricePaise: product.costPricePaise || 0,
         stockQuantity: product.stockQuantity || 0,
         lowStockThreshold: product.lowStockThreshold || 5,
-        status: product.status || "active",
+        // A draft has to become editable as a normal product, otherwise Submit
+        // would write "draft" straight back and you could never publish it.
+        // Coerce to "inactive" so the Visibility toggle correctly reads OFF
+        // and the user chooses when it goes live.
+        status: product.status === "draft" ? "inactive" : (product.status || "active"),
         isVisible: product.isVisible ?? true,
         isFeatured: product.isFeatured ?? false,
         color: product.color || "",
@@ -606,7 +610,9 @@ export default function AddNewProduct() {
     setFormData(prev => ({ ...prev, sku: `${prefix}-${random}` }));
   }
 
-  async function handleSubmit() {
+  async function handleSubmit(asDraft = false) {
+    // Still required on a draft: generateSlug() needs a name, and without
+    // this you'd accumulate a list of rows all called "New Product".
     if (!formData.name.trim()) {
       setError("Product name is required");
       toast.error("Product name is required");
@@ -615,7 +621,9 @@ export default function AddNewProduct() {
     if (!formData.sku.trim() && !isEditMode) {
       generateSKU();
     }
-    if (formData.pricePaise <= 0) {
+    // Drafts exist to be half-finished, so the price gate only applies on
+    // the publish path.
+    if (!asDraft && formData.pricePaise <= 0) {
       setError("Price must be greater than 0");
       toast.error("Price must be greater than 0");
       return;
@@ -699,8 +707,11 @@ export default function AddNewProduct() {
         searchTags: searchTagsList.length > 0 
           ? searchTagsList.map(t => t.name) 
           : (formData.searchTags ? formData.searchTags.split(",").map(t => t.trim()) : []),
-        status: formData.status,
-        isVisible: formData.isVisible,
+        status: asDraft ? "draft" : formData.status,
+        // A draft must not be visible regardless of the toggle. Status alone
+        // is the only thing keeping it off the storefront, and every caller
+        // would have to remember to check it.
+        isVisible: asDraft ? false : formData.isVisible,
         isFeatured: formData.isFeatured,
         productType: formData.productType,
         unit: formData.unit,
@@ -757,12 +768,17 @@ export default function AddNewProduct() {
 
       if (isEditMode && productId) {
         await api.updateProduct(productId, productData);
-        toast.success("Product updated successfully");
+        // Say what actually happened. A loaded draft is coerced to "inactive"
+        // on load, so Submit on one does NOT put it live — claiming success
+        // here told the user they had published something they hadn't.
+        toast.success(
+          asDraft ? "Draft updated" : `Product updated${productData.status === "inactive" ? " (inactive — not live in the store)" : " successfully"}`
+        );
       } else {
         await api.createProduct(productData);
-        toast.success("Product created successfully");
+        toast.success(asDraft ? "Draft saved" : "Product created successfully");
       }
-      
+
       navigate("/products-module");
     } catch (err: any) {
       console.error(`Failed to ${isEditMode ? 'update' : 'create'} product:`, err);
@@ -1418,10 +1434,10 @@ export default function AddNewProduct() {
               <button type="button" className="anp-btn-reset" onClick={handleReset} disabled={submitting}>
                 Reset
               </button>
-              <button type="button" className="anp-btn-draft" disabled={submitting}>
+              <button type="button" className="anp-btn-draft" onClick={() => handleSubmit(true)} disabled={submitting}>
                 Save as draft
               </button>
-              <button type="button" className="anp-btn-submit" onClick={handleSubmit} disabled={submitting}>
+              <button type="button" className="anp-btn-submit" onClick={() => handleSubmit(false)} disabled={submitting}>
                 {submitting ? (uploadingThumbnail ? "Uploading..." : "Saving...") : "Submit"}
               </button>
             </div>
