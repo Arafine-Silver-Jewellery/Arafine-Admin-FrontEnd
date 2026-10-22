@@ -1007,7 +1007,12 @@
   padding: 1.25rem 1.5rem;
   background: #fff;
   border-top: 1px solid #e5e7eb;
-  margin: 1.5rem -1.5rem -1.5rem -1.5rem;
+  /* No negative left/right bleed: this bar sits inside .anp-main, whose
+     column is exactly as wide as the cards above it. The -1.5rem sides were
+     written for a card-relative footer and pushed it 48px wider than the
+     form. The bottom -1.5rem still pulls it onto the container's bottom
+     padding edge. */
+  margin: 1.5rem 0 -1.5rem 0;
   border-radius: 0 0 12px 12px;
   position: sticky;
   bottom: 0;

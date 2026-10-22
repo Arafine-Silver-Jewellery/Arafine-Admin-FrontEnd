@@ -1407,6 +1407,25 @@ export default function AddNewProduct() {
               </div>
             </div>
           </section>
+
+          {/* Footer Actions — lives inside .anp-main so the bar tracks the
+              form column. As a child of .anp-container it spanned the full
+              1400px and parked the buttons under the sidebar, ~344px right
+              of the card edge they belong to. */}
+          <div className="anp-footer">
+            <span className="anp-footer-note">Fields marked * are required.</span>
+            <div className="anp-footer-actions">
+              <button type="button" className="anp-btn-reset" onClick={handleReset} disabled={submitting}>
+                Reset
+              </button>
+              <button type="button" className="anp-btn-draft" disabled={submitting}>
+                Save as draft
+              </button>
+              <button type="button" className="anp-btn-submit" onClick={handleSubmit} disabled={submitting}>
+                {submitting ? (uploadingThumbnail ? "Uploading..." : "Saving...") : "Submit"}
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Sidebar */}
@@ -1494,21 +1513,6 @@ export default function AddNewProduct() {
         </div>
       </div>
 
-      {/* Footer Actions */}
-      <div className="anp-footer">
-        <span className="anp-footer-note">Fields marked * are required.</span>
-        <div className="anp-footer-actions">
-          <button type="button" className="anp-btn-reset" onClick={handleReset} disabled={submitting}>
-            Reset
-          </button>
-          <button type="button" className="anp-btn-draft" disabled={submitting}>
-            Save as draft
-          </button>
-          <button type="button" className="anp-btn-submit" onClick={handleSubmit} disabled={submitting}>
-            {submitting ? (uploadingThumbnail ? "Uploading..." : "Saving...") : "Submit"}
-          </button>
-        </div>
       </div>
-    </div>
   );
 }
