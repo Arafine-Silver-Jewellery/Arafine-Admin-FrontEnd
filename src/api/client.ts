@@ -267,6 +267,8 @@ export const api = {
       limit?: number;
       search?: string;
       status?: string;
+      /** Several statuses at once — sent comma-separated. Wins over `status`. */
+      statuses?: string[];
       paymentState?: string;
       orderChannel?: string;
       dateFrom?: string;
@@ -279,6 +281,7 @@ export const api = {
     if (params.limit) query.set("limit", params.limit.toString());
     if (params.search) query.set("search", params.search);
     if (params.status) query.set("status", params.status);
+    if (params.statuses?.length) query.set("statuses", params.statuses.join(","));
     if (params.paymentState) query.set("paymentState", params.paymentState);
     if (params.orderChannel) query.set("orderChannel", params.orderChannel);
     if (params.dateFrom) query.set("dateFrom", params.dateFrom);

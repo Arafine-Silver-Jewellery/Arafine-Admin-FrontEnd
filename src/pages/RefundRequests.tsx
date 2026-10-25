@@ -8,10 +8,11 @@ import type { Order, OrderStatus } from "../types";
 import "../styles/ui-kit.css";
 
 interface RefundRequestsProps {
-  statusFilter?: "pending" | "approved" | "refunded" | "rejected";
+  statusFilter?: "all" | "pending" | "approved" | "refunded" | "rejected";
 }
 
 const BACKEND_STATUSES_BY_FILTER: Record<RefundRequestsProps["statusFilter"] & string, OrderStatus[]> = {
+  all: ["return_requested", "return_approved", "refund_initiated", "refunded", "returned"],
   pending: ["return_requested"],
   approved: ["return_approved", "refund_initiated"],
   refunded: ["refunded"],
@@ -19,11 +20,27 @@ const BACKEND_STATUSES_BY_FILTER: Record<RefundRequestsProps["statusFilter"] & s
 };
 
 const refundStatusOptions = [
+  { value: "all", label: "All", color: "neutral" as const, path: "/refund-requests/all" },
   { value: "pending", label: "Pending", color: "warning" as const, path: "/refund-requests" },
   { value: "approved", label: "Approved", color: "info" as const, path: "/refund-requests/approved" },
   { value: "refunded", label: "Refunded", color: "success" as const, path: "/refund-requests/refunded" },
   { value: "rejected", label: "Rejected", color: "danger" as const, path: "/refund-requests/rejected" },
 ];
+
+/**
+ * The refund bucket a backend order status falls into.
+ *
+ * The four filters group several backend statuses each (approved covers both
+ * `return_approved` and `refund_initiated`). The "All" view shows every
+ * bucket side by side, so each row needs to be labelled with its own bucket
+ * rather than the filter's label.
+ */
+function refundBucketOf(status: string): "pending" | "approved" | "refunded" | "rejected" {
+  if (status === "return_requested") return "pending";
+  if (status === "return_approved" || status === "refund_initiated") return "approved";
+  if (status === "refunded") return "refunded";
+  return "rejected"; // "returned" — the request was rejected/closed
+}
 
 export default function RefundRequests({ statusFilter = "pending" }: RefundRequestsProps) {
   const navigate = useNavigate();
@@ -43,10 +60,12 @@ export default function RefundRequests({ statusFilter = "pending" }: RefundReque
   async function loadRefunds() {
     setLoading(true);
     try {
+      // One request for the whole filter — the backend takes a list of
+      // statuses, so the "All" tab is a single round trip rather than one
+      // per refund state.
       const backendStatuses = BACKEND_STATUSES_BY_FILTER[filterKey];
-      const responses = await Promise.all(backendStatuses.map((s) => api.getOrders({ status: s, limit: 100 })));
-      const combined: Order[] = responses.flatMap((r) => r?.data ?? []);
-      setOrders(combined);
+      const response = await api.getOrders({ statuses: backendStatuses, limit: 100 });
+      setOrders(response?.data ?? []);
     } catch (error) {
       console.error("Failed to load refund requests:", error);
       toast.error("Failed to load refund requests");
@@ -136,6 +155,20 @@ export default function RefundRequests({ statusFilter = "pending" }: RefundReque
 
   const statusVariantMap: Record<string, string> = { pending: "warning", approved: "info", refunded: "success", rejected: "danger" };
 
+  // In a single-status view every row carries the filter's label. The "All"
+  // view mixes all four buckets, so each row is labelled from its own
+  // backend status instead.
+  function rowStatus(order: Order): { label: string; variant: string } {
+    if (filterKey !== "all") {
+      return { label: currentStatusOption?.label ?? "", variant: statusVariantMap[filterKey] };
+    }
+    const bucket = refundBucketOf(order.status);
+    return {
+      label: refundStatusOptions.find((o) => o.value === bucket)?.label ?? bucket,
+      variant: statusVariantMap[bucket],
+    };
+  }
+
   const columns = [
     { key: "sl", header: "#", width: "50px", render: (_: Order, index: number) => <span className="ak-text-muted">{index + 1}</span> },
     { key: "orderNumber", header: "Order ID", render: (order: Order) => <span className="ak-order-id" onClick={() => navigate(`/orders/${order.id}`)}>{order.orderNumber}</span> },
@@ -165,12 +198,15 @@ export default function RefundRequests({ statusFilter = "pending" }: RefundReque
     {
       key: "status",
       header: "Status",
-      render: () => (
-        <span className={`ak-status ak-status--${statusVariantMap[filterKey]}`}>
-          <span className="ak-status__dot" />
-          {currentStatusOption?.label}
-        </span>
-      ),
+      render: (order: Order) => {
+        const { label, variant } = rowStatus(order);
+        return (
+          <span className={`ak-status ak-status--${variant}`}>
+            <span className="ak-status__dot" />
+            {label}
+          </span>
+        );
+      },
     },
     {
       key: "actions",
@@ -178,17 +214,20 @@ export default function RefundRequests({ statusFilter = "pending" }: RefundReque
       width: "160px",
       render: (order: Order) => {
         const isProcessing = processing === order.id;
+        // In the "All" view the action follows the row's own bucket, so a
+        // pending request next to a refunded one still gets the right button.
+        const bucket = filterKey === "all" ? refundBucketOf(order.status) : filterKey;
         return (
           <div className="ak-row-actions">
-            {filterKey === "pending" && (
+            {bucket === "pending" && (
               <>
                 <button type="button" className="ak-btn ak-btn--sm ak-btn--success" disabled={isProcessing} onClick={(e) => { e.stopPropagation(); approveRefund(order); }}>Approve</button>
                 <button type="button" className="ak-btn ak-btn--sm ak-btn--danger" disabled={isProcessing} onClick={(e) => { e.stopPropagation(); rejectRefund(order); }}>Reject</button>
               </>
             )}
-            {filterKey === "approved" && <button type="button" className="ak-btn ak-btn--sm ak-btn--primary" disabled={isProcessing} onClick={(e) => { e.stopPropagation(); openRefundModal(order); }}>Process Refund</button>}
-            {filterKey === "refunded" && <span className="ak-text-muted ak-text-sm">{order.refundedAt ? `Refunded ${formatDate(order.refundedAt)}` : "Completed"}</span>}
-            {filterKey === "rejected" && <span className="ak-text-muted ak-text-sm">Closed</span>}
+            {bucket === "approved" && <button type="button" className="ak-btn ak-btn--sm ak-btn--primary" disabled={isProcessing} onClick={(e) => { e.stopPropagation(); openRefundModal(order); }}>Process Refund</button>}
+            {bucket === "refunded" && <span className="ak-text-muted ak-text-sm">{order.refundedAt ? `Refunded ${formatDate(order.refundedAt)}` : "Completed"}</span>}
+            {bucket === "rejected" && <span className="ak-text-muted ak-text-sm">Closed</span>}
           </div>
         );
       },
@@ -240,7 +279,7 @@ export default function RefundRequests({ statusFilter = "pending" }: RefundReque
           loading={loading}
           loadingText="Loading refund requests…"
           emptyIcon="cart"
-          emptyTitle={`No ${currentStatusOption?.label.toLowerCase()} refund requests`}
+          emptyTitle={filterKey === "all" ? "No refund requests" : `No ${currentStatusOption?.label.toLowerCase()} refund requests`}
           emptyDescription="When customers request refunds, they'll appear here."
           keyExtractor={(order) => order.id}
           onRowClick={(order) => navigate(`/orders/${order.id}`)}

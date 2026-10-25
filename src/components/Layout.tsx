@@ -57,6 +57,7 @@ const pageTitleMap: Record<string, { title: string; icon: string }> = {
   "/orders-management/failed-to-deliver": { title: "Failed to Deliver", icon: "orders" },
   "/orders-management/canceled": { title: "Canceled Orders", icon: "orders" },
   "/refund-requests": { title: "Refund Requests", icon: "refund" },
+  "/refund-requests/all": { title: "Refund Requests", icon: "refund" },
   "/refund-requests/approved": { title: "Refund Requests", icon: "refund" },
   "/refund-requests/refunded": { title: "Refund Requests", icon: "refund" },
   "/refund-requests/rejected": { title: "Refund Requests", icon: "refund" },

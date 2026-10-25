@@ -61,6 +61,7 @@ function App() {
             
             {/* Refund Requests */}
             <Route path="refund-requests" element={<RequirePermission permission="refund-requests"><RefundRequests statusFilter="pending" /></RequirePermission>} />
+            <Route path="refund-requests/all" element={<RequirePermission permission="refund-requests"><RefundRequests statusFilter="all" /></RequirePermission>} />
             <Route path="refund-requests/approved" element={<RequirePermission permission="refund-requests"><RefundRequests statusFilter="approved" /></RequirePermission>} />
             <Route path="refund-requests/refunded" element={<RequirePermission permission="refund-requests"><RefundRequests statusFilter="refunded" /></RequirePermission>} />
             <Route path="refund-requests/rejected" element={<RequirePermission permission="refund-requests"><RefundRequests statusFilter="rejected" /></RequirePermission>} />
