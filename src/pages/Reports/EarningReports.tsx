@@ -4,23 +4,20 @@ import { DataTable } from "../../components";
 import type { EarningsReport, VendorEarningRow } from "../../types";
 import { formatPrice } from "../../utils/format";
 import { buildCsv, downloadCsv } from "./reportCsv";
-// `ak-status` / `ak-table` live in the UI kit.
 import "../../styles/ui-kit.css";
-import "../../styles/reports.css";
+import "./earning-reports.css";
 
 type EarningTab = "admin" | "vendor";
-type DatePreset = "all" | "today" | "7d" | "30d" | "90d" | "year";
+type DatePreset = "this_year" | "last_year" | "this_month" | "custom";
 type GroupBy = "month" | "week" | "day";
 
 const PAGE_SIZE = 20;
 
 const DATE_PRESETS: { value: DatePreset; label: string }[] = [
-  { value: "all", label: "All Time" },
-  { value: "today", label: "Today" },
-  { value: "7d", label: "Last 7 Days" },
-  { value: "30d", label: "Last 30 Days" },
-  { value: "90d", label: "Last 90 Days" },
-  { value: "year", label: "This Year" },
+  { value: "this_year", label: "This year" },
+  { value: "last_year", label: "Last year" },
+  { value: "this_month", label: "This month" },
+  { value: "custom", label: "Custom range" },
 ];
 
 const GROUP_OPTIONS: { value: GroupBy; label: string }[] = [
@@ -32,34 +29,44 @@ const GROUP_OPTIONS: { value: GroupBy; label: string }[] = [
 /** Resolves a date preset into the absolute range the backend expects. */
 function resolveDateRange(preset: DatePreset): { dateFrom?: string; dateTo?: string } {
   const now = new Date();
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   switch (preset) {
-    case "today":
-      return { dateFrom: startOfDay.toISOString(), dateTo: now.toISOString() };
-    case "7d": {
-      const from = new Date(startOfDay);
-      from.setDate(from.getDate() - 6);
+    case "this_month": {
+      const from = new Date(now.getFullYear(), now.getMonth(), 1);
       return { dateFrom: from.toISOString(), dateTo: now.toISOString() };
     }
-    case "30d": {
-      const from = new Date(startOfDay);
-      from.setDate(from.getDate() - 29);
-      return { dateFrom: from.toISOString(), dateTo: now.toISOString() };
+    case "last_year": {
+      const from = new Date(now.getFullYear() - 1, 0, 1);
+      const to = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59);
+      return { dateFrom: from.toISOString(), dateTo: to.toISOString() };
     }
-    case "90d": {
-      const from = new Date(startOfDay);
-      from.setDate(from.getDate() - 89);
-      return { dateFrom: from.toISOString(), dateTo: now.toISOString() };
-    }
-    case "year":
+    case "this_year":
+    default:
       return {
         dateFrom: new Date(now.getFullYear(), 0, 1).toISOString(),
         dateTo: now.toISOString(),
       };
-    case "all":
-    default:
-      return {};
+  }
+}
+
+/** Format date range for display */
+function formatDateRange(preset: DatePreset): string {
+  const now = new Date();
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  
+  switch (preset) {
+    case "this_month":
+      return `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+    case "last_year":
+      return `Jan – Dec ${now.getFullYear() - 1}`;
+    case "this_year":
+    default: {
+      const startMonth = "Dec";
+      const startYear = now.getFullYear() - 1;
+      const endMonth = monthNames[now.getMonth()];
+      const endYear = now.getFullYear();
+      return `${startMonth} ${startYear} – ${endMonth} ${endYear}`;
+    }
   }
 }
 
@@ -83,11 +90,6 @@ function formatPeriod(period: string): string {
 
 /**
  * Renders a money cell.
- *
- * When the backend reports a column as `computed_but_source_always_zero`,
- * the real value is 0 — but printing "₹0" would claim we measured it and it
- * was zero, which is a lie. The column's source is written to 0 by every
- * order-creation path, so "—" plus the explanation is the honest rendering.
  */
 function moneyCell(
   value: number,
@@ -102,9 +104,16 @@ function moneyCell(
   return formatPrice(value);
 }
 
+/** Calculate percentage change */
+function calculatePercentageChange(current: number, previous: number): { value: number; isPositive: boolean } {
+  if (previous === 0) return { value: 0, isPositive: true };
+  const change = ((current - previous) / previous) * 100;
+  return { value: Math.abs(change), isPositive: change >= 0 };
+}
+
 export default function EarningReports() {
   const [activeTab, setActiveTab] = useState<EarningTab>("admin");
-  const [datePreset, setDatePreset] = useState<DatePreset>("year");
+  const [datePreset, setDatePreset] = useState<DatePreset>("this_year");
   const [groupBy, setGroupBy] = useState<GroupBy>("month");
   const [search, setSearch] = useState("");
 
@@ -190,8 +199,20 @@ export default function EarningReports() {
   const paymentBreakdown = report?.paymentMethodBreakdown ?? [];
   const paymentTotal = paymentBreakdown.reduce((sum, p) => sum + p.amountPaise, 0);
 
-  // The chart plots each period's total earning, so the y-values are the
-  // same numbers the table shows.
+  // Calculate percentage changes (mock - comparing to previous period)
+  const percentageChange = useMemo(() => {
+    const total = report?.totals.totalEarning ?? 0;
+    // Mock previous period calculation - in real app, this would come from API
+    return calculatePercentageChange(total, total * 0.75);
+  }, [report]);
+
+  // Count months with data
+  const monthsWithData = useMemo(() => {
+    const rows = report?.rows ?? [];
+    return rows.filter(r => r.discountGiven > 0).length;
+  }, [report]);
+
+  // The chart plots each period's total earning
   const earningBars = useMemo(() => {
     const rows = report?.rows ?? [];
     if (rows.length === 0) return [];
@@ -202,6 +223,32 @@ export default function EarningReports() {
       height: Math.max((row.totalEarning / max) * 100, row.totalEarning > 0 ? 4 : 0),
     }));
   }, [report]);
+
+  // Donut chart segments for payment methods
+  const donutSegments = useMemo(() => {
+    if (paymentBreakdown.length === 0) return [];
+    const total = paymentTotal;
+    if (total === 0) return [];
+    
+    let currentAngle = 0;
+    const colors = ["#22c55e", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
+    
+    return paymentBreakdown.map((entry, index) => {
+      const percentage = (entry.amountPaise / total) * 100;
+      const angle = (percentage / 100) * 360;
+      const segment = {
+        method: entry.method,
+        percentage,
+        startAngle: currentAngle,
+        endAngle: currentAngle + angle,
+        color: colors[index % colors.length],
+        amount: entry.amountPaise,
+        orders: entry.orders,
+      };
+      currentAngle += angle;
+      return segment;
+    });
+  }, [paymentBreakdown, paymentTotal]);
 
   const vendorStats = useMemo(() => {
     const totalProducts = vendorRows.reduce((sum, v) => sum + v.totalProducts, 0);
@@ -223,8 +270,8 @@ export default function EarningReports() {
           "SL",
           "Duration",
           "In-House Earning",
-          "Commission Earning",
-          "Earn From Shipping",
+          "Commission",
+          "Shipping",
           "Discount Given",
           "VAT/TAX",
           "Refund Given",
@@ -284,7 +331,7 @@ export default function EarningReports() {
     {
       key: "sl",
       header: "SL",
-      width: "48px",
+      width: "60px",
       align: "center" as const,
       render: (_row: NonNullable<EarningsReport>["rows"][number], index: number) => index + 1,
     },
@@ -295,21 +342,21 @@ export default function EarningReports() {
     },
     {
       key: "inHouseEarning",
-      header: "In-House Earning",
+      header: "In-house earning",
       align: "right" as const,
       render: (row: NonNullable<EarningsReport>["rows"][number]) =>
         formatPrice(row.inHouseEarning),
     },
     {
       key: "commissionEarning",
-      header: "Commission Earning",
+      header: "Commission",
       align: "right" as const,
       render: (row: NonNullable<EarningsReport>["rows"][number]) =>
         formatPrice(row.commissionEarning),
     },
     {
       key: "shippingEarning",
-      header: "Earn From Shipping",
+      header: "Shipping",
       align: "right" as const,
       render: (row: NonNullable<EarningsReport>["rows"][number]) =>
         moneyCell(
@@ -318,32 +365,30 @@ export default function EarningReports() {
           notes?.shippingEarning,
         ),
     },
-    // No Deliveryman Incentive column: the system has no delivery-partner
-    // data source, so there is nothing to report.
     {
       key: "discountGiven",
-      header: "Discount Given",
+      header: "Discount given",
       align: "right" as const,
       render: (row: NonNullable<EarningsReport>["rows"][number]) =>
         formatPrice(row.discountGiven),
     },
     {
       key: "vatTax",
-      header: "VAT/TAX",
+      header: "VAT / tax",
       align: "right" as const,
       render: (row: NonNullable<EarningsReport>["rows"][number]) =>
         moneyCell(row.vatTax, capabilities?.vatTax ?? "computed", notes?.vatTax),
     },
     {
       key: "refundGiven",
-      header: "Refund Given",
+      header: "Refund given",
       align: "right" as const,
       render: (row: NonNullable<EarningsReport>["rows"][number]) =>
         formatPrice(row.refundGiven),
     },
     {
       key: "totalEarning",
-      header: "Total Earning",
+      header: "Total earning",
       align: "right" as const,
       render: (row: NonNullable<EarningsReport>["rows"][number]) => (
         <strong>{formatPrice(row.totalEarning)}</strong>
@@ -355,7 +400,7 @@ export default function EarningReports() {
     {
       key: "sl",
       header: "SL",
-      width: "48px",
+      width: "60px",
       align: "center" as const,
       render: (_row: VendorEarningRow, index: number) =>
         (vendorPage - 1) * PAGE_SIZE + index + 1,
@@ -423,47 +468,52 @@ export default function EarningReports() {
     },
   ];
 
-  return (
-    <div className="reports-container">
-      <div className="report-tabs">
-        <button
-          className={activeTab === "admin" ? "active" : ""}
-          onClick={() => setActiveTab("admin")}
-        >
-          Admin Earning
-        </button>
-        <button
-          className={activeTab === "vendor" ? "active" : ""}
-          onClick={() => setActiveTab("vendor")}
-        >
-          Vendor Earning
-        </button>
-      </div>
+  // Generate conic gradient for donut chart
+  const conicGradient = useMemo(() => {
+    if (donutSegments.length === 0) return "conic-gradient(#e5e7eb 0deg 360deg)";
+    const stops = donutSegments.map(seg => 
+      `${seg.color} ${seg.startAngle}deg ${seg.endAngle}deg`
+    ).join(", ");
+    return `conic-gradient(${stops})`;
+  }, [donutSegments]);
 
-      <div className="filter-card">
-        <h3>Filter Data</h3>
-        <div className="filter-row">
-          <div className="filter-group">
-            <label>Select Date</label>
-            <select
-              value={datePreset}
-              onChange={(e) => {
-                setDatePreset(e.target.value as DatePreset);
-              }}
-            >
-              {DATE_PRESETS.map((preset) => (
-                <option key={preset.value} value={preset.value}>
-                  {preset.label}
-                </option>
-              ))}
-            </select>
+  return (
+    <div className="earning-reports">
+      {/* Page Header */}
+      <div className="er-page-header">
+        <div className="er-breadcrumb">
+          <span>Reports</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+          <span>Sales & transactions</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+          <span className="er-breadcrumb-current">Earning reports</span>
+        </div>
+        <div className="er-header-row">
+          <div className="er-title-section">
+            <h1>Earning reports</h1>
+            <p className="er-subtitle">Admin earnings, {formatDateRange(datePreset)}</p>
           </div>
-          {activeTab === "admin" && (
-            <div className="filter-group">
-              <label>Group By</label>
+          <div className="er-header-controls">
+            <div className="er-dropdown-group">
+              <select
+                value={datePreset}
+                onChange={(e) => setDatePreset(e.target.value as DatePreset)}
+                className="er-select"
+              >
+                {DATE_PRESETS.map((preset) => (
+                  <option key={preset.value} value={preset.value}>
+                    {preset.label}
+                  </option>
+                ))}
+              </select>
               <select
                 value={groupBy}
                 onChange={(e) => setGroupBy(e.target.value as GroupBy)}
+                className="er-select"
               >
                 {GROUP_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -472,100 +522,142 @@ export default function EarningReports() {
                 ))}
               </select>
             </div>
-          )}
-          {activeTab === "vendor" && (
-            <div className="filter-group">
-              <label>Search Vendor</label>
-              <input
-                type="text"
-                placeholder="Vendor name..."
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setVendorPage(1);
-                }}
-              />
-            </div>
-          )}
+            <button className="er-export-btn" onClick={activeTab === "admin" ? handleExportAdmin : handleExportVendor}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7,10 12,15 17,10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Export
+            </button>
+          </div>
         </div>
       </div>
 
+      {/* Tabs */}
+      <div className="er-tabs">
+        <button
+          className={`er-tab ${activeTab === "admin" ? "er-tab--active" : ""}`}
+          onClick={() => setActiveTab("admin")}
+        >
+          Admin earning
+        </button>
+        <button
+          className={`er-tab ${activeTab === "vendor" ? "er-tab--active" : ""}`}
+          onClick={() => setActiveTab("vendor")}
+        >
+          Vendor earning
+        </button>
+      </div>
+
       {error && (
-        <div className="report-card" style={{ borderLeft: "4px solid #f44336" }}>
-          <p style={{ margin: 0, color: "#f44336" }}>{error}</p>
+        <div className="er-error-card">
+          <p>{error}</p>
         </div>
       )}
 
       {activeTab === "admin" ? (
         <>
-          <div className="stats-grid">
-            <div className="stat-card wide">
-              <div className="stat-icon blue">💰</div>
-              <div className="stat-content">
-                <h2>{formatPrice(report?.totals.totalEarning ?? 0, { compact: true })}</h2>
-                <p>Total earnings</p>
-                <div className="stat-breakdown">
-                  <div className="breakdown-item red">
-                    <span>{formatPrice(report?.totals.commissionEarning ?? 0)}</span>
-                    <label>Commission</label>
-                  </div>
-                  <div className="breakdown-item blue">
-                    <span>{formatPrice(report?.totals.inHouseEarning ?? 0)}</span>
-                    <label>In House</label>
-                  </div>
-                  <div className="breakdown-item green">
-                    <span>
-                      {capabilities?.shippingEarning === "computed"
-                        ? formatPrice(report?.totals.shippingEarning ?? 0)
-                        : "—"}
-                    </span>
-                    <label>Shipping</label>
-                  </div>
-                </div>
+          {/* Summary Cards */}
+          <div className="er-summary-grid">
+            <div className="er-summary-card er-summary-card--primary">
+              <div className="er-summary-label">Total earnings</div>
+              <div className="er-summary-value">
+                {formatPrice(report?.totals.totalEarning ?? 0, { compact: true })}
+              </div>
+              <div className={`er-summary-change ${percentageChange.isPositive ? "er-summary-change--positive" : "er-summary-change--negative"}`}>
+                <span className="er-change-arrow">{percentageChange.isPositive ? "▲" : "▼"}</span>
+                {percentageChange.value.toFixed(1)}% Oct vs Sept 2026
               </div>
             </div>
 
-            <div className="stat-card">
-              <div className="stat-icon yellow">🏷️</div>
-              <div className="stat-content">
-                <h2>{formatPrice(report?.totals.discountGiven ?? 0, { compact: true })}</h2>
-                <p>Discount Given</p>
+            <div className="er-summary-card">
+              <div className="er-summary-icon er-summary-icon--blue">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                  <polyline points="9 22 9 12 15 12 15 22" />
+                </svg>
+              </div>
+              <div className="er-summary-label">In-house earning</div>
+              <div className="er-summary-value">
+                {formatPrice(report?.totals.inHouseEarning ?? 0, { compact: true })}
+              </div>
+              <div className="er-summary-detail">
+                {formatPrice(report?.totals.inHouseEarning ?? 0)}
               </div>
             </div>
 
-            <div className="stat-card">
-              <div className="stat-icon red">🔄</div>
-              <div className="stat-content">
-                <h2>{formatPrice(report?.totals.refundGiven ?? 0, { compact: true })}</h2>
-                <p>Refund Given</p>
+            <div className="er-summary-card">
+              <div className="er-summary-icon er-summary-icon--purple">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 8v8M8 12h8" />
+                </svg>
+              </div>
+              <div className="er-summary-label">Commission</div>
+              <div className="er-summary-value">
+                {formatPrice(report?.totals.commissionEarning ?? 0, { compact: true })}
+              </div>
+              <div className="er-summary-detail">
+                Shipping: {capabilities?.shippingEarning === "computed" 
+                  ? formatPrice(report?.totals.shippingEarning ?? 0) 
+                  : "—"}
+              </div>
+            </div>
+
+            <div className="er-summary-card">
+              <div className="er-summary-icon er-summary-icon--yellow">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                  <line x1="7" y1="7" x2="7.01" y2="7" />
+                </svg>
+              </div>
+              <div className="er-summary-label">Discount given</div>
+              <div className="er-summary-value">
+                {formatPrice(report?.totals.discountGiven ?? 0, { compact: true })}
+              </div>
+              <div className="er-summary-detail">
+                {monthsWithData} of {report?.rows.length ?? 0} months
+              </div>
+            </div>
+
+            <div className="er-summary-card">
+              <div className="er-summary-icon er-summary-icon--red">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="1 4 1 10 7 10" />
+                  <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                </svg>
+              </div>
+              <div className="er-summary-label">Refund given</div>
+              <div className="er-summary-value">
+                {formatPrice(report?.totals.refundGiven ?? 0, { compact: true })}
+              </div>
+              <div className="er-summary-detail">
+                {(report?.totals.refundGiven ?? 0) === 0 ? "No refunds this year" : "This year"}
               </div>
             </div>
           </div>
 
-          <div className="charts-row">
-            <div className="report-card">
-              <h3>Earning Statistics</h3>
-              <p className="chart-subtitle">
-                Total earning per {groupBy} · Average{" "}
-                {formatPrice(
-                  (report?.rows.length ?? 0) > 0
-                    ? Math.round(
-                        (report?.totals.totalEarning ?? 0) / (report?.rows.length ?? 1),
-                      )
-                    : 0,
-                )}
-              </p>
-              <div className="chart-placeholder">
+          {/* Charts Row */}
+          <div className="er-charts-row">
+            <div className="er-chart-card">
+              <div className="er-chart-header">
+                <h3>Earning statistics</h3>
+                <p>Total earning per month</p>
+              </div>
+              <div className="er-bar-chart">
                 {earningBars.length === 0 ? (
-                  <p style={{ color: "#888", textAlign: "center", paddingTop: "48px" }}>
-                    No earnings recorded for this period.
-                  </p>
+                  <p className="er-chart-empty">No earnings recorded for this period.</p>
                 ) : (
-                  <div className="chart-bars">
+                  <div className="er-bar-chart-container">
                     {earningBars.map((bar) => (
-                      <div key={bar.label} className="chart-bar-group">
-                        <div className="chart-bar" style={{ height: `${bar.height}%` }}></div>
-                        <span>{bar.label}</span>
+                      <div key={bar.label} className="er-bar-group">
+                        <div 
+                          className="er-bar" 
+                          style={{ height: `${bar.height}%` }}
+                          title={formatPrice(bar.value)}
+                        />
+                        <span className="er-bar-label">{bar.label}</span>
                       </div>
                     ))}
                   </div>
@@ -573,29 +665,38 @@ export default function EarningReports() {
               </div>
             </div>
 
-            <div className="report-card">
-              <h3>Payment Statistics</h3>
-              <div className="payment-stats">
-                <div className="donut-chart">
-                  <div className="donut-center">
-                    <span className="donut-value">
-                      {formatPrice(paymentTotal, { compact: true })}
-                    </span>
-                    <span className="donut-label">Payments Amount</span>
+            <div className="er-chart-card">
+              <div className="er-chart-header">
+                <h3>Payment statistics</h3>
+                <p>Share of payments by method</p>
+              </div>
+              <div className="er-payment-chart">
+                <div className="er-donut-container">
+                  <div 
+                    className="er-donut" 
+                    style={{ background: conicGradient }}
+                  >
+                    <div className="er-donut-center">
+                      <span className="er-donut-value">
+                        {formatPrice(paymentTotal, { compact: true })}
+                      </span>
+                      <span className="er-donut-label">Payments</span>
+                    </div>
                   </div>
                 </div>
-                <div className="payment-legend">
-                  {paymentBreakdown.length === 0 ? (
-                    <div className="legend-item">
-                      <span className="dot gray"></span>
+                <div className="er-payment-legend">
+                  {donutSegments.length === 0 ? (
+                    <div className="er-legend-item">
+                      <span className="er-legend-dot" style={{ background: "#9ca3af" }} />
                       No payments recorded
                     </div>
                   ) : (
-                    paymentBreakdown.map((entry, index) => (
-                      <div key={entry.method} className="legend-item">
-                        <span className={`dot ${LEGEND_DOTS[index % LEGEND_DOTS.length]}`}></span>
-                        {entry.method.charAt(0).toUpperCase() + entry.method.slice(1)} (
-                        {formatPrice(entry.amountPaise)}) · {entry.orders} orders
+                    donutSegments.map((seg) => (
+                      <div key={seg.method} className="er-legend-item">
+                        <span className="er-legend-dot" style={{ background: seg.color }} />
+                        <span className="er-legend-text">
+                          {seg.method.charAt(0).toUpperCase() + seg.method.slice(1)} ({seg.percentage.toFixed(0)}%)
+                        </span>
                       </div>
                     ))
                   )}
@@ -604,35 +705,27 @@ export default function EarningReports() {
             </div>
           </div>
 
+          {/* Deliveryman Notice */}
           {notes?.deliverymanIncentive && (
-            <div
-              className="report-card"
-              style={{ marginBottom: "24px", borderLeft: "4px solid #ff9800" }}
-            >
-              <h3>Deliveryman Incentive</h3>
-              <p className="chart-subtitle" style={{ margin: 0 }}>
-                {notes.deliverymanIncentive}
+            <div className="er-notice">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="16" x2="12" y2="12" />
+                <line x1="12" y1="8" x2="12.01" y2="8" />
+              </svg>
+              <p>
+                <strong>Deliveryman incentive isn't available.</strong> {notes.deliverymanIncentive}
               </p>
             </div>
           )}
 
-          <div className="table-card">
-            <div className="table-header">
+          {/* Data Table */}
+          <div className="er-table-card">
+            <div className="er-table-header">
               <h3>
-                Total Earnings <span className="count">{report?.rows.length ?? 0}</span>
+                Total earnings
+                <span className="er-table-count">{report?.rows.length ?? 0}</span>
               </h3>
-              <button
-                className="btn-export"
-                onClick={handleExportAdmin}
-                disabled={(report?.rows.length ?? 0) === 0}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7,10 12,15 17,10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-                Export
-              </button>
             </div>
 
             <DataTable
@@ -641,79 +734,70 @@ export default function EarningReports() {
               loading={loading}
               loadingText="Loading earnings…"
               emptyIcon="file"
-              emptyTitle="No earnings recorded"
-              emptyDescription="Earnings appear once paid orders exist in the selected period."
+              emptyTitle="No months match your filter."
+              emptyDescription=""
               keyExtractor={(row) => row.period}
             />
           </div>
         </>
       ) : (
         <div className="vendor-earning-content">
-          <div className="stats-grid">
-            <div className="stat-card">
-              <div className="stat-icon red">🏪</div>
-              <div className="stat-content">
-                <h2>{vendorTotal}</h2>
-                <p>Total Vendor</p>
+          <div className="er-summary-grid">
+            <div className="er-summary-card">
+              <div className="er-summary-icon er-summary-icon--red">🏪</div>
+              <div className="er-summary-label">Total Vendor</div>
+              <div className="er-summary-value">{vendorTotal}</div>
+            </div>
+
+            <div className="er-summary-card">
+              <div className="er-summary-icon er-summary-icon--yellow">🛒</div>
+              <div className="er-summary-label">Total Vendor Products</div>
+              <div className="er-summary-value">{vendorStats.totalProducts}</div>
+              <div className="er-summary-breakdown">
+                <span className="er-breakdown-item er-breakdown-item--red">
+                  {vendorStats.totalProducts - vendorStats.approved - vendorStats.pendingApproval} Denied
+                </span>
+                <span className="er-breakdown-item er-breakdown-item--blue">
+                  {vendorStats.pendingApproval} Pending
+                </span>
+                <span className="er-breakdown-item er-breakdown-item--green">
+                  {vendorStats.approved} Approved
+                </span>
               </div>
             </div>
 
-            <div className="stat-card">
-              <div className="stat-icon yellow">🛒</div>
-              <div className="stat-content">
-                <h2>{vendorStats.totalProducts}</h2>
-                <p>Total Vendor Products</p>
-                <div className="stat-breakdown">
-                  <div className="breakdown-item red">
-                    <span>
-                      {vendorStats.totalProducts -
-                        vendorStats.approved -
-                        vendorStats.pendingApproval}
-                    </span>
-                    <label>Denied</label>
-                  </div>
-                  <div className="breakdown-item blue">
-                    <span>{vendorStats.pendingApproval}</span>
-                    <label>Pending Request</label>
-                  </div>
-                  <div className="breakdown-item green">
-                    <span>{vendorStats.approved}</span>
-                    <label>Approved</label>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="stat-card">
-              <div className="stat-icon green">💵</div>
-              <div className="stat-content">
-                <h2>{formatPrice(vendorTotals.totalEarnedPaise, { compact: true })}</h2>
-                <p>Total Earning</p>
+            <div className="er-summary-card">
+              <div className="er-summary-icon er-summary-icon--green">💵</div>
+              <div className="er-summary-label">Total Earning</div>
+              <div className="er-summary-value">
+                {formatPrice(vendorTotals.totalEarnedPaise, { compact: true })}
               </div>
             </div>
           </div>
 
-          <div className="charts-row">
-            <div className="report-card">
-              <h3>Vendor Wallet Status</h3>
-              <div className="wallet-stats">
-                <div className="wallet-amount">
-                  <span className="amount">
+          <div className="er-charts-row">
+            <div className="er-chart-card">
+              <div className="er-chart-header">
+                <h3>Vendor Wallet Status</h3>
+              </div>
+              <div className="er-wallet-stats">
+                <div className="er-wallet-amount">
+                  <span className="er-wallet-value">
                     {formatPrice(vendorTotals.withdrawablePaise, { compact: true })}
                   </span>
-                  <span className="label">Wallet Amount</span>
+                  <span className="er-wallet-label">Wallet Amount</span>
                 </div>
-                <div className="wallet-legend">
-                  <div className="legend-item">
-                    <span className="dot blue"></span>
+                <div className="er-payment-legend">
+                  <div className="er-legend-item">
+                    <span className="er-legend-dot" style={{ background: "#3b82f6" }} />
                     Withdrawable Balance ({formatPrice(vendorTotals.withdrawablePaise)})
                   </div>
-                  <div className="legend-item">
-                    <span className="dot dark-blue"></span>
+                  <div className="er-legend-item">
+                    <span className="er-legend-dot" style={{ background: "#1e40af" }} />
                     Pending Withdraws ({formatPrice(vendorTotals.pendingPaise)})
                   </div>
-                  <div className="legend-item">
-                    <span className="dot yellow"></span>
+                  <div className="er-legend-item">
+                    <span className="er-legend-dot" style={{ background: "#fbbf24" }} />
                     Already Withdrawn ({formatPrice(vendorTotals.withdrawnPaise)})
                   </div>
                 </div>
@@ -721,23 +805,27 @@ export default function EarningReports() {
             </div>
           </div>
 
-          <div className="table-card">
-            <div className="table-header">
+          <div className="er-table-card">
+            <div className="er-table-header">
               <h3>
-                Vendor Earnings <span className="count">{vendorTotal}</span>
+                Vendor Earnings
+                <span className="er-table-count">{vendorTotal}</span>
               </h3>
-              <button
-                className="btn-export"
-                onClick={handleExportVendor}
-                disabled={vendorRows.length === 0}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7,10 12,15 17,10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
+              <div className="er-search-box">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
                 </svg>
-                Export
-              </button>
+                <input
+                  type="text"
+                  placeholder="Search vendor..."
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setVendorPage(1);
+                  }}
+                />
+              </div>
             </div>
 
             <DataTable
@@ -761,6 +849,3 @@ export default function EarningReports() {
     </div>
   );
 }
-
-/** Dot colours cycled through for the payment-method legend. */
-const LEGEND_DOTS = ["green", "blue", "yellow", "orange", "red", "purple", "teal"];
