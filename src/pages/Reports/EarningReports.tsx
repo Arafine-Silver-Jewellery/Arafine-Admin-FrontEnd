@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../../api/client";
 import { DataTable } from "../../components";
-import type { EarningsReport, VendorEarningRow } from "../../types";
+import type { EarningsReport, EarningPeriodRow, VendorEarningRow } from "../../types";
 import { formatPrice } from "../../utils/format";
 import { buildCsv, downloadCsv } from "./reportCsv";
 import "../../styles/ui-kit.css";
 import "./earning-reports.css";
 
 type EarningTab = "admin" | "vendor";
-type DatePreset = "this_year" | "last_year" | "this_month" | "custom";
+type DatePreset = "this_year" | "last_year" | "this_month";
 type GroupBy = "month" | "week" | "day";
 
 const PAGE_SIZE = 20;
@@ -17,7 +17,6 @@ const DATE_PRESETS: { value: DatePreset; label: string }[] = [
   { value: "this_year", label: "This year" },
   { value: "last_year", label: "Last year" },
   { value: "this_month", label: "This month" },
-  { value: "custom", label: "Custom range" },
 ];
 
 const GROUP_OPTIONS: { value: GroupBy; label: string }[] = [
@@ -49,24 +48,26 @@ function resolveDateRange(preset: DatePreset): { dateFrom?: string; dateTo?: str
   }
 }
 
-/** Format date range for display */
+/**
+ * The subtitle that describes the range on screen.
+ *
+ * This has to agree with `resolveDateRange`, which is what actually decides
+ * the rows that come back. "This year" queries from 1 January, so it reads
+ * "Jan 2026 - Oct 2026" -- an earlier version said "Dec 2025 - Oct 2026",
+ * which described a thirteen-month span the query never asked for.
+ */
 function formatDateRange(preset: DatePreset): string {
   const now = new Date();
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  
+
   switch (preset) {
     case "this_month":
       return `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
     case "last_year":
-      return `Jan – Dec ${now.getFullYear() - 1}`;
+      return `Jan - Dec ${now.getFullYear() - 1}`;
     case "this_year":
-    default: {
-      const startMonth = "Dec";
-      const startYear = now.getFullYear() - 1;
-      const endMonth = monthNames[now.getMonth()];
-      const endYear = now.getFullYear();
-      return `${startMonth} ${startYear} – ${endMonth} ${endYear}`;
-    }
+    default:
+      return `Jan ${now.getFullYear()} - ${monthNames[now.getMonth()]} ${now.getFullYear()}`;
   }
 }
 
@@ -104,11 +105,75 @@ function moneyCell(
   return formatPrice(value);
 }
 
-/** Calculate percentage change */
-function calculatePercentageChange(current: number, previous: number): { value: number; isPositive: boolean } {
-  if (previous === 0) return { value: 0, isPositive: true };
-  const change = ((current - previous) / previous) * 100;
-  return { value: Math.abs(change), isPositive: change >= 0 };
+/**
+ * Rounds a raw step up to the next "nice" number — 1, 2, 2.5, 5 or 10 times a
+ * power of ten — so the chart's grid lines land on figures a reader can hold
+ * in their head (₹1L, ₹2L, ₹2.5L) instead of ₹3.47L.
+ */
+function niceStep(raw: number): number {
+  if (!Number.isFinite(raw) || raw <= 0) return 0;
+
+  const magnitude = Math.pow(10, Math.floor(Math.log10(raw)));
+  const normalised = raw / magnitude;
+
+  const step =
+    normalised <= 1 ? 1
+    : normalised <= 2 ? 2
+    : normalised <= 2.5 ? 2.5
+    : normalised <= 5 ? 5
+    : 10;
+
+  return step * magnitude;
+}
+
+/**
+ * The labelled grid lines for a chart whose ceiling is `gridMax`.
+ *
+ * Returns the values from the top down, so the renderer can place each one
+ * as a percentage of the plot height without doing arithmetic at the call
+ * site. `step` of zero (an empty or all-zero chart) yields no lines.
+ */
+function gridLinesFromMax(gridMax: number, step: number): number[] {
+  if (step <= 0 || gridMax <= 0) return [];
+
+  const lines: number[] = [];
+  for (let value = gridMax; value > 0; value -= step) {
+    lines.push(value);
+  }
+  return lines;
+}
+
+/**
+ * The change between the newest period and the one before it.
+ *
+ * `rows` arrives in chronological order, so the last two entries are the two
+ * most recent periods. Both the magnitude and the comparison label are
+ * derived from the real payload — an earlier version compared the total
+ * against itself times 0.75, which printed a confident-looking percentage
+ * that meant nothing.
+ */
+function calculatePeriodChange(
+  rows: EarningPeriodRow[],
+): { value: number; isPositive: boolean; current: string; previous: string } | null {
+  if (rows.length < 2) return null;
+
+  const previous = rows[rows.length - 2];
+  const current = rows[rows.length - 1];
+
+  if (previous.totalEarning === 0) {
+    // Growth from zero is not a percentage — reporting "100%" would be a
+    // number we cannot justify.
+    return null;
+  }
+
+  const change = ((current.totalEarning - previous.totalEarning) / previous.totalEarning) * 100;
+
+  return {
+    value: Math.abs(change),
+    isPositive: change >= 0,
+    current: formatPeriod(current.period),
+    previous: formatPeriod(previous.period),
+  };
 }
 
 export default function EarningReports() {
@@ -116,6 +181,8 @@ export default function EarningReports() {
   const [datePreset, setDatePreset] = useState<DatePreset>("this_year");
   const [groupBy, setGroupBy] = useState<GroupBy>("month");
   const [search, setSearch] = useState("");
+  /** The admin table's "Filter by month" box — narrows the ledger rows. */
+  const [monthFilter, setMonthFilter] = useState("");
 
   const [report, setReport] = useState<EarningsReport | null>(null);
   const [loading, setLoading] = useState(true);
@@ -199,12 +266,12 @@ export default function EarningReports() {
   const paymentBreakdown = report?.paymentMethodBreakdown ?? [];
   const paymentTotal = paymentBreakdown.reduce((sum, p) => sum + p.amountPaise, 0);
 
-  // Calculate percentage changes (mock - comparing to previous period)
-  const percentageChange = useMemo(() => {
-    const total = report?.totals.totalEarning ?? 0;
-    // Mock previous period calculation - in real app, this would come from API
-    return calculatePercentageChange(total, total * 0.75);
-  }, [report]);
+  // The month-over-month movement on the headline figure, taken from the
+  // last two periods the API returned.
+  const percentageChange = useMemo(
+    () => calculatePeriodChange(report?.rows ?? []),
+    [report],
+  );
 
   // Count months with data
   const monthsWithData = useMemo(() => {
@@ -212,16 +279,59 @@ export default function EarningReports() {
     return rows.filter(r => r.discountGiven > 0).length;
   }, [report]);
 
-  // The chart plots each period's total earning
+  /**
+   * The ledger rows as the table shows them.
+   *
+   * The "Filter by month" box narrows the table to the matching periods. The
+   * match is on the rendered period label ("Mar 2026") as well as the raw
+   * period key ("2026-03"), so typing "mar" or "2026-03" both find the row.
+   * The chart and the KPI tiles deliberately keep using the unfiltered rows
+   * — the headline figures describe the whole selected period, not the
+   * subset the reader happens to be looking at.
+   */
+  const filteredRows = useMemo(() => {
+    const rows = report?.rows ?? [];
+    const needle = monthFilter.trim().toLowerCase();
+    if (!needle) return rows;
+    return rows.filter((row) => {
+      const label = formatPeriod(row.period).toLowerCase();
+      return label.includes(needle) || row.period.toLowerCase().includes(needle);
+    });
+  }, [report, monthFilter]);
+
+  /**
+   * The chart's bar data, plus the scale it is drawn against.
+   *
+   * The grid lines are derived from the tallest bar rather than fixed at
+   * round numbers, so the plot always uses its full height and the average
+   * line has somewhere meaningful to sit. `gridMax` is the ceiling the bars
+   * are scaled to; `gridLines` are the labelled values the reader sees.
+   */
   const earningBars = useMemo(() => {
     const rows = report?.rows ?? [];
-    if (rows.length === 0) return [];
-    const max = Math.max(...rows.map((r) => r.totalEarning), 1);
-    return rows.map((row) => ({
+    if (rows.length === 0) return { bars: [], gridLines: [], gridMax: 1, average: 0 };
+
+    const max = Math.max(...rows.map((r) => r.totalEarning), 0);
+    const total = rows.reduce((sum, r) => sum + r.totalEarning, 0);
+    const average = total / rows.length;
+
+    // Round the ceiling up to a clean step so the grid lines land on
+    // readable numbers (1L, 2L, 3L …) rather than 3.47L.
+    const step = niceStep(max / 4);
+    const gridMax = step > 0 ? Math.ceil(max / step) * step : max || 1;
+
+    const gridLines = gridLinesFromMax(gridMax, step);
+
+    const bars = rows.map((row, index) => ({
       label: formatPeriod(row.period),
       value: row.totalEarning,
-      height: Math.max((row.totalEarning / max) * 100, row.totalEarning > 0 ? 4 : 0),
+      height: gridMax > 0 ? (row.totalEarning / gridMax) * 100 : 0,
+      // The newest period is the one the reader is looking for, so it is the
+      // only bar drawn at full strength.
+      isCurrent: index === rows.length - 1,
     }));
+
+    return { bars, gridLines, gridMax, average };
   }, [report]);
 
   // Donut chart segments for payment methods
@@ -262,7 +372,10 @@ export default function EarningReports() {
 
   // --- Export ------------------------------------------------------------
   function handleExportAdmin() {
-    const rows = report?.rows ?? [];
+    // Export what the reader is looking at: the same filtered rows the table
+    // shows, with the same capability gating, so the file never claims a
+    // measured zero for a column the system has no source for.
+    const rows = filteredRows;
     downloadCsv(
       `earning-reports-${new Date().toISOString().slice(0, 10)}`,
       buildCsv(
@@ -282,9 +395,11 @@ export default function EarningReports() {
           formatPeriod(row.period),
           formatPrice(row.inHouseEarning),
           formatPrice(row.commissionEarning),
-          formatPrice(row.shippingEarning),
+          capabilities?.shippingEarning === "computed"
+            ? formatPrice(row.shippingEarning)
+            : "Not available",
           formatPrice(row.discountGiven),
-          formatPrice(row.vatTax),
+          capabilities?.vatTax === "computed" ? formatPrice(row.vatTax) : "Not available",
           formatPrice(row.refundGiven),
           formatPrice(row.totalEarning),
         ]),
@@ -481,17 +596,6 @@ export default function EarningReports() {
     <div className="earning-reports">
       {/* Page Header */}
       <div className="er-page-header">
-        <div className="er-breadcrumb">
-          <span>Reports</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-          <span>Sales & transactions</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-          <span className="er-breadcrumb-current">Earning reports</span>
-        </div>
         <div className="er-header-row">
           <div className="er-title-section">
             <h1>Earning reports</h1>
@@ -522,7 +626,7 @@ export default function EarningReports() {
                 ))}
               </select>
             </div>
-            <button className="er-export-btn" onClick={activeTab === "admin" ? handleExportAdmin : handleExportVendor}>
+            <button type="button" className="er-export-btn" onClick={activeTab === "admin" ? handleExportAdmin : handleExportVendor}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7,10 12,15 17,10" />
@@ -537,12 +641,14 @@ export default function EarningReports() {
       {/* Tabs */}
       <div className="er-tabs">
         <button
+          type="button"
           className={`er-tab ${activeTab === "admin" ? "er-tab--active" : ""}`}
           onClick={() => setActiveTab("admin")}
         >
           Admin earning
         </button>
         <button
+          type="button"
           className={`er-tab ${activeTab === "vendor" ? "er-tab--active" : ""}`}
           onClick={() => setActiveTab("vendor")}
         >
@@ -561,14 +667,35 @@ export default function EarningReports() {
           {/* Summary Cards */}
           <div className="er-summary-grid">
             <div className="er-summary-card er-summary-card--primary">
+              <div className="er-summary-icon er-summary-icon--blue">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M6 4h9a4 4 0 0 1 0 8H6z" />
+                  <path d="M6 12h10a4 4 0 0 1 0 8H6z" />
+                  <path d="M4 4v16" />
+                </svg>
+              </div>
               <div className="er-summary-label">Total earnings</div>
               <div className="er-summary-value">
                 {formatPrice(report?.totals.totalEarning ?? 0, { compact: true })}
               </div>
-              <div className={`er-summary-change ${percentageChange.isPositive ? "er-summary-change--positive" : "er-summary-change--negative"}`}>
-                <span className="er-change-arrow">{percentageChange.isPositive ? "▲" : "▼"}</span>
-                {percentageChange.value.toFixed(1)}% Oct vs Sept 2026
-              </div>
+              {percentageChange
+                ? (
+                    <div
+                      className={`er-summary-change ${percentageChange.isPositive ? "er-summary-change--positive" : "er-summary-change--negative"}`}
+                    >
+                      <span className="er-change-arrow" aria-hidden="true">
+                        {percentageChange.isPositive ? "▲" : "▼"}
+                      </span>
+                      <span>
+                        {percentageChange.value.toFixed(1)}% {percentageChange.current} vs {percentageChange.previous}
+                      </span>
+                    </div>
+                  )
+                : (
+                    <div className="er-summary-change er-summary-change--flat">
+                      <span>Not enough periods to compare</span>
+                    </div>
+                  )}
             </div>
 
             <div className="er-summary-card">
@@ -579,7 +706,7 @@ export default function EarningReports() {
                 </svg>
               </div>
               <div className="er-summary-label">In-house earning</div>
-              <div className="er-summary-value">
+              <div className="er-summary-value er-summary-value--blue">
                 {formatPrice(report?.totals.inHouseEarning ?? 0, { compact: true })}
               </div>
               <div className="er-summary-detail">
@@ -595,7 +722,7 @@ export default function EarningReports() {
                 </svg>
               </div>
               <div className="er-summary-label">Commission</div>
-              <div className="er-summary-value">
+              <div className="er-summary-value er-summary-value--red">
                 {formatPrice(report?.totals.commissionEarning ?? 0, { compact: true })}
               </div>
               <div className="er-summary-detail">
@@ -646,21 +773,64 @@ export default function EarningReports() {
                 <p>Total earning per month</p>
               </div>
               <div className="er-bar-chart">
-                {earningBars.length === 0 ? (
+                {earningBars.bars.length === 0 ? (
                   <p className="er-chart-empty">No earnings recorded for this period.</p>
                 ) : (
-                  <div className="er-bar-chart-container">
-                    {earningBars.map((bar) => (
-                      <div key={bar.label} className="er-bar-group">
-                        <div 
-                          className="er-bar" 
-                          style={{ height: `${bar.height}%` }}
-                          title={formatPrice(bar.value)}
-                        />
-                        <span className="er-bar-label">{bar.label}</span>
+                  <>
+                    {/* The plot: grid lines, the average rule, and the bars.
+                        The grid lines are absolutely positioned so the bars
+                        and the lines share one coordinate space. */}
+                    <div className="er-plot">
+                      <div className="er-plot-lines" aria-hidden="true">
+                        {earningBars.gridLines.map((line) => (
+                          <div
+                            key={line}
+                            className="er-gridline"
+                            data-label={formatPrice(line, { compact: true })}
+                            style={{ bottom: `${(line / earningBars.gridMax) * 100}%` }}
+                          />
+                        ))}
                       </div>
-                    ))}
-                  </div>
+
+                      {/* The average — the one reference line on the plot, so
+                          it is drawn in the warning colour rather than in the
+                          series colour. */}
+                      {earningBars.average > 0 && (
+                        <div
+                          className="er-avg"
+                          style={{ bottom: `${(earningBars.average / earningBars.gridMax) * 100}%` }}
+                        >
+                          <span className="er-avg-pill">
+                            Avg {formatPrice(earningBars.average, { compact: true })}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="er-plot-bars">
+                        {earningBars.bars.map((bar) => (
+                          <div key={bar.label} className="er-bar-group">
+                            <div
+                              className={`er-bar ${bar.isCurrent ? "er-bar--current" : ""}`}
+                              style={{ height: `${bar.height}%` }}
+                              title={`${bar.label}: ${formatPrice(bar.value)}`}
+                            >
+                              <span className="er-bar-value">{formatPrice(bar.value)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* The x-axis sits below the plot rather than inside it, so
+                        the labels never eat into the bars' height. */}
+                    <div className="er-xaxis">
+                      {earningBars.bars.map((bar) => (
+                        <span key={bar.label} className="er-xaxis-label">
+                          {bar.label}
+                        </span>
+                      ))}
+                    </div>
+                  </>
                 )}
               </div>
             </div>
@@ -672,9 +842,12 @@ export default function EarningReports() {
               </div>
               <div className="er-payment-chart">
                 <div className="er-donut-container">
-                  <div 
-                    className="er-donut" 
+                  {/* The graphic is aria-hidden because the legend beside it
+                      carries every figure it encodes, in text. */}
+                  <div
+                    className="er-donut"
                     style={{ background: conicGradient }}
+                    aria-hidden="true"
                   >
                     <div className="er-donut-center">
                       <span className="er-donut-value">
@@ -694,9 +867,15 @@ export default function EarningReports() {
                     donutSegments.map((seg) => (
                       <div key={seg.method} className="er-legend-item">
                         <span className="er-legend-dot" style={{ background: seg.color }} />
-                        <span className="er-legend-text">
-                          {seg.method.charAt(0).toUpperCase() + seg.method.slice(1)} ({seg.percentage.toFixed(0)}%)
+                        <span className="er-legend-body">
+                          <span className="er-legend-name">
+                            {seg.method.charAt(0).toUpperCase() + seg.method.slice(1)}
+                          </span>
+                          <span className="er-legend-meta">
+                            {seg.orders} {seg.orders === 1 ? "order" : "orders"} · {formatPrice(seg.amount)}
+                          </span>
                         </span>
+                        <span className="er-legend-pct">{seg.percentage.toFixed(1)}%</span>
                       </div>
                     ))
                   )}
@@ -724,19 +903,62 @@ export default function EarningReports() {
             <div className="er-table-header">
               <h3>
                 Total earnings
-                <span className="er-table-count">{report?.rows.length ?? 0}</span>
+                <span className="er-table-count">{filteredRows.length}</span>
               </h3>
+              <div className="er-search-box">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+                <label htmlFor="earning-month-filter" className="sr-only">
+                  Filter by month
+                </label>
+                <input
+                  id="earning-month-filter"
+                  type="search"
+                  placeholder="Filter by month"
+                  value={monthFilter}
+                  onChange={(e) => setMonthFilter(e.target.value)}
+                />
+              </div>
             </div>
 
             <DataTable
               columns={adminColumns}
-              data={report?.rows ?? []}
+              data={filteredRows}
               loading={loading}
               loadingText="Loading earnings…"
               emptyIcon="file"
               emptyTitle="No months match your filter."
-              emptyDescription=""
+              emptyDescription={
+                monthFilter.trim()
+                  ? "Try a different month name — for example “Mar 2026” or “2026-03”."
+                  : "Earnings appear once paid orders exist in the selected period."
+              }
               keyExtractor={(row) => row.period}
+              footer={
+                filteredRows.length > 0 ? (
+                  <tr className="er-total-row">
+                    <td />
+                    <td>Total</td>
+                    <td>{formatPrice(report?.totals.inHouseEarning ?? 0)}</td>
+                    <td>{formatPrice(report?.totals.commissionEarning ?? 0)}</td>
+                    <td>
+                      {capabilities?.shippingEarning === "computed"
+                        ? formatPrice(report?.totals.shippingEarning ?? 0)
+                        : "—"}
+                    </td>
+                    <td>{formatPrice(report?.totals.discountGiven ?? 0)}</td>
+                    <td>
+                      {capabilities?.vatTax === "computed"
+                        ? formatPrice(report?.totals.vatTax ?? 0)
+                        : "—"}
+                    </td>
+                    <td>{formatPrice(report?.totals.refundGiven ?? 0)}</td>
+                    <td>{formatPrice(report?.totals.totalEarning ?? 0)}</td>
+                  </tr>
+                ) : undefined
+              }
             />
           </div>
         </>

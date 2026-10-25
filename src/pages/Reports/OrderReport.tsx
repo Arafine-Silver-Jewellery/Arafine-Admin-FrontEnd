@@ -408,50 +408,50 @@ export default function OrderReport() {
         </div>
       )}
 
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-icon blue">📦</div>
-          <div className="stat-content">
+      <div className="reports-stats-grid">
+        <div className="reports-stat-card">
+          <div className="reports-stat-icon blue">📦</div>
+          <div className="reports-stat-content">
             <h2>{totalItems}</h2>
             <p>Total Orders</p>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon green">💰</div>
-          <div className="stat-content">
+        <div className="reports-stat-card">
+          <div className="reports-stat-icon green">💰</div>
+          <div className="reports-stat-content">
             <h2>{formatPrice(kpis.totalSalesPaise, { compact: true })}</h2>
             <p>Sales (this page)</p>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon teal">✅</div>
-          <div className="stat-content">
+        <div className="reports-stat-card">
+          <div className="reports-stat-icon teal">✅</div>
+          <div className="reports-stat-content">
             <h2>{kpis.delivered}</h2>
             <p>Delivered</p>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon yellow">⏳</div>
-          <div className="stat-content">
+        <div className="reports-stat-card">
+          <div className="reports-stat-icon yellow">⏳</div>
+          <div className="reports-stat-content">
             <h2>{kpis.pending}</h2>
             <p>Pending/Confirmed</p>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon red">❌</div>
-          <div className="stat-content">
+        <div className="reports-stat-card">
+          <div className="reports-stat-icon red">❌</div>
+          <div className="reports-stat-content">
             <h2>{kpis.cancelled}</h2>
             <p>Canceled</p>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon orange">🔄</div>
-          <div className="stat-content">
+        <div className="reports-stat-card">
+          <div className="reports-stat-icon orange">🔄</div>
+          <div className="reports-stat-content">
             <h2>{kpis.returned}</h2>
             <p>Returned/Refunded</p>
           </div>

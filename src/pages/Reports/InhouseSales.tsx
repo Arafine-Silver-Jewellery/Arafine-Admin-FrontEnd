@@ -261,24 +261,24 @@ export default function InhouseSales() {
         </div>
       )}
 
-      <div className="stats-grid">
-        <div className="stat-card wide">
-          <div className="stat-icon blue">💰</div>
-          <div className="stat-content">
+      <div className="reports-stats-grid">
+        <div className="reports-stat-card wide">
+          <div className="reports-stat-icon blue">💰</div>
+          <div className="reports-stat-content">
             <h2>{formatPrice(totals.totalSalePaise, { compact: true })}</h2>
             <p>Total In-House Sales</p>
           </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-icon green">📦</div>
-          <div className="stat-content">
+        <div className="reports-stat-card">
+          <div className="reports-stat-icon green">📦</div>
+          <div className="reports-stat-content">
             <h2>{totals.unitsSold.toLocaleString()}</h2>
             <p>Units Sold</p>
           </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-icon teal">🧾</div>
-          <div className="stat-content">
+        <div className="reports-stat-card">
+          <div className="reports-stat-icon teal">🧾</div>
+          <div className="reports-stat-content">
             <h2>{totalItems}</h2>
             <p>Total Products</p>
           </div>

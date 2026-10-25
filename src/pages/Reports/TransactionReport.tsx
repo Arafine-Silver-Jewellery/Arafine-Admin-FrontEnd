@@ -701,31 +701,31 @@ export default function TransactionReport() {
 
       {activeTab === "order" && (
         <>
-          <div className="stats-grid">
-            <div className="stat-card">
-              <div className="stat-icon green">💰</div>
-              <div className="stat-content">
+          <div className="reports-stats-grid">
+            <div className="reports-stat-card">
+              <div className="reports-stat-icon green">💰</div>
+              <div className="reports-stat-content">
                 <h2>{formatPrice(orderStats.totalAmountPaise, { compact: true })}</h2>
                 <p>Total Transaction Amount</p>
               </div>
             </div>
-            <div className="stat-card">
-              <div className="stat-icon blue">📦</div>
-              <div className="stat-content">
+            <div className="reports-stat-card">
+              <div className="reports-stat-icon blue">📦</div>
+              <div className="reports-stat-content">
                 <h2>{totalItems}</h2>
                 <p>Total Transactions</p>
               </div>
             </div>
-            <div className="stat-card">
-              <div className="stat-icon teal">✅</div>
-              <div className="stat-content">
+            <div className="reports-stat-card">
+              <div className="reports-stat-icon teal">✅</div>
+              <div className="reports-stat-content">
                 <h2>{orderStats.completed}</h2>
                 <p>Completed</p>
               </div>
             </div>
-            <div className="stat-card">
-              <div className="stat-icon yellow">⏳</div>
-              <div className="stat-content">
+            <div className="reports-stat-card">
+              <div className="reports-stat-icon yellow">⏳</div>
+              <div className="reports-stat-content">
                 <h2>{orderStats.pending}</h2>
                 <p>Pending</p>
               </div>
@@ -735,24 +735,24 @@ export default function TransactionReport() {
       )}
 
       {activeTab === "expense" && (
-        <div className="stats-grid">
-          <div className="stat-card wide">
-            <div className="stat-icon red">💸</div>
-            <div className="stat-content">
+        <div className="reports-stats-grid">
+          <div className="reports-stat-card wide">
+            <div className="reports-stat-icon red">💸</div>
+            <div className="reports-stat-content">
               <h2>{formatPrice(expenseTotals.totalAmountPaise, { compact: true })}</h2>
               <p>Total Expenses</p>
             </div>
           </div>
-          <div className="stat-card">
-            <div className="stat-icon blue">📋</div>
-            <div className="stat-content">
+          <div className="reports-stat-card">
+            <div className="reports-stat-icon blue">📋</div>
+            <div className="reports-stat-content">
               <h2>{expenseTotals.count}</h2>
               <p>Total Entries</p>
             </div>
           </div>
-          <div className="stat-card">
-            <div className="stat-icon green">✅</div>
-            <div className="stat-content">
+          <div className="reports-stat-card">
+            <div className="reports-stat-icon green">✅</div>
+            <div className="reports-stat-content">
               <h2>{formatPrice(expenseTotals.paidAmountPaise, { compact: true })}</h2>
               <p>Paid Amount</p>
             </div>
@@ -761,31 +761,31 @@ export default function TransactionReport() {
       )}
 
       {activeTab === "refund" && (
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-icon orange">🔄</div>
-            <div className="stat-content">
+        <div className="reports-stats-grid">
+          <div className="reports-stat-card">
+            <div className="reports-stat-icon orange">🔄</div>
+            <div className="reports-stat-content">
               <h2>{formatPrice(refundStats.totalRefundPaise, { compact: true })}</h2>
               <p>Total Refund Amount</p>
             </div>
           </div>
-          <div className="stat-card">
-            <div className="stat-icon blue">📋</div>
-            <div className="stat-content">
+          <div className="reports-stat-card">
+            <div className="reports-stat-icon blue">📋</div>
+            <div className="reports-stat-content">
               <h2>{totalItems}</h2>
               <p>Total Refund Requests</p>
             </div>
           </div>
-          <div className="stat-card">
-            <div className="stat-icon green">✅</div>
-            <div className="stat-content">
+          <div className="reports-stat-card">
+            <div className="reports-stat-icon green">✅</div>
+            <div className="reports-stat-content">
               <h2>{refundStats.processed}</h2>
               <p>Processed</p>
             </div>
           </div>
-          <div className="stat-card">
-            <div className="stat-icon yellow">⏳</div>
-            <div className="stat-content">
+          <div className="reports-stat-card">
+            <div className="reports-stat-icon yellow">⏳</div>
+            <div className="reports-stat-content">
               <h2>{refundStats.pending}</h2>
               <p>Pending</p>
             </div>

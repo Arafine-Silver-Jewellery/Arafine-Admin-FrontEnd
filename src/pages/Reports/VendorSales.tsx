@@ -290,18 +290,18 @@ export default function VendorSales() {
         </div>
       )}
 
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-icon blue">🏪</div>
-          <div className="stat-content">
+      <div className="reports-stats-grid">
+        <div className="reports-stat-card">
+          <div className="reports-stat-icon blue">🏪</div>
+          <div className="reports-stat-content">
             <h2>{totals.totalVendors}</h2>
             <p>Total Vendors</p>
-            <div className="stat-breakdown">
-              <div className="breakdown-item green">
+            <div className="reports-stat-breakdown">
+              <div className="reports-breakdown-item green">
                 <span>{totals.activeVendors}</span>
                 <label>Active</label>
               </div>
-              <div className="breakdown-item red">
+              <div className="reports-breakdown-item red">
                 <span>{totals.totalVendors - totals.activeVendors}</span>
                 <label>Inactive</label>
               </div>
@@ -309,25 +309,25 @@ export default function VendorSales() {
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon green">💰</div>
-          <div className="stat-content">
+        <div className="reports-stat-card">
+          <div className="reports-stat-icon green">💰</div>
+          <div className="reports-stat-content">
             <h2>{formatPrice(totals.totalSalesPaise, { compact: true })}</h2>
             <p>Total Sales</p>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon yellow">📦</div>
-          <div className="stat-content">
+        <div className="reports-stat-card">
+          <div className="reports-stat-icon yellow">📦</div>
+          <div className="reports-stat-content">
             <h2>{totals.totalOrders}</h2>
             <p>Total Orders</p>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon purple">🛒</div>
-          <div className="stat-content">
+        <div className="reports-stat-card">
+          <div className="reports-stat-icon purple">🛒</div>
+          <div className="reports-stat-content">
             <h2>{totalVendorProducts}</h2>
             <p>Vendor Products (this page)</p>
           </div>

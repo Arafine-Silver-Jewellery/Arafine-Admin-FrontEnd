@@ -477,18 +477,18 @@ export default function ProductReport() {
             </div>
           </div>
 
-          <div className="stats-grid product-stats">
-            <div className="stat-card">
-              <div className="stat-icon yellow">📦</div>
-              <div className="stat-content">
+          <div className="reports-stats-grid product-stats">
+            <div className="reports-stat-card">
+              <div className="reports-stat-icon yellow">📦</div>
+              <div className="reports-stat-content">
                 <h2>{allTotal}</h2>
                 <p>Total Product</p>
-                <div className="stat-breakdown">
-                  <div className="breakdown-item blue">
+                <div className="reports-stat-breakdown">
+                  <div className="reports-breakdown-item blue">
                     <span>{allStats.totalStock}</span>
                     <label>In Stock</label>
                   </div>
-                  <div className="breakdown-item green">
+                  <div className="reports-breakdown-item green">
                     <span>{allStats.unitsSold}</span>
                     <label>Units Sold</label>
                   </div>
@@ -496,17 +496,17 @@ export default function ProductReport() {
               </div>
             </div>
 
-            <div className="stat-card">
-              <div className="stat-icon orange">🛒</div>
-              <div className="stat-content">
+            <div className="reports-stat-card">
+              <div className="reports-stat-icon orange">🛒</div>
+              <div className="reports-stat-content">
                 <h2>{formatPrice(allStats.totalAmountPaise, { compact: true })}</h2>
                 <p>Total Amount Sold</p>
               </div>
             </div>
 
-            <div className="stat-card">
-              <div className="stat-icon green">🏷️</div>
-              <div className="stat-content">
+            <div className="reports-stat-card">
+              <div className="reports-stat-icon green">🏷️</div>
+              <div className="reports-stat-content">
                 <h2>{allStats.unitsSold.toLocaleString()}</h2>
                 <p>Total Quantity Sold</p>
               </div>

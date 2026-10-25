@@ -154,15 +154,26 @@
   background: #f4f6f8;
 }
 
-/* Stats Grid */
-.stats-grid {
+/* ============================================================
+   REPORT STAT TILES (legacy screens)
+   These were named `.stats-grid` / `.stat-card` / `.stat-icon` /
+   `.stat-content`, which collided with the dashboard stylesheet's own
+   definitions of the same names — the same class rendered differently
+   depending on which stylesheet the page happened to load. Three of
+   the six report screens pull in dashboard.css and three do not, so
+   the same tile was laid out two different ways across the module.
+   They are prefixed here so the two systems can no longer fight over
+   them, and the JSX in the five legacy report screens was renamed to
+   match.
+   ============================================================ */
+.reports-stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 20px;
   margin-bottom: 24px;
 }
 
-.stat-card {
+.reports-stat-card {
   background: white;
   border-radius: 12px;
   padding: 20px;
@@ -172,17 +183,17 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-.stat-card.wide {
+.reports-stat-card.wide {
   grid-column: span 2;
 }
 
 @media (max-width: 768px) {
-  .stat-card.wide {
+  .reports-stat-card.wide {
     grid-column: span 1;
   }
 }
 
-.stat-icon {
+.reports-stat-icon {
   width: 50px;
   height: 50px;
   border-radius: 12px;
@@ -193,52 +204,62 @@
   flex-shrink: 0;
 }
 
-.stat-icon.blue { background: #e3f2fd; }
-.stat-icon.yellow { background: #fff8e1; }
-.stat-icon.red { background: #ffebee; }
-.stat-icon.green { background: #e8f5e9; }
-.stat-icon.purple { background: #f3e5f5; }
-.stat-icon.orange { background: #fff3e0; }
-.stat-icon.teal { background: #e0f2f1; }
+.reports-stat-icon.blue { background: #e3f2fd; }
+.reports-stat-icon.yellow { background: #fff8e1; }
+.reports-stat-icon.red { background: #ffebee; }
+.reports-stat-icon.green { background: #e8f5e9; }
+.reports-stat-icon.purple { background: #f3e5f5; }
+.reports-stat-icon.orange { background: #fff3e0; }
+.reports-stat-icon.teal { background: #e0f2f1; }
 
-.stat-content h2 {
+/* The flex layout this column needs used to come from dashboard.css, which
+   only three of the six report screens load — so the same tile rendered
+   differently depending on the page. It belongs with the tile itself. */
+.reports-stat-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.reports-stat-content h2 {
   font-size: 28px;
   font-weight: 700;
   color: #1a1a1a;
   margin-bottom: 4px;
 }
 
-.stat-content p {
+.reports-stat-content p {
   font-size: 14px;
   color: #666;
   margin-bottom: 12px;
 }
 
-.stat-breakdown {
+.reports-stat-breakdown {
   display: flex;
   gap: 24px;
   flex-wrap: wrap;
 }
 
-.breakdown-item {
+.reports-breakdown-item {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.breakdown-item span {
+.reports-breakdown-item span {
   font-size: 16px;
   font-weight: 600;
 }
 
-.breakdown-item label {
+.reports-breakdown-item label {
   font-size: 12px;
   color: #888;
 }
 
-.breakdown-item.red span { color: #f44336; }
-.breakdown-item.blue span { color: #2196f3; }
-.breakdown-item.green span { color: #4caf50; }
+.reports-breakdown-item.red span { color: #f44336; }
+.reports-breakdown-item.blue span { color: #2196f3; }
+.reports-breakdown-item.green span { color: #4caf50; }
 
 /* Charts Row */
 .charts-row {
@@ -730,22 +751,22 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.product-stats .stat-card {
+.product-stats .reports-stat-card {
   min-width: 0;
 }
 
-.product-stats .stat-content {
+.product-stats .reports-stat-content {
   min-width: 0;
   flex: 1;
 }
 
-.product-stats .stat-content h2 {
+.product-stats .reports-stat-content h2 {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.product-stats .stat-content p {
+.product-stats .reports-stat-content p {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -884,5 +905,5 @@
 @media (max-width: 480px) {
   .report-table th,
   .report-table td { padding: 10px 8px; }
-  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .reports-stats-grid { grid-template-columns: 1fr 1fr; }
 }
