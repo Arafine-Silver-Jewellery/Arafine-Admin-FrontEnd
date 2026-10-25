@@ -6,9 +6,23 @@
   position: sticky;
   top: 0;
   z-index: 60;
-  display: flex;
+  /*
+   * Three tracks, not a flex row: `minmax(0,1fr) auto minmax(0,1fr)` puts the
+   * search in the middle column with an equal track on each side, so it is
+   * genuinely centred in the header rather than centred in the space left
+   * over between the title and the icons (which shifts as the title changes
+   * length between pages).
+   *
+   * The side tracks must also be in flow. An absolutely positioned search
+   * reserves no space, so the title never gets squeezed by it — it renders at
+   * its natural width and the search's opaque background paints straight over
+   * the tail of it. As a grid item the title's track is capped at the search's
+   * left edge, so a long title ("Sales & Transaction Report") truncates with
+   * an ellipsis instead of being cut in half.
+   */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
   gap: 1rem;
   height: var(--header-height, 70px);
   padding: 0 var(--page-pad-x, 2rem);
@@ -22,7 +36,7 @@
   align-items: center;
   gap: 0.75rem;
   min-width: 0;              /* let the title truncate instead of overflow */
-  flex: 1 1 auto;
+  grid-column: 1;
 }
 
 .app-header__burger {
@@ -64,23 +78,20 @@
 
 /* ── Middle: menu search ── */
 /*
- * Centred with absolute positioning rather than as a third flex child:
- * `justify-content: space-between` would otherwise push it into whichever
- * side had the spare room, and the title's width changes from page to page
- * ("Dashboard" vs "Sales & Transaction Report").
+ * A normal grid item in the middle track — see the note on .app-header for
+ * why it must stay in flow.
  */
 .app-header__search {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  grid-column: 2;
   display: flex;
   align-items: center;
-  width: min(360px, 34vw);
+  gap: 0.5rem;
+  width: min(340px, 30vw);
 }
 
 .app-header__search svg {
-  position: absolute;
-  left: 0.75rem;
+  flex-shrink: 0;
+  display: block;
   width: 16px;
   height: 16px;
   color: var(--color-charcoal-muted, #6b6b6b);
@@ -88,8 +99,9 @@
 }
 
 .app-header__search input {
-  width: 100%;
-  padding: 0.55rem 1rem 0.55rem 2.25rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.55rem 1rem;
   background: var(--color-ivory, #f5f3ef);
   border: 1px solid var(--border-color, #e8e4dc);
   border-radius: var(--radius-md, 8px);
@@ -115,7 +127,8 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  flex-shrink: 0;
+  grid-column: 3;
+  justify-self: end;   /* hug the header's right edge, not the track's left */
 }
 
 .app-header__icon-btn {
@@ -272,13 +285,18 @@
 @media (max-width: 1024px) {
   .app-header__burger { display: inline-flex; }
   /* Narrower as the header fills up, but still clear of the title and icons */
-  .app-header__search { width: min(240px, 30vw); }
+  .app-header__search { width: min(220px, 26vw); }
 }
 
 @media (max-width: 768px) {
-  .app-header { gap: 0.5rem; }
+  .app-header {
+    gap: 0.5rem;
+    /* The search is hidden at this width, so there is no middle track to
+       keep balanced — one flexible track for the title, one for the icons. */
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
   .app-header__title { font-size: 1.1rem; }
-  .app-header__right { gap: 0.25rem; }
+  .app-header__right { gap: 0.25rem; grid-column: 2; justify-self: end; }
   /* No room between the title and the icons at this width */
   .app-header__search { display: none; }
 }

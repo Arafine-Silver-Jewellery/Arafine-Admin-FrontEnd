@@ -38,6 +38,16 @@ img {
     display: none !important;
   }
 
+  /*
+   * The live header is .app-header — .top-header above is a dead class. Keep
+   * the page title (useful on paper) but drop the interactive chrome: a text
+   * input and a row of icon buttons have no business in a printed report.
+   */
+  .app-header__search,
+  .app-header__right {
+    display: none !important;
+  }
+
   .main-content {
     margin-left: 0 !important;
   }

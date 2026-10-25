@@ -16,8 +16,11 @@
      the header would scroll away with the window. `clip` clips the same
      overflow without creating a scroll container, so the viewport stays the
      scrollport and the header sticks. It also stops clipping vertically,
-     which `hidden` was doing to the header's dropdown menus. */
-  overflow-x: hidden; /* fallback for engines without overflow: clip */
+     which `hidden` was doing to the header's dropdown menus.
+     The `hidden` line below is only a fallback for engines without
+     `overflow: clip` (pre-Chrome 90 / Firefox 81 / Safari 16); there the
+     header behaves as it did before — not sticky, but not broken either. */
+  overflow-x: hidden;
   overflow-x: clip;
 }
 
