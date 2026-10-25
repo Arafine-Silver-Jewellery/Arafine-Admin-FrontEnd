@@ -106,44 +106,6 @@
   transition: opacity var(--transition-normal);
 }
 
-.sidebar-search {
-  padding: 1rem 1.25rem;
-  position: relative;
-}
-
-.sidebar-search input {
-  width: 100%;
-  padding: 0.625rem 1rem 0.625rem 2.5rem;
-  background: var(--color-ivory);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  color: var(--color-charcoal);
-  font-family: var(--font-sans);
-  font-size: 0.8125rem;
-  transition: all var(--transition-fast);
-}
-
-.sidebar-search input::placeholder {
-  color: var(--color-charcoal-muted);
-}
-
-.sidebar-search input:focus {
-  outline: none;
-  background: var(--color-white);
-  border-color: var(--color-champagne);
-  box-shadow: var(--ring);
-}
-
-.sidebar-search svg {
-  position: absolute;
-  left: 2rem;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 15px;
-  height: 15px;
-  color: var(--color-charcoal-muted);
-}
-
 .sidebar-nav {
   padding: 0.5rem 0 1.5rem;
   flex: 1;

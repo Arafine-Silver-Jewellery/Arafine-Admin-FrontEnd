@@ -166,19 +166,6 @@ export default function Layout() {
             </svg>
           </button>
         </div>
-        
-        <div className="sidebar-search">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8" />
-            <path d="M21 21l-4.35-4.35" />
-          </svg>
-          <input 
-            type="text" 
-            placeholder="Search menu" 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
 
         <nav className="sidebar-nav">
           {hasPermission("dashboard") && (
@@ -562,6 +549,8 @@ export default function Layout() {
           onMenuClick={() => setSidebarOpen(true)}
           employee={employee}
           onLogout={handleLogout}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
         />
         {false && (
         <header className="top-header">

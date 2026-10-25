@@ -62,6 +62,54 @@
   min-width: 0;
 }
 
+/* ── Middle: menu search ── */
+/*
+ * Centred with absolute positioning rather than as a third flex child:
+ * `justify-content: space-between` would otherwise push it into whichever
+ * side had the spare room, and the title's width changes from page to page
+ * ("Dashboard" vs "Sales & Transaction Report").
+ */
+.app-header__search {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  width: min(360px, 34vw);
+}
+
+.app-header__search svg {
+  position: absolute;
+  left: 0.75rem;
+  width: 16px;
+  height: 16px;
+  color: var(--color-charcoal-muted, #6b6b6b);
+  pointer-events: none;
+}
+
+.app-header__search input {
+  width: 100%;
+  padding: 0.55rem 1rem 0.55rem 2.25rem;
+  background: var(--color-ivory, #f5f3ef);
+  border: 1px solid var(--border-color, #e8e4dc);
+  border-radius: var(--radius-md, 8px);
+  color: var(--color-charcoal, #1a1a1a);
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  font-size: 0.8125rem;
+  transition: all var(--transition-fast);
+}
+
+.app-header__search input::placeholder {
+  color: var(--color-charcoal-muted, #6b6b6b);
+}
+
+.app-header__search input:focus {
+  outline: none;
+  background: var(--color-white, #fff);
+  border-color: var(--color-champagne, #c9a96e);
+  box-shadow: var(--ring);
+}
+
 /* ── Right: actions ── */
 .app-header__right {
   display: flex;
@@ -223,12 +271,16 @@
 /* Show hamburger on tablet / mobile */
 @media (max-width: 1024px) {
   .app-header__burger { display: inline-flex; }
+  /* Narrower as the header fills up, but still clear of the title and icons */
+  .app-header__search { width: min(240px, 30vw); }
 }
 
 @media (max-width: 768px) {
   .app-header { gap: 0.5rem; }
   .app-header__title { font-size: 1.1rem; }
   .app-header__right { gap: 0.25rem; }
+  /* No room between the title and the icons at this width */
+  .app-header__search { display: none; }
 }
 
 @media (max-width: 480px) {

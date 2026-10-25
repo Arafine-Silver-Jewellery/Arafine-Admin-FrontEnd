@@ -11,6 +11,10 @@ interface AppHeaderProps {
   employee: { firstName?: string; lastName?: string; email?: string } | null;
   /** Logout handler */
   onLogout: () => void;
+  /** Current menu-search text */
+  searchQuery: string;
+  /** Menu-search change handler */
+  onSearchChange: (value: string) => void;
 }
 
 /**
@@ -19,7 +23,7 @@ interface AppHeaderProps {
  * across every screen. Left: hamburger (mobile) + page title.
  * Right: notifications + profile menu.
  */
-export function AppHeader({ title, onMenuClick, employee, onLogout }: AppHeaderProps) {
+export function AppHeader({ title, onMenuClick, employee, onLogout, searchQuery, onSearchChange }: AppHeaderProps) {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -55,6 +59,21 @@ export function AppHeader({ title, onMenuClick, employee, onLogout }: AppHeaderP
           </svg>
         </button>
         <h1 className="app-header__title">{title}</h1>
+      </div>
+
+      {/* Middle: menu search — moved here from the sidebar */}
+      <div className="app-header__search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="11" cy="11" r="8" />
+          <path d="M21 21l-4.35-4.35" />
+        </svg>
+        <input
+          type="text"
+          placeholder="Search menu"
+          aria-label="Search menu"
+          value={searchQuery}
+          onChange={(e) => onSearchChange(e.target.value)}
+        />
       </div>
 
       {/* Right: notifications + profile */}
