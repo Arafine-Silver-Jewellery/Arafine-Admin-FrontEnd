@@ -30,10 +30,15 @@ interface CustomerDetails extends Customer {
   }[];
 }
 
+// "Deleted" is a soft-delete view: those customers are hidden from the
+// default list but keep every order and address, so they can be restored.
+// "All Status" deliberately excludes them — the backend treats a missing
+// `isDeleted` as "not deleted", so the two never overlap.
 const statusFilterOptions = [
   { value: "", label: "All Status", color: "neutral" as const },
   { value: "active", label: "Active", color: "success" as const },
   { value: "blocked", label: "Blocked", color: "danger" as const },
+  { value: "deleted", label: "Deleted", color: "warning" as const },
 ];
 
 export default function CustomerList() {
@@ -83,8 +88,16 @@ export default function CustomerList() {
         page: currentPage,
         limit: itemsPerPage,
         search: debouncedSearch || undefined,
-        status: statusFilter === "active" ? "active" : undefined,
-        isBlocked: statusFilter === "blocked" ? "true" : undefined,
+        // "Active" and "Blocked" both key off the Block toggle on this
+        // screen, not off the backend's `status` column. `status` is a
+        // separate lifecycle field (active/suspended/deleted) that only the
+        // User Management screen writes — blocking a customer here leaves
+        // `status` alone, so filtering on it would show blocked customers
+        // under "Active".
+        isBlocked: statusFilter === "blocked" ? "true" : statusFilter === "active" ? "false" : undefined,
+        // The backend excludes soft-deleted customers unless asked for them.
+        // "Deleted" asks for exactly those; every other view keeps them hidden.
+        isDeleted: statusFilter === "deleted" ? "true" : undefined,
       });
       setCustomers(response.data || []);
       setTotalItems(response.pagination?.total || 0);
@@ -107,6 +120,17 @@ export default function CustomerList() {
     } catch (error) {
       console.error("Failed to toggle block:", error);
       toast.error("Failed to update customer");
+    }
+  }
+
+  async function handleRestore(customer: Customer) {
+    try {
+      await api.restoreUser(customer.id);
+      toast.success(`"${customer.fullName}" restored`);
+      loadCustomers();
+    } catch (error) {
+      console.error("Failed to restore customer:", error);
+      toast.error("Failed to restore customer");
     }
   }
 
@@ -187,6 +211,19 @@ export default function CustomerList() {
       ),
     },
     {
+      key: "accountStatus",
+      header: "Status",
+      width: "110px",
+      render: (customer: Customer) => (
+        // Deleted sits above blocked: a soft-deleted customer is gone from
+        // the storefront regardless of whether they were also blocked.
+        <span className={`ak-status ak-status--${customer.isDeleted ? "warning" : customer.isBlocked ? "danger" : "success"}`}>
+          <span className="ak-status__dot" />
+          {customer.isDeleted ? "Deleted" : customer.isBlocked ? "Blocked" : "Active"}
+        </span>
+      ),
+    },
+    {
       key: "phone",
       header: "Phone",
       render: (customer: Customer) => <span className="ak-text-muted">{customer.mobileNumber}</span>,
@@ -214,12 +251,17 @@ export default function CustomerList() {
       key: "block",
       header: "Block",
       width: "80px",
-      render: (customer: Customer) => (
-        <label className="ak-toggle" onClick={(e) => e.stopPropagation()}>
-          <input type="checkbox" checked={customer.isBlocked} onChange={() => toggleBlock(customer)} />
-          <span className="ak-toggle__slider" />
-        </label>
-      ),
+      render: (customer: Customer) =>
+        // Blocking a soft-deleted customer is meaningless — they're already
+        // locked out — so the toggle is replaced by a dash.
+        customer.isDeleted ? (
+          <span className="ak-text-muted">—</span>
+        ) : (
+          <label className="ak-toggle" onClick={(e) => e.stopPropagation()}>
+            <input type="checkbox" checked={customer.isBlocked} onChange={() => toggleBlock(customer)} />
+            <span className="ak-toggle__slider" />
+          </label>
+        ),
     },
     {
       key: "actions",
@@ -241,20 +283,39 @@ export default function CustomerList() {
               <circle cx="12" cy="12" r="3" />
             </svg>
           </button>
-          <button
-            type="button"
-            className="ak-icon-btn ak-icon-btn--delete"
-            title="Delete"
-            onClick={(e) => {
-              e.stopPropagation();
-              openDeleteModal(customer);
-            }}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="3,6 5,6 21,6" />
-              <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-            </svg>
-          </button>
+          {customer.isDeleted ? (
+            // A soft-deleted customer can be brought back — the data was never
+            // removed, only flagged. So the trash icon becomes an undo arrow.
+            <button
+              type="button"
+              className="ak-icon-btn ak-icon-btn--edit"
+              title="Restore"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleRestore(customer);
+              }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="1,4 1,10 7,10" />
+                <path d="M3.51 15a9 9 0 102.13-9.36L1 10" />
+              </svg>
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="ak-icon-btn ak-icon-btn--delete"
+              title="Delete"
+              onClick={(e) => {
+                e.stopPropagation();
+                openDeleteModal(customer);
+              }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="3,6 5,6 21,6" />
+                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+              </svg>
+            </button>
+          )}
         </div>
       ),
     },
@@ -316,7 +377,7 @@ export default function CustomerList() {
           loading={loading}
           loadingText="Loading customers…"
           emptyIcon="users"
-          emptyTitle="No customers found"
+          emptyTitle={statusFilter === "deleted" ? "No deleted customers" : "No customers found"}
           emptyDescription={debouncedSearch || statusFilter ? "Try adjusting your filters." : "Customers will appear here once they register."}
           keyExtractor={(customer) => customer.id}
           onRowClick={(customer) => handleViewCustomer(customer)}
@@ -363,9 +424,9 @@ export default function CustomerList() {
                   </div>
 
                   <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem" }}>
-                    <span className={`ak-status ak-status--${selectedCustomer.isBlocked ? "danger" : "success"}`}>
+                    <span className={`ak-status ak-status--${selectedCustomer.isDeleted ? "warning" : selectedCustomer.isBlocked ? "danger" : "success"}`}>
                       <span className="ak-status__dot" />
-                      {selectedCustomer.isBlocked ? "Blocked" : "Active"}
+                      {selectedCustomer.isDeleted ? "Deleted" : selectedCustomer.isBlocked ? "Blocked" : "Active"}
                     </span>
                     <span className="ak-text-muted">Joined {formatDate(selectedCustomer.createdAt)}</span>
                   </div>
@@ -431,6 +492,18 @@ export default function CustomerList() {
               ) : null}
             </div>
             <div className="ak-modal__footer">
+              {selectedCustomer?.isDeleted && (
+                <button
+                  type="button"
+                  className="ak-btn ak-btn--success"
+                  onClick={() => {
+                    handleRestore(selectedCustomer);
+                    setShowViewModal(false);
+                  }}
+                >
+                  Restore Customer
+                </button>
+              )}
               <button type="button" className="ak-btn ak-btn--ghost" onClick={() => setShowViewModal(false)}>
                 Close
               </button>
@@ -454,7 +527,11 @@ export default function CustomerList() {
             </div>
             <div className="ak-modal__body">
               <p>
-                Are you sure you want to delete <strong>"{deletingCustomer.fullName}"</strong>? This action cannot be undone.
+                Are you sure you want to delete <strong>"{deletingCustomer.fullName}"</strong>?
+              </p>
+              <p className="ak-text-muted ak-text-sm" style={{ marginTop: "0.75rem" }}>
+                The customer will be signed out and can no longer sign in. Their orders and
+                addresses are kept, so you can restore them later from the <strong>Deleted</strong> filter.
               </p>
             </div>
             <div className="ak-modal__footer">
