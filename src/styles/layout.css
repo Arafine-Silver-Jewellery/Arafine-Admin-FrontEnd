@@ -8,7 +8,17 @@
   min-height: 100vh;
   background: var(--color-cream);
   width: 100%;
-  overflow-x: hidden;
+  /* `clip`, not `hidden` — this line is load-bearing for the sticky header.
+     `overflow-x: hidden` with the default `overflow-y: visible` makes
+     overflow-y compute to `auto`, which turns .admin-layout into a scroll
+     container. A sticky element only sticks against its nearest scrollport,
+     and .admin-layout never scrolls (its height grows with the content), so
+     the header would scroll away with the window. `clip` clips the same
+     overflow without creating a scroll container, so the viewport stays the
+     scrollport and the header sticks. It also stops clipping vertically,
+     which `hidden` was doing to the header's dropdown menus. */
+  overflow-x: hidden; /* fallback for engines without overflow: clip */
+  overflow-x: clip;
 }
 
 /* ========== SIDEBAR ========== */
