@@ -87,13 +87,3 @@ export function getPaymentStatusColor(status: string): string {
   };
   return colors[status] || "#6b7280";
 }
-
-export function getProductStatusColor(status: string): string {
-  const colors: Record<string, string> = {
-    active: "#22c55e",
-    inactive: "#6b7280",
-    out_of_stock: "#ef4444",
-    discontinued: "#9ca3af",
-  };
-  return colors[status] || "#6b7280";
-}

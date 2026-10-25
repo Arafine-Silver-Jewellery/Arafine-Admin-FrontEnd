@@ -1,5 +1,15 @@
 import { API_BASE_URL } from "../config/env";
-import type { Address, CustomerAddressInput } from "../types";
+import type {
+  Address,
+  CustomerAddressInput,
+  EarningsReport,
+  ExpensesReport,
+  InhouseSalesReport,
+  ProductSalesReport,
+  VendorEarningsReport,
+  VendorSalesReport,
+  WishlistCountsReport,
+} from "../types";
 
 interface ApiResponse<T> {
   data?: T;
@@ -71,6 +81,116 @@ export const api = {
     return request<any[]>(`/dashboard/top-products?${q}`);
   },
 
+  // Sales & Transaction Reports.
+  // These live on the dashboard module — the backend serves both the
+  // Dashboard screen and the report screens from there.
+  getProductSalesReport: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    categoryId?: string;
+    range?: "7d" | "30d" | "90d" | "all";
+  } = {}) => {
+    const q = new URLSearchParams();
+    if (params.page) q.set("page", String(params.page));
+    if (params.limit) q.set("limit", String(params.limit));
+    if (params.search) q.set("search", params.search);
+    if (params.categoryId) q.set("categoryId", params.categoryId);
+    q.set("range", params.range ?? "30d");
+    return request<ProductSalesReport>(`/dashboard/product-sales?${q}`);
+  },
+  getWishlistCountsReport: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    sort?: "count" | "name" | "recent";
+    order?: "asc" | "desc";
+  } = {}) => {
+    const q = new URLSearchParams();
+    if (params.page) q.set("page", String(params.page));
+    if (params.limit) q.set("limit", String(params.limit));
+    if (params.search) q.set("search", params.search);
+    q.set("sort", params.sort ?? "count");
+    q.set("order", params.order ?? "desc");
+    return request<WishlistCountsReport>(`/dashboard/wishlist-counts?${q}`);
+  },
+  getExpensesReport: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    category?: string;
+    status?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  } = {}) => {
+    const q = new URLSearchParams();
+    if (params.page) q.set("page", String(params.page));
+    if (params.limit) q.set("limit", String(params.limit));
+    if (params.search) q.set("search", params.search);
+    if (params.category) q.set("category", params.category);
+    if (params.status) q.set("status", params.status);
+    if (params.dateFrom) q.set("dateFrom", params.dateFrom);
+    if (params.dateTo) q.set("dateTo", params.dateTo);
+    return request<ExpensesReport>(`/dashboard/expenses?${q}`);
+  },
+  getInhouseSalesReport: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    /** Category / Sub Category / Sub Sub Category id — all are `categories` rows. */
+    categoryId?: string;
+    range?: "7d" | "30d" | "90d" | "all";
+  } = {}) => {
+    const q = new URLSearchParams();
+    if (params.page) q.set("page", String(params.page));
+    if (params.limit) q.set("limit", String(params.limit));
+    if (params.search) q.set("search", params.search);
+    if (params.categoryId) q.set("categoryId", params.categoryId);
+    q.set("range", params.range ?? "30d");
+    return request<InhouseSalesReport>(`/dashboard/inhouse-sales?${q}`);
+  },
+  getVendorSalesReport: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: "active" | "inactive";
+    range?: "7d" | "30d" | "90d" | "all";
+  } = {}) => {
+    const q = new URLSearchParams();
+    if (params.page) q.set("page", String(params.page));
+    if (params.limit) q.set("limit", String(params.limit));
+    if (params.search) q.set("search", params.search);
+    if (params.status) q.set("status", params.status);
+    q.set("range", params.range ?? "30d");
+    return request<VendorSalesReport>(`/dashboard/vendors?${q}`);
+  },
+  getEarningsReport: (params: {
+    dateFrom?: string;
+    dateTo?: string;
+    groupBy?: "month" | "week" | "day";
+  } = {}) => {
+    const q = new URLSearchParams();
+    if (params.dateFrom) q.set("dateFrom", params.dateFrom);
+    if (params.dateTo) q.set("dateTo", params.dateTo);
+    q.set("groupBy", params.groupBy ?? "month");
+    return request<EarningsReport>(`/dashboard/earnings?${q}`);
+  },
+  getVendorEarningsReport: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: "active" | "inactive";
+    range?: "7d" | "30d" | "90d" | "all";
+  } = {}) => {
+    const q = new URLSearchParams();
+    if (params.page) q.set("page", String(params.page));
+    if (params.limit) q.set("limit", String(params.limit));
+    if (params.search) q.set("search", params.search);
+    if (params.status) q.set("status", params.status);
+    q.set("range", params.range ?? "30d");
+    return request<VendorEarningsReport>(`/dashboard/vendor-earnings?${q}`);
+  },
+
   // Products
   getProducts: (params: {
     page?: number;
@@ -104,11 +224,6 @@ export const api = {
     }),
   deleteProduct: (id: string) =>
     request<any>(`/products/${id}`, { method: "DELETE" }),
-  bulkUpdateProductStatus: (ids: string[], status: string) =>
-    request<any>("/products/bulk/status", {
-      method: "PATCH",
-      body: JSON.stringify({ ids, status }),
-    }),
   getLimitedStockProducts: (params: {
     page?: number;
     limit?: number;
@@ -209,8 +324,7 @@ export const api = {
     }>(`/categories/sub-sub${queryString ? `?${queryString}` : ""}`);
   },
   getAllSubSubCategories: () => request<any[]>("/categories/sub-sub/all"),
-  
-  getCategory: (id: string) => request<any>(`/categories/${id}`),
+
   createCategory: (data: any) =>
     request<any>("/categories", {
       method: "POST",
@@ -241,7 +355,6 @@ export const api = {
     const queryString = query.toString();
     return request<ApiResponse<any[]>>(`/banners${queryString ? `?${queryString}` : ""}`);
   },
-  getBanner: (id: string) => request<any>(`/banners/${id}`),
   createBanner: (data: any) =>
     request<any>("/banners", {
       method: "POST",
@@ -270,6 +383,12 @@ export const api = {
       /** Several statuses at once — sent comma-separated. Wins over `status`. */
       statuses?: string[];
       paymentState?: string;
+      /**
+       * The raw stored payment status. The backend's `paymentState` filter
+       * wins over this one when both are sent, so use it alone when you need
+       * a value `paymentState` doesn't expose — e.g. `partially_refunded`.
+       */
+      paymentStatus?: string;
       orderChannel?: string;
       dateFrom?: string;
       dateTo?: string;
@@ -283,6 +402,7 @@ export const api = {
     if (params.status) query.set("status", params.status);
     if (params.statuses?.length) query.set("statuses", params.statuses.join(","));
     if (params.paymentState) query.set("paymentState", params.paymentState);
+    if (params.paymentStatus) query.set("paymentStatus", params.paymentStatus);
     if (params.orderChannel) query.set("orderChannel", params.orderChannel);
     if (params.dateFrom) query.set("dateFrom", params.dateFrom);
     if (params.dateTo) query.set("dateTo", params.dateTo);
@@ -357,10 +477,7 @@ export const api = {
   
   getHoldOrdersCount: () =>
     request<{ count: number }>("/pos/hold/count"),
-  
-  getHoldOrder: (id: string) =>
-    request<{ data: any }>(`/pos/hold/${id}`),
-  
+
   createHoldOrder: (data: {
     customerName?: string;
     customerPhone?: string;
@@ -382,12 +499,6 @@ export const api = {
       body: JSON.stringify(data),
     }),
   
-  updateHoldOrder: (id: string, data: { note?: string; customerName?: string; customerPhone?: string }) =>
-    request<{ message: string; data: any }>(`/pos/hold/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify(data),
-    }),
-  
   deleteHoldOrder: (id: string) =>
     request<{ message: string; data: any }>(`/pos/hold/${id}`, {
       method: "DELETE",
@@ -397,20 +508,6 @@ export const api = {
   searchPOSCustomers: (phone: string) =>
     request<{ data: { id: string; mobileNumber: string; firstName: string; lastName: string; email: string | null; fullName: string }[] }>(
       `/pos/customers/search?phone=${encodeURIComponent(phone)}`
-    ),
-
-  getPOSCustomerByPhone: (phone: string) =>
-    request<{ data: { id: string; mobileNumber: string; firstName: string; lastName: string; email: string | null; fullName: string } }>(
-      `/pos/customers/by-phone/${encodeURIComponent(phone)}`
-    ),
-
-  createPOSCustomer: (data: { mobileNumber: string; firstName: string; lastName?: string; email?: string | null }) =>
-    request<{ message: string; data: { id: string; mobileNumber: string; firstName: string; lastName: string; email: string | null; fullName: string; isNew: boolean } }>(
-      "/pos/customers",
-      {
-        method: "POST",
-        body: JSON.stringify(data),
-      }
     ),
 
   getPOSCustomerAddresses: (customerId: string) =>
@@ -496,29 +593,8 @@ export const api = {
   togglePromotion: (id: string) =>
     request<any>(`/promotions/${id}/toggle`, { method: "PATCH" }),
 
-  // SMTP Configs
-  getSmtpConfigs: () => request<{ data: any[] }>("/smtp-configs"),
-  getSmtpConfig: (id: string) => request<any>(`/smtp-configs/${id}`),
-  createSmtpConfig: (data: any) =>
-    request<any>("/smtp-configs", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
-  updateSmtpConfig: (id: string, data: any) =>
-    request<any>(`/smtp-configs/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(data),
-    }),
-  deleteSmtpConfig: (id: string) =>
-    request<any>(`/smtp-configs/${id}`, { method: "DELETE" }),
-  activateSmtpConfig: (id: string) =>
-    request<any>(`/smtp-configs/${id}/activate`, { method: "PUT" }),
-  deactivateSmtpConfig: (id: string) =>
-    request<any>(`/smtp-configs/${id}/deactivate`, { method: "PUT" }),
-
   // Storage Providers
   getStorageProviders: () => request<{ data: any[] }>("/storage-providers"),
-  getStorageProvider: (id: string) => request<any>(`/storage-providers/${id}`),
   createStorageProvider: (data: any) =>
     request<any>("/storage-providers", {
       method: "POST",
@@ -543,7 +619,6 @@ export const api = {
 
   // Employees
   getEmployees: () => request<{ data: any[] }>("/employees"),
-  getEmployee: (id: string) => request<any>(`/employees/${id}`),
   createEmployee: (data: any) =>
     request<any>("/employees", {
       method: "POST",
@@ -637,26 +712,11 @@ export const api = {
       body: JSON.stringify({ key, newName, isFolder }),
     }),
 
-  explorerDeleteFolder: (path: string) =>
-    request<any>("/storage-providers/explorer/folder", {
-      method: "DELETE",
-      body: JSON.stringify({ path }),
-    }),
-
   explorerBulkDelete: (items: { key: string; isFolder: boolean }[]) =>
     request<any>("/storage-providers/explorer/bulk-delete", {
       method: "POST",
       body: JSON.stringify({ items }),
     }),
-
-  explorerGetFileInfo: (key: string) =>
-    request<any>("/storage-providers/explorer/info", {
-      method: "POST",
-      body: JSON.stringify({ key }),
-    }),
-
-  explorerGetStats: () =>
-    request<any>("/storage-providers/explorer/stats"),
 
   explorerUpload: async (file: File, path: string = ""): Promise<{
     url: string;

@@ -283,6 +283,18 @@ input::placeholder {
   color: var(--color-charcoal-muted);
 }
 
+/* Form rows — a stacked group of label + control.
+   Used by the pages that have not moved to the `ak-*` form grid
+   (ProductForm, Promotions, StorageProviders). Lives here because
+   theme.css is the one stylesheet every page loads. */
+.form-row {
+  margin-bottom: 1rem;
+}
+
+.form-row:last-child {
+  margin-bottom: 0;
+}
+
 /* Labels */
 label {
   display: block;

@@ -1,3 +1,11 @@
+/** The backend's product status enum. */
+export type ProductStatus =
+  | "active"
+  | "inactive"
+  | "out_of_stock"
+  | "discontinued"
+  | "draft";
+
 export interface Product {
   id: string;
   name: string;
@@ -23,7 +31,7 @@ export interface Product {
   metaDescription: string | null;
   metaImageUrl: string | null;
   searchTags: string[];
-  status: "active" | "inactive" | "out_of_stock" | "discontinued";
+  status: ProductStatus;
   isVisible: boolean;
   averageRating: number;
   reviewCount: number;
@@ -261,6 +269,237 @@ export interface TopSellingItem {
   unitsSold: number;
   revenuePaise: number;
   imageUrl: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Sales & Transaction Report types
+// ---------------------------------------------------------------------------
+
+/** Paginated envelope used by every report endpoint. */
+export interface ReportPagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+/** Product Report → All tab. */
+export interface ProductSalesRow {
+  productId: string;
+  name: string;
+  sku: string;
+  categoryName: string | null;
+  unitPricePaise: number;
+  totalAmountPaise: number;
+  unitsSold: number;
+  grossQuantity: number;
+  returnedQuantity: number;
+  averageProductValuePaise: number;
+  currentStock: number;
+  averageRating: number;
+  reviewCount: number;
+  imageUrl: string | null;
+}
+
+export interface ProductSalesReport {
+  data: ProductSalesRow[];
+  pagination: ReportPagination;
+}
+
+/** Product Report → Wishlist tab. */
+export interface WishlistCountRow {
+  productId: string;
+  name: string;
+  sku: string;
+  pricePaise: number;
+  stockQuantity: number;
+  status: ProductStatus;
+  wishlistCount: number;
+  lastWishlistedAt: string | null;
+  imageUrl: string | null;
+}
+
+export interface WishlistCountsReport {
+  data: WishlistCountRow[];
+  pagination: ReportPagination;
+}
+
+export type ExpenseCategory =
+  | "rent"
+  | "utilities"
+  | "salary"
+  | "marketing"
+  | "packaging"
+  | "shipping"
+  | "maintenance"
+  | "software"
+  | "other";
+
+export type ExpenseStatus = "pending" | "approved" | "paid" | "rejected";
+
+/** Transaction Report → Expense tab. */
+export interface ExpenseRow {
+  id: string;
+  category: ExpenseCategory;
+  description: string | null;
+  amountPaise: number;
+  expenseDate: string;
+  status: ExpenseStatus;
+  createdById: string | null;
+  createdByName: string | null;
+  createdAt: string;
+}
+
+export interface ExpensesReport {
+  data: ExpenseRow[];
+  pagination: ReportPagination;
+  totals: {
+    count: number;
+    totalAmountPaise: number;
+    paidAmountPaise: number;
+  };
+}
+
+/** Inhouse Sales screen. */
+export interface InhouseSaleRow {
+  productId: string;
+  name: string;
+  sku: string;
+  totalSalePaise: number;
+  unitsSold: number;
+  imageUrl: string | null;
+}
+
+export interface InhouseSalesReport {
+  data: InhouseSaleRow[];
+  pagination: ReportPagination;
+  totals: {
+    totalSalePaise: number;
+    unitsSold: number;
+  };
+}
+
+export type VendorStatus = "active" | "inactive";
+
+/** Vendor Sales screen. */
+export interface VendorSalesRow {
+  vendorId: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  status: VendorStatus;
+  totalProducts: number;
+  totalOrders: number;
+  unitsSold: number;
+  totalSalesPaise: number;
+}
+
+export interface VendorSalesReport {
+  data: VendorSalesRow[];
+  pagination: ReportPagination;
+  totals: {
+    totalVendors: number;
+    activeVendors: number;
+    totalOrders: number;
+    totalSalesPaise: number;
+  };
+}
+
+/**
+ * Whether a ledger column can be computed from the current schema.
+ *
+ * - `computed` — a real aggregate over real data.
+ * - `computed_but_source_always_zero` — the column exists, but every
+ *   order-creation path writes 0 into it, so it always reads 0.
+ * - `unavailable` — there is no data source at all.
+ */
+export type EarningCapability =
+  | "computed"
+  | "computed_but_source_always_zero"
+  | "unavailable";
+
+export interface EarningCapabilities {
+  inHouseEarning: EarningCapability;
+  commissionEarning: EarningCapability;
+  shippingEarning: EarningCapability;
+  deliverymanIncentive: EarningCapability;
+  discountGiven: EarningCapability;
+  vatTax: EarningCapability;
+  refundGiven: EarningCapability;
+}
+
+/**
+ * One row of the earnings ledger.
+ *
+ * There is deliberately no `deliverymanIncentive` field — the system has no
+ * delivery-partner data source, so the value cannot be reported honestly and
+ * is omitted rather than faked.
+ */
+export interface EarningPeriodRow {
+  period: string;
+  inHouseEarning: number;
+  commissionEarning: number;
+  shippingEarning: number;
+  discountGiven: number;
+  vatTax: number;
+  refundGiven: number;
+  totalEarning: number;
+}
+
+export interface EarningTotals {
+  inHouseEarning: number;
+  commissionEarning: number;
+  shippingEarning: number;
+  discountGiven: number;
+  vatTax: number;
+  refundGiven: number;
+  totalEarning: number;
+  fullRefundsPaise: number;
+}
+
+export interface PaymentMethodBreakdown {
+  method: string;
+  orders: number;
+  amountPaise: number;
+}
+
+export interface EarningsReport {
+  rows: EarningPeriodRow[];
+  totals: EarningTotals;
+  paymentMethodBreakdown: PaymentMethodBreakdown[];
+  capabilities: EarningCapabilities;
+  notes: {
+    deliverymanIncentive: string;
+    shippingEarning: string;
+    vatTax: string;
+    commissionEarning: string;
+  };
+}
+
+/** Earning Reports → Vendor tab. */
+export interface VendorEarningRow {
+  vendorId: string;
+  name: string;
+  status: VendorStatus;
+  totalProducts: number;
+  approvedProducts: number;
+  pendingApprovalProducts: number;
+  totalEarnedPaise: number;
+  pendingPaise: number;
+  withdrawablePaise: number;
+  withdrawnPaise: number;
+  walletBalancePaise: number;
+}
+
+export interface VendorEarningsReport {
+  data: VendorEarningRow[];
+  pagination: ReportPagination;
+  totals: {
+    totalEarnedPaise: number;
+    pendingPaise: number;
+    withdrawablePaise: number;
+    withdrawnPaise: number;
+  };
 }
 
 export interface Promotion {

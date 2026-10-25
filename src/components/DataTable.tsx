@@ -32,6 +32,12 @@ interface DataTableProps<T> {
   keyExtractor: (item: T, index: number) => string;
   onRowClick?: (item: T) => void;
   rowClassName?: (item: T, index: number) => string;
+  /**
+   * Optional rows rendered in the table's own <tfoot>, immediately after the
+   * body. Use it for a totals row: being inside the table keeps the cells
+   * aligned with the columns, and the sticky last column applies to them too.
+   */
+  footer?: ReactNode;
   // Pagination
   currentPage?: number;
   totalPages?: number;
@@ -53,6 +59,7 @@ export default function DataTable<T>({
   keyExtractor,
   onRowClick,
   rowClassName,
+  footer,
   currentPage,
   totalPages,
   totalItems,
@@ -132,6 +139,7 @@ export default function DataTable<T>({
               ))
             )}
           </tbody>
+          {footer && <tfoot className="ak-table__tfoot">{footer}</tfoot>}
         </table>
       </div>
 

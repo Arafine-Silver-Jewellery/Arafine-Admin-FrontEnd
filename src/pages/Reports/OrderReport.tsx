@@ -1,58 +1,321 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { api } from "../../api/client";
+import { DataTable } from "../../components";
+import { ChartCard, OrdersTrendChart, type DashboardRange } from "../../components/dashboard";
+import type { Order } from "../../types";
+import { formatDateTime, formatPrice } from "../../utils/format";
+import { buildCsv, downloadCsv } from "./reportCsv";
+// `ChartCard` and the recharts components live in the dashboard stylesheet;
+// `ak-status` / `ak-table` live in the UI kit.
+import "../../styles/dashboard.css";
+import "../../styles/ui-kit.css";
 import "../../styles/reports.css";
 
-interface OrderData {
-  sl: number;
-  orderId: string;
-  orderDate: string;
-  customerInfo: string;
-  totalAmount: number;
-  orderStatus: "pending" | "confirmed" | "delivered" | "canceled" | "returned";
-  paymentStatus: "paid" | "unpaid" | "partial";
+type DatePreset = "all" | "today" | "7d" | "30d" | "90d" | "year";
+
+interface DateRange {
+  dateFrom?: string;
+  dateTo?: string;
 }
 
-const mockOrders: OrderData[] = [
-  { sl: 1, orderId: "ORD-100001", orderDate: "26 Sep 2026, 10:30 am", customerInfo: "Rahul Sharma", totalAmount: 4500, orderStatus: "delivered", paymentStatus: "paid" },
-  { sl: 2, orderId: "ORD-100002", orderDate: "26 Sep 2026, 11:45 am", customerInfo: "Priya Patel", totalAmount: 2890, orderStatus: "confirmed", paymentStatus: "paid" },
-  { sl: 3, orderId: "ORD-100003", orderDate: "25 Sep 2026, 02:15 pm", customerInfo: "Amit Kumar", totalAmount: 1560, orderStatus: "pending", paymentStatus: "unpaid" },
-  { sl: 4, orderId: "ORD-100004", orderDate: "25 Sep 2026, 04:30 pm", customerInfo: "Sneha Gupta", totalAmount: 3200, orderStatus: "delivered", paymentStatus: "paid" },
-  { sl: 5, orderId: "ORD-100005", orderDate: "24 Sep 2026, 09:00 am", customerInfo: "Vikram Singh", totalAmount: 890, orderStatus: "canceled", paymentStatus: "unpaid" },
-  { sl: 6, orderId: "ORD-100006", orderDate: "24 Sep 2026, 11:20 am", customerInfo: "Anita Reddy", totalAmount: 5680, orderStatus: "returned", paymentStatus: "paid" },
-  { sl: 7, orderId: "ORD-100007", orderDate: "23 Sep 2026, 03:45 pm", customerInfo: "Rajesh Menon", totalAmount: 1200, orderStatus: "delivered", paymentStatus: "paid" },
-  { sl: 8, orderId: "ORD-100008", orderDate: "23 Sep 2026, 05:00 pm", customerInfo: "Meera Nair", totalAmount: 2340, orderStatus: "confirmed", paymentStatus: "partial" },
+/**
+ * Turns the preset into an absolute date range for the backend. The backend
+ * takes `dateFrom`/`dateTo` as ISO strings, so the presets are resolved here
+ * rather than sent as a token.
+ */
+function resolveDateRange(preset: DatePreset): DateRange {
+  const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  switch (preset) {
+    case "today":
+      return {
+        dateFrom: startOfDay.toISOString(),
+        dateTo: now.toISOString(),
+      };
+    case "7d": {
+      const from = new Date(startOfDay);
+      from.setDate(from.getDate() - 6);
+      return { dateFrom: from.toISOString(), dateTo: now.toISOString() };
+    }
+    case "30d": {
+      const from = new Date(startOfDay);
+      from.setDate(from.getDate() - 29);
+      return { dateFrom: from.toISOString(), dateTo: now.toISOString() };
+    }
+    case "90d": {
+      const from = new Date(startOfDay);
+      from.setDate(from.getDate() - 89);
+      return { dateFrom: from.toISOString(), dateTo: now.toISOString() };
+    }
+    case "year":
+      return {
+        dateFrom: new Date(now.getFullYear(), 0, 1).toISOString(),
+        dateTo: now.toISOString(),
+      };
+    case "all":
+    default:
+      return {};
+  }
+}
+
+const DATE_PRESETS: { value: DatePreset; label: string }[] = [
+  { value: "all", label: "All Time" },
+  { value: "today", label: "Today" },
+  { value: "7d", label: "Last 7 Days" },
+  { value: "30d", label: "Last 30 Days" },
+  { value: "90d", label: "Last 90 Days" },
+  { value: "year", label: "This Year" },
 ];
 
+const STATUS_OPTIONS = [
+  { value: "all", label: "All Statuses" },
+  { value: "pending", label: "Pending" },
+  { value: "confirmed", label: "Confirmed" },
+  { value: "processing", label: "Processing" },
+  { value: "shipped", label: "Shipped" },
+  { value: "out_for_delivery", label: "Out for Delivery" },
+  { value: "delivered", label: "Delivered" },
+  { value: "cancelled", label: "Cancelled" },
+  { value: "returned", label: "Returned" },
+];
+
+const CHANNEL_OPTIONS = [
+  { value: "all", label: "All Channels" },
+  { value: "online", label: "Online" },
+  { value: "pos", label: "POS" },
+];
+
+const PAYMENT_OPTIONS = [
+  { value: "all", label: "All Payments" },
+  { value: "paid", label: "Paid" },
+  { value: "unpaid", label: "Unpaid" },
+  { value: "partial", label: "Partial" },
+  { value: "refunded", label: "Refunded" },
+];
+
+/** Maps an order status onto the shared `ak-status` pill variants. */
+function orderStatusVariant(status: string) {
+  switch (status) {
+    case "delivered":
+      return "success";
+    case "confirmed":
+    case "processing":
+      return "info";
+    case "shipped":
+    case "out_for_delivery":
+      return "brand";
+    case "pending":
+      return "warning";
+    case "cancelled":
+    case "failed_to_deliver":
+      return "danger";
+    case "returned":
+    case "refunded":
+      return "neutral";
+    default:
+      return "neutral";
+  }
+}
+
+function paymentStatusVariant(status: string) {
+  switch (status) {
+    case "paid":
+      return "success";
+    case "partially_refunded":
+      return "warning";
+    case "refunded":
+      return "neutral";
+    case "failed":
+      return "danger";
+    case "pending":
+    default:
+      return "neutral";
+  }
+}
+
+function titleCase(value: string): string {
+  return value
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 export default function OrderReport() {
-  const [dateFilter, setDateFilter] = useState("This Year");
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [datePreset, setDatePreset] = useState<DatePreset>("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [channelFilter, setChannelFilter] = useState("all");
+  const [paymentFilter, setPaymentFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const totalOrders = 87;
-  const totalSales = 80769.33;
-  const delivered = 17;
-  const pending = 50;
-  const canceled = 20;
-  const returned = 0;
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [trend, setTrend] = useState<{ date: string; value: number }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [trendLoading, setTrendLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const getStatusClass = (status: string) => {
-    switch (status) {
-      case "delivered": return "active";
-      case "confirmed": return "completed";
-      case "pending": return "pending";
-      case "canceled": 
-      case "returned": return "inactive";
-      default: return "";
+  const range = useMemo<DateRange>(() => resolveDateRange(datePreset), [datePreset]);
+
+  // The trend chart is a separate, unfiltered read of the dashboard orders
+  // metric. It only follows the date preset — the status/channel/payment
+  // filters apply to the table below, not to the chart.
+  const chartRange: DashboardRange =
+    datePreset === "all" ? "all" : datePreset === "today" || datePreset === "7d" ? "7d" : datePreset === "30d" ? "30d" : "90d";
+
+  const loadOrders = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.getOrders({
+        page,
+        limit: 20,
+        search: searchQuery.trim() || undefined,
+        status: statusFilter !== "all" ? statusFilter : undefined,
+        paymentState: paymentFilter !== "all" ? paymentFilter : undefined,
+        orderChannel: channelFilter !== "all" ? channelFilter : undefined,
+        dateFrom: range.dateFrom,
+        dateTo: range.dateTo,
+      });
+      setOrders(response.data || []);
+      setTotalPages(response.pagination?.totalPages || 1);
+      setTotalItems(response.pagination?.total || 0);
     }
+    catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load orders");
+    }
+    finally {
+      setLoading(false);
+    }
+  }, [page, searchQuery, statusFilter, paymentFilter, channelFilter, range.dateFrom, range.dateTo]);
+
+  useEffect(() => {
+    loadOrders();
+  }, [loadOrders]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setTrendLoading(true);
+    api
+      .getDashboardTrend({ metric: "orders", range: chartRange })
+      .then((data) => {
+        if (!cancelled) setTrend(data?.points ?? []);
+      })
+      .catch(() => {
+        // The chart is supplementary — a failure here shouldn't blank the table.
+        if (!cancelled) setTrend([]);
+      })
+      .finally(() => {
+        if (!cancelled) setTrendLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [chartRange]);
+
+  // KPI cards are derived from the rows currently loaded. The backend's order
+  // list endpoint paginates and doesn't return a status breakdown, so these
+  // count the page in view rather than claiming to be site-wide totals.
+  const kpis = useMemo(() => {
+    const totalSalesPaise = orders.reduce((sum, o) => sum + (o.totalPaise ?? 0), 0);
+    const delivered = orders.filter((o) => o.status === "delivered").length;
+    const pending = orders.filter(
+      (o) => o.status === "pending" || o.status === "confirmed",
+    ).length;
+    const cancelled = orders.filter((o) => o.status === "cancelled").length;
+    const returned = orders.filter(
+      (o) => o.status === "returned" || o.paymentStatus === "refunded",
+    ).length;
+    return { totalSalesPaise, delivered, pending, cancelled, returned };
+  }, [orders]);
+
+  const handleExport = () => {
+    const headers = [
+      "SL",
+      "Order ID",
+      "Order Date",
+      "Customer",
+      "Phone",
+      "Total Amount",
+      "Order Status",
+      "Payment Status",
+      "Payment Method",
+      "Channel",
+    ];
+    const rows = orders.map((order, index) => [
+      (page - 1) * 20 + index + 1,
+      order.orderNumber,
+      formatDateTime(order.createdAt),
+      order.shippingAddress?.fullName ?? "",
+      order.shippingAddress?.phone ?? "",
+      formatPrice(order.totalPaise),
+      titleCase(order.status),
+      titleCase(order.paymentStatus),
+      order.paymentMethod ?? "",
+      titleCase(order.orderChannel),
+    ]);
+    downloadCsv(`order-report-${new Date().toISOString().slice(0, 10)}`, buildCsv(headers, rows));
   };
 
-  const getPaymentClass = (status: string) => {
-    switch (status) {
-      case "paid": return "active";
-      case "partial": return "pending";
-      case "unpaid": return "inactive";
-      default: return "";
-    }
-  };
+  const columns = [
+    {
+      key: "sl",
+      header: "SL",
+      width: "56px",
+      align: "center" as const,
+      render: (_order: Order, index: number) => (page - 1) * 20 + index + 1,
+    },
+    {
+      key: "orderNumber",
+      header: "Order ID",
+      render: (order: Order) => (
+        <span style={{ fontWeight: 500, color: "#0d6efd" }}>{order.orderNumber}</span>
+      ),
+    },
+    {
+      key: "createdAt",
+      header: "Order Date",
+      render: (order: Order) => formatDateTime(order.createdAt),
+    },
+    {
+      key: "customer",
+      header: "Customer Info",
+      render: (order: Order) => (
+        <div className="vendor-info">
+          <span className="vendor-name">{order.shippingAddress?.fullName ?? "—"}</span>
+          <span className="vendor-email">{order.shippingAddress?.phone ?? ""}</span>
+        </div>
+      ),
+    },
+    {
+      key: "totalPaise",
+      header: "Total Amount",
+      align: "right" as const,
+      render: (order: Order) => formatPrice(order.totalPaise),
+    },
+    {
+      key: "status",
+      header: "Order Status",
+      render: (order: Order) => (
+        <span className={`ak-status ak-status--${orderStatusVariant(order.status)}`}>
+          <span className="ak-status__dot" />
+          {titleCase(order.status)}
+        </span>
+      ),
+    },
+    {
+      key: "paymentStatus",
+      header: "Payment Status",
+      render: (order: Order) => (
+        <span className={`ak-status ak-status--${paymentStatusVariant(order.paymentStatus)}`}>
+          <span className="ak-status__dot" />
+          {titleCase(order.paymentStatus)}
+        </span>
+      ),
+    },
+  ];
 
   return (
     <div className="reports-container">
@@ -61,117 +324,157 @@ export default function OrderReport() {
         <div className="filter-row">
           <div className="filter-group">
             <label>Select Date</label>
-            <select value={dateFilter} onChange={(e) => setDateFilter(e.target.value)}>
-              <option>This Year</option>
-              <option>This Month</option>
-              <option>This Week</option>
-              <option>Today</option>
-              <option>Custom Range</option>
+            <select
+              value={datePreset}
+              onChange={(e) => {
+                setDatePreset(e.target.value as DatePreset);
+                setPage(1);
+              }}
+            >
+              {DATE_PRESETS.map((preset) => (
+                <option key={preset.value} value={preset.value}>
+                  {preset.label}
+                </option>
+              ))}
             </select>
           </div>
           <div className="filter-group">
             <label>Order Status</label>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              <option>All</option>
-              <option>Pending</option>
-              <option>Confirmed</option>
-              <option>Delivered</option>
-              <option>Canceled</option>
-              <option>Returned</option>
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
+            >
+              {STATUS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </div>
-          <button className="btn-filter-secondary">Reset</button>
-          <button className="btn-filter-primary">Filter</button>
+          <div className="filter-group">
+            <label>Channel</label>
+            <select
+              value={channelFilter}
+              onChange={(e) => {
+                setChannelFilter(e.target.value);
+                setPage(1);
+              }}
+            >
+              {CHANNEL_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="filter-group">
+            <label>Payment Status</label>
+            <select
+              value={paymentFilter}
+              onChange={(e) => {
+                setPaymentFilter(e.target.value);
+                setPage(1);
+              }}
+            >
+              {PAYMENT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            className="btn-filter-secondary"
+            onClick={() => {
+              setDatePreset("all");
+              setStatusFilter("all");
+              setChannelFilter("all");
+              setPaymentFilter("all");
+              setSearchQuery("");
+              setPage(1);
+            }}
+          >
+            Reset
+          </button>
         </div>
       </div>
 
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-icon blue">📦</div>
-          <div className="stat-content">
-            <h2>{totalOrders}</h2>
+      {error && (
+        <div className="report-card" style={{ borderLeft: "4px solid #f44336" }}>
+          <p style={{ margin: 0, color: "#f44336" }}>{error}</p>
+        </div>
+      )}
+
+      <div className="reports-stats-grid">
+        <div className="reports-stat-card">
+          <div className="reports-stat-icon blue">📦</div>
+          <div className="reports-stat-content">
+            <h2>{totalItems}</h2>
             <p>Total Orders</p>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon green">💰</div>
-          <div className="stat-content">
-            <h2>₹{totalSales.toLocaleString()}</h2>
-            <p>Total Sales</p>
+        <div className="reports-stat-card">
+          <div className="reports-stat-icon green">💰</div>
+          <div className="reports-stat-content">
+            <h2>{formatPrice(kpis.totalSalesPaise, { compact: true })}</h2>
+            <p>Sales (this page)</p>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon teal">✅</div>
-          <div className="stat-content">
-            <h2>{delivered}</h2>
+        <div className="reports-stat-card">
+          <div className="reports-stat-icon teal">✅</div>
+          <div className="reports-stat-content">
+            <h2>{kpis.delivered}</h2>
             <p>Delivered</p>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon yellow">⏳</div>
-          <div className="stat-content">
-            <h2>{pending}</h2>
+        <div className="reports-stat-card">
+          <div className="reports-stat-icon yellow">⏳</div>
+          <div className="reports-stat-content">
+            <h2>{kpis.pending}</h2>
             <p>Pending/Confirmed</p>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon red">❌</div>
-          <div className="stat-content">
-            <h2>{canceled}</h2>
+        <div className="reports-stat-card">
+          <div className="reports-stat-icon red">❌</div>
+          <div className="reports-stat-content">
+            <h2>{kpis.cancelled}</h2>
             <p>Canceled</p>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon orange">🔄</div>
-          <div className="stat-content">
-            <h2>{returned}</h2>
-            <p>Returned</p>
+        <div className="reports-stat-card">
+          <div className="reports-stat-icon orange">🔄</div>
+          <div className="reports-stat-content">
+            <h2>{kpis.returned}</h2>
+            <p>Returned/Refunded</p>
           </div>
         </div>
       </div>
 
       <div className="charts-row">
-        <div className="chart-card" style={{ gridColumn: "1 / -1" }}>
-          <h3>Order Statistics</h3>
-          <div className="chart-legend-inline">
-            <div className="legend-item">
-              <span className="dot blue"></span>
-              Orders
-            </div>
-            <div className="legend-item">
-              <span className="dot green"></span>
-              Delivered
-            </div>
-            <div className="legend-item">
-              <span className="dot red"></span>
-              Canceled
-            </div>
-          </div>
-          <div className="chart-placeholder">
-            <div className="chart-bars">
-              {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].map((month) => (
-                <div key={month} className="chart-bar-group">
-                  <div
-                    className="chart-bar"
-                    style={{ height: `${Math.random() * 60 + 20}%` }}
-                  ></div>
-                  <span>{month}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+        <div style={{ gridColumn: "1 / -1" }}>
+          <ChartCard
+            title="Order Statistics"
+            subtitle="Orders placed over the selected period"
+            isLoading={trendLoading}
+            empty={!trendLoading && trend.length === 0}
+          >
+            <OrdersTrendChart data={trend} />
+          </ChartCard>
         </div>
       </div>
 
       <div className="table-card">
         <div className="table-header">
           <h3>
-            Order List <span className="count">{mockOrders.length}</span>
+            Order List <span className="count">{totalItems}</span>
           </h3>
           <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
             <div className="search-box">
@@ -183,10 +486,13 @@ export default function OrderReport() {
                 type="text"
                 placeholder="Search by order ID..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setPage(1);
+                }}
               />
             </div>
-            <button className="btn-export">
+            <button className="btn-export" onClick={handleExport} disabled={orders.length === 0}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7,10 12,15 17,10" />
@@ -197,59 +503,21 @@ export default function OrderReport() {
           </div>
         </div>
 
-        <div className="table-container">
-          <table className="report-table">
-            <thead>
-              <tr>
-                <th>SL</th>
-                <th>Order ID</th>
-                <th>Order Date</th>
-                <th>Customer Info</th>
-                <th>Total Amount</th>
-                <th>Order Status</th>
-                <th>Payment Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {mockOrders.map((order) => (
-                <tr key={order.sl}>
-                  <td>{order.sl}</td>
-                  <td style={{ fontWeight: 500, color: "#0d6efd" }}>{order.orderId}</td>
-                  <td>{order.orderDate}</td>
-                  <td>{order.customerInfo}</td>
-                  <td>₹{order.totalAmount.toLocaleString()}</td>
-                  <td>
-                    <span className={`status-badge ${getStatusClass(order.orderStatus)}`}>
-                      {order.orderStatus.charAt(0).toUpperCase() + order.orderStatus.slice(1)}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`status-badge ${getPaymentClass(order.paymentStatus)}`}>
-                      {order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1)}
-                    </span>
-                  </td>
-                  <td>
-                    <button className="btn-action btn-icon-view" title="View Details">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#4f46e5" strokeWidth="2"/>
-                        <circle cx="12" cy="12" r="3" stroke="#4f46e5" strokeWidth="2"/>
-                      </svg>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="pagination">
-          <button disabled>&lt;</button>
-          <button className="active">1</button>
-          <button>2</button>
-          <button>3</button>
-          <button>&gt;</button>
-        </div>
+        <DataTable
+          columns={columns}
+          data={orders}
+          loading={loading}
+          loadingText="Loading orders…"
+          emptyIcon="cart"
+          emptyTitle="No orders found"
+          emptyDescription="Try widening the date range or clearing the filters."
+          keyExtractor={(order) => order.id}
+          currentPage={page}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={20}
+          onPageChange={setPage}
+        />
       </div>
     </div>
   );
