@@ -254,14 +254,17 @@
   }
 }
 
-.chart-card {
+/* Report-local card. Named `report-card` (not `chart-card`) so it doesn't
+   collide with the dashboard stylesheet's `.chart-card`, which belongs to the
+   shared `ChartCard` component and has a different internal layout. */
+.report-card {
   background: white;
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-.chart-card h3 {
+.report-card h3 {
   font-size: 16px;
   font-weight: 600;
   color: #1a1a1a;
@@ -808,6 +811,45 @@
 
 .chart-x-axis span {
   text-align: center;
+}
+
+/* ============================================================
+   Live-data report tables
+   The report screens render the shared `DataTable` component (which emits
+   `ak-table` markup from ui-kit.css) inside the report system’s
+   `.table-card`. These rules bridge the two so the table sits flush in the
+   card instead of carrying its own double border and padding.
+   ============================================================ */
+.reports-container .table-card .ak-table-wrapper {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.reports-container .table-card .ak-table {
+  font-size: 13px;
+}
+
+.reports-container .table-card .ak-table td {
+  vertical-align: middle;
+}
+
+/* The status pills are sized for the dense report tables. */
+.reports-container .ak-status {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* The legend dots used by the payment-method breakdown cycle through these
+   colours, so each needs a matching report-level rule. */
+.reports-container .dot.teal { background: #009688; }
+
+/* The vendor avatar has no image source on the report screens — it carries
+   the shop glyph instead. */
+.reports-container .vendor-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ============================================================

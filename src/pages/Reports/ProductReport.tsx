@@ -1,222 +1,416 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { api } from "../../api/client";
+import { DataTable } from "../../components";
 import { useToast } from "../../components/Toast";
+import { ChartCard, TopSellingChart } from "../../components/dashboard";
+import type { Product, ProductSalesRow, WishlistCountRow } from "../../types";
+import { formatDate, formatDateTime, formatPrice } from "../../utils/format";
+import { buildCsv, downloadCsv } from "./reportCsv";
+// `ChartCard` and the recharts components live in the dashboard stylesheet;
+// `ak-status` / `ak-table` live in the UI kit.
+import "../../styles/dashboard.css";
+import "../../styles/ui-kit.css";
 import "../../styles/reports.css";
 
 type ProductTab = "all" | "stock" | "wishlist";
-type DateFilter = "all" | "thisYear" | "thisMonth" | "thisWeek" | "today";
+type DashboardRange = "7d" | "30d" | "90d" | "all";
 type StockSort = "stock_asc" | "stock_desc";
-type WishlistSort = "wishlist_asc" | "wishlist_desc";
+type WishlistSort = "count" | "name" | "recent";
+type WishlistOrder = "asc" | "desc";
 
-interface ProductData {
-  sl: number;
-  productName: string;
-  productUnitPrice: number;
-  totalAmountSold: number;
-  totalQuantitySold: number;
-  averageProductValue: number;
-  currentStockAmount: number;
-  averageRatings: number;
-  reviewCount: number;
-}
+const PAGE_SIZE = 20;
 
-interface StockData {
-  sl: number;
-  productName: string;
-  lastUpdatedStock: string;
-  currentStock: number;
-  status: "in_stock" | "out_of_stock" | "low_stock";
-}
-
-interface WishlistData {
-  sl: number;
-  productName: string;
-  date: string;
-  totalInWishlist: number;
-}
-
-const DATE_OPTIONS: { value: DateFilter; label: string }[] = [
+const DATE_OPTIONS: { value: DashboardRange; label: string }[] = [
   { value: "all", label: "All Time" },
-  { value: "thisYear", label: "This Year" },
-  { value: "thisMonth", label: "This Month" },
-  { value: "thisWeek", label: "This Week" },
-  { value: "today", label: "Today" },
+  { value: "7d", label: "Last 7 Days" },
+  { value: "30d", label: "Last 30 Days" },
+  { value: "90d", label: "Last 90 Days" },
 ];
 
-const DEFAULT_DATE: DateFilter = "thisYear";
-
-const CATEGORY_OPTIONS = [
-  "All category",
-  "Grocery & Staples",
-  "Dairy Products",
-  "Snacks & Beverages",
-];
-
-const mockProducts: ProductData[] = [
-  { sl: 1, productName: "Luna Butterfly Cluster Studs", productUnitPrice: 4318.80, totalAmountSold: 0, totalQuantitySold: 0, averageProductValue: 0, currentStockAmount: 1, averageRatings: 0, reviewCount: 0 },
-  { sl: 2, productName: "Aria Split Shank Solitaire", productUnitPrice: 4078.80, totalAmountSold: 0, totalQuantitySold: 0, averageProductValue: 0, currentStockAmount: 0, averageRatings: 0, reviewCount: 0 },
-  { sl: 3, productName: "Sunset Sorbet Crisscross Ring", productUnitPrice: 4078.80, totalAmountSold: 0, totalQuantitySold: 0, averageProductValue: 0, currentStockAmount: 0, averageRatings: 0, reviewCount: 0 },
-  { sl: 4, productName: "Pearl Whisper Baguette Ring", productUnitPrice: 3958.80, totalAmountSold: 0, totalQuantitySold: 0, averageProductValue: 0, currentStockAmount: 1, averageRatings: 0, reviewCount: 0 },
-  { sl: 5, productName: "Meadow Glow Sideways Ring", productUnitPrice: 3598.80, totalAmountSold: 0, totalQuantitySold: 0, averageProductValue: 0, currentStockAmount: 1, averageRatings: 0, reviewCount: 0 },
-  { sl: 6, productName: "Premium Basmati Rice 5kg", productUnitPrice: 450, totalAmountSold: 125000, totalQuantitySold: 278, averageProductValue: 449.64, currentStockAmount: 150, averageRatings: 4.5, reviewCount: 45 },
-  { sl: 7, productName: "Organic Coconut Oil 1L", productUnitPrice: 380, totalAmountSold: 98500, totalQuantitySold: 259, averageProductValue: 380.31, currentStockAmount: 85, averageRatings: 4.3, reviewCount: 32 },
-  { sl: 8, productName: "Fresh Farm Eggs (30 pcs)", productUnitPrice: 210, totalAmountSold: 75200, totalQuantitySold: 358, averageProductValue: 210.06, currentStockAmount: 200, averageRatings: 4.7, reviewCount: 89 },
-];
-
-const mockStockData: StockData[] = [
-  { sl: 1, productName: "The Imperial Garden Pendant", lastUpdatedStock: "26 Sep 2026, 06:04:06 pm", currentStock: 0, status: "out_of_stock" },
-  { sl: 2, productName: "Bow Heart Pendant and Chain", lastUpdatedStock: "26 Sep 2026, 06:19:40 pm", currentStock: 0, status: "out_of_stock" },
-  { sl: 3, productName: "Fairy Star Drop Pendant", lastUpdatedStock: "26 Sep 2026, 06:16:24 pm", currentStock: 0, status: "out_of_stock" },
-  { sl: 4, productName: "Reindeer and Star Studs", lastUpdatedStock: "26 Sep 2026, 06:19:23 pm", currentStock: 0, status: "out_of_stock" },
-  { sl: 5, productName: "Juste Nail Pendant and Chain", lastUpdatedStock: "19 Aug 2026, 11:07:25 am", currentStock: 0, status: "out_of_stock" },
-  { sl: 6, productName: "Leaf Pendant and Chain", lastUpdatedStock: "12 Aug 2026, 08:08:33 pm", currentStock: 0, status: "out_of_stock" },
-  { sl: 7, productName: "Bunny Crescent Pendant", lastUpdatedStock: "26 Sep 2026, 06:21:20 pm", currentStock: 0, status: "out_of_stock" },
-  { sl: 8, productName: "Ballerina Pendant and Chain", lastUpdatedStock: "26 Sep 2026, 06:20:57 pm", currentStock: 0, status: "out_of_stock" },
-];
-
-const mockWishlistData: WishlistData[] = [
-  { sl: 1, productName: "Hearts in Bloom Ring", date: "27 Jul 2026", totalInWishlist: 0 },
-  { sl: 2, productName: "Seraphine Solitaire", date: "07 Aug 2026", totalInWishlist: 0 },
-  { sl: 3, productName: "Eternal Twist Radiant", date: "06 Aug 2026", totalInWishlist: 0 },
-  { sl: 4, productName: "Wavelet Solitaire Ring", date: "06 Aug 2026", totalInWishlist: 0 },
-  { sl: 5, productName: "Celeste Solitaire Silver", date: "05 Aug 2026", totalInWishlist: 0 },
-  { sl: 6, productName: "Rosette Bloom Silver", date: "05 Aug 2026", totalInWishlist: 0 },
-  { sl: 7, productName: "Celestine Grand Solitaire", date: "31 Jul 2026", totalInWishlist: 0 },
-  { sl: 8, productName: "Seraphine Solitaire", date: "31 Jul 2026", totalInWishlist: 0 },
-];
-
-// Stats for the All-tab cards. The mock data shows only 3 of the 8 products have
-// non-zero sales, so we hard-code the rolled-up numbers from the mock.
-const totalProducts = 8;
-const totalProductSale = 3;
-const rejected = 0;
-const pending = 0;
-const active = 8;
-const totalDiscountGiven = 3771.48;
-
-function escapeCsvCell(value: string | number): string {
-  const str = String(value);
-  if (/[",\n]/.test(str)) {
-    return `"${str.replace(/"/g, '""')}"`;
-  }
-  return str;
-}
-
-function downloadCsv(filename: string, headers: string[], rows: (string | number)[][]): void {
-  const lines = [
-    headers.map(escapeCsvCell).join(","),
-    ...rows.map(row => row.map(escapeCsvCell).join(",")),
-  ];
-  const csv = lines.join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-}
+const DEFAULT_RANGE: DashboardRange = "30d";
 
 export default function ProductReport() {
   const toast = useToast();
   const [activeTab, setActiveTab] = useState<ProductTab>("all");
 
   // All tab state
-  const [allDateFilter, setAllDateFilter] = useState<DateFilter>(DEFAULT_DATE);
-  const [allSearch, setAllSearch] = useState("");
+  const [range, setRange] = useState<DashboardRange>(DEFAULT_RANGE);
+  const [search, setSearch] = useState("");
+  const [allRows, setAllRows] = useState<ProductSalesRow[]>([]);
+  const [allTotal, setAllTotal] = useState(0);
+  const [allPage, setAllPage] = useState(1);
+  const [allTotalPages, setAllTotalPages] = useState(1);
 
   // Stock tab state
-  const [stockCategory, setStockCategory] = useState("All category");
   const [stockSort, setStockSort] = useState<StockSort>("stock_asc");
   const [stockSearch, setStockSearch] = useState("");
+  const [stockRows, setStockRows] = useState<Product[]>([]);
+  const [stockTotal, setStockTotal] = useState(0);
+  const [stockPage, setStockPage] = useState(1);
+  const [stockTotalPages, setStockTotalPages] = useState(1);
 
   // Wishlist tab state
-  const [wishlistSort, setWishlistSort] = useState<WishlistSort>("wishlist_asc");
+  const [wishlistSort, setWishlistSort] = useState<WishlistSort>("count");
+  const [wishlistOrder, setWishlistOrder] = useState<WishlistOrder>("desc");
   const [wishlistSearch, setWishlistSearch] = useState("");
+  const [wishlistRows, setWishlistRows] = useState<WishlistCountRow[]>([]);
+  const [wishlistTotal, setWishlistTotal] = useState(0);
+  const [wishlistPage, setWishlistPage] = useState(1);
+  const [wishlistTotalPages, setWishlistTotalPages] = useState(1);
 
-  const filteredAll = useMemo(() => {
-    const q = allSearch.trim().toLowerCase();
-    if (!q) return mockProducts;
-    return mockProducts.filter(p => p.productName.toLowerCase().includes(q));
-  }, [allSearch]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredStock = useMemo(() => {
-    const q = stockSearch.trim().toLowerCase();
-    const list = q
-      ? mockStockData.filter(p => p.productName.toLowerCase().includes(q))
-      : [...mockStockData];
-    list.sort((a, b) => (stockSort === "stock_asc" ? a.currentStock - b.currentStock : b.currentStock - a.currentStock));
-    return list;
-  }, [stockSearch, stockSort]);
+  // --- All tab -----------------------------------------------------------
+  const loadAll = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.getProductSalesReport({
+        page: allPage,
+        limit: PAGE_SIZE,
+        search: search.trim() || undefined,
+        range,
+      });
+      setAllRows(response.data || []);
+      setAllTotal(response.pagination?.total || 0);
+      setAllTotalPages(response.pagination?.totalPages || 1);
+    }
+    catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load product sales");
+    }
+    finally {
+      setLoading(false);
+    }
+  }, [allPage, search, range]);
 
-  const filteredWishlist = useMemo(() => {
-    const q = wishlistSearch.trim().toLowerCase();
-    const list = q
-      ? mockWishlistData.filter(p => p.productName.toLowerCase().includes(q))
-      : [...mockWishlistData];
-    list.sort((a, b) => (wishlistSort === "wishlist_asc" ? a.totalInWishlist - b.totalInWishlist : b.totalInWishlist - a.totalInWishlist));
-    return list;
-  }, [wishlistSearch, wishlistSort]);
+  // --- Stock tab ---------------------------------------------------------
+  // The limited-stock endpoint sorts by stock ascending and doesn't take a
+  // sort direction, so the direction is applied client-side to the page.
+  const loadStock = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.getLimitedStockProducts({
+        page: stockPage,
+        limit: PAGE_SIZE,
+        search: stockSearch.trim() || undefined,
+      });
+      const rows = response.data || [];
+      const sorted = [...rows].sort((a, b) =>
+        stockSort === "stock_asc"
+          ? a.stockQuantity - b.stockQuantity
+          : b.stockQuantity - a.stockQuantity,
+      );
+      setStockRows(sorted);
+      setStockTotal(response.pagination?.total || 0);
+      setStockTotalPages(response.pagination?.totalPages || 1);
+    }
+    catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load stock");
+    }
+    finally {
+      setLoading(false);
+    }
+  }, [stockPage, stockSearch, stockSort]);
 
-  function handleResetAll() {
-    setAllDateFilter(DEFAULT_DATE);
-    setAllSearch("");
-  }
+  // --- Wishlist tab ------------------------------------------------------
+  const loadWishlist = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.getWishlistCountsReport({
+        page: wishlistPage,
+        limit: PAGE_SIZE,
+        search: wishlistSearch.trim() || undefined,
+        sort: wishlistSort,
+        order: wishlistOrder,
+      });
+      setWishlistRows(response.data || []);
+      setWishlistTotal(response.pagination?.total || 0);
+      setWishlistTotalPages(response.pagination?.totalPages || 1);
+    }
+    catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load wishlist counts");
+    }
+    finally {
+      setLoading(false);
+    }
+  }, [wishlistPage, wishlistSearch, wishlistSort, wishlistOrder]);
 
-  function handleResetStock() {
-    setStockCategory("All category");
-    setStockSort("stock_asc");
-    setStockSearch("");
-  }
+  // Switching tabs resets each list to page 1 so a stale page number from a
+  // differently-sized list doesn't render an empty page.
+  useEffect(() => {
+    setAllPage(1);
+    setStockPage(1);
+    setWishlistPage(1);
+  }, [activeTab]);
 
-  function handleResetWishlist() {
-    setWishlistSort("wishlist_asc");
-    setWishlistSearch("");
-  }
+  useEffect(() => {
+    if (activeTab === "all") loadAll();
+    else if (activeTab === "stock") loadStock();
+    else loadWishlist();
+  }, [activeTab, loadAll, loadStock, loadWishlist]);
 
+  // --- Derived values ----------------------------------------------------
+  const allStats = useMemo(() => {
+    const totalAmountPaise = allRows.reduce((sum, r) => sum + r.totalAmountPaise, 0);
+    const unitsSold = allRows.reduce((sum, r) => sum + r.unitsSold, 0);
+    const totalStock = allRows.reduce((sum, r) => sum + r.currentStock, 0);
+    return { totalAmountPaise, unitsSold, totalStock };
+  }, [allRows]);
+
+  // The chart shows the top sellers on the current page, in the same shape
+  // the shared `TopSellingChart` expects.
+  const topSellingItems = useMemo(
+    () =>
+      [...allRows]
+        .sort((a, b) => b.unitsSold - a.unitsSold)
+        .slice(0, 8)
+        .map((row) => ({
+          productId: row.productId,
+          name: row.name,
+          sku: row.sku,
+          unitsSold: row.unitsSold,
+          revenuePaise: row.totalAmountPaise,
+          imageUrl: row.imageUrl,
+        })),
+    [allRows],
+  );
+
+  // --- Export ------------------------------------------------------------
   function handleExportAll() {
     downloadCsv(
-      "product-report-all.csv",
-      ["SL", "Product Name", "Unit Price (INR)", "Total Amount Sold (INR)", "Total Quantity Sold", "Average Product Value (INR)", "Current Stock", "Average Rating", "Review Count"],
-      filteredAll.map(p => [
-        p.sl,
-        p.productName,
-        p.productUnitPrice,
-        p.totalAmountSold,
-        p.totalQuantitySold,
-        p.averageProductValue,
-        p.currentStockAmount,
-        p.averageRatings,
-        p.reviewCount,
-      ]),
+      `product-report-all-${new Date().toISOString().slice(0, 10)}`,
+      buildCsv(
+        [
+          "SL",
+          "Product Name",
+          "SKU",
+          "Category",
+          "Unit Price",
+          "Total Amount Sold",
+          "Total Quantity Sold",
+          "Gross Quantity",
+          "Returned Quantity",
+          "Average Product Value",
+          "Current Stock",
+          "Average Rating",
+          "Review Count",
+        ],
+        allRows.map((row, index) => [
+          (allPage - 1) * PAGE_SIZE + index + 1,
+          row.name,
+          row.sku,
+          row.categoryName ?? "",
+          formatPrice(row.unitPricePaise),
+          formatPrice(row.totalAmountPaise),
+          row.unitsSold,
+          row.grossQuantity,
+          row.returnedQuantity,
+          formatPrice(row.averageProductValuePaise),
+          row.currentStock,
+          row.averageRating,
+          row.reviewCount,
+        ]),
+      ),
     );
-    toast.success(`Exported ${filteredAll.length} product${filteredAll.length === 1 ? "" : "s"}`);
+    toast.success(`Exported ${allRows.length} product${allRows.length === 1 ? "" : "s"}`);
   }
 
   function handleExportStock() {
     downloadCsv(
-      "product-report-stock.csv",
-      ["SL", "Product Name", "Last Updated Stock", "Current Stock", "Status"],
-      filteredStock.map(p => [
-        p.sl,
-        p.productName,
-        p.lastUpdatedStock,
-        p.currentStock,
-        p.status === "out_of_stock" ? "Out of Stock" : p.status === "low_stock" ? "Low Stock" : "In Stock",
-      ]),
+      `product-report-stock-${new Date().toISOString().slice(0, 10)}`,
+      buildCsv(
+        ["SL", "Product Name", "SKU", "Last Updated Stock", "Current Stock", "Status"],
+        stockRows.map((product, index) => [
+          (stockPage - 1) * PAGE_SIZE + index + 1,
+          product.name,
+          product.sku,
+          formatDateTime(product.updatedAt),
+          product.stockQuantity,
+          stockStatus(product).label,
+        ]),
+      ),
     );
-    toast.success(`Exported ${filteredStock.length} stock row${filteredStock.length === 1 ? "" : "s"}`);
+    toast.success(`Exported ${stockRows.length} stock row${stockRows.length === 1 ? "" : "s"}`);
   }
 
   function handleExportWishlist() {
     downloadCsv(
-      "product-report-wishlist.csv",
-      ["SL", "Product Name", "Date", "Total In Wishlist"],
-      filteredWishlist.map(p => [p.sl, p.productName, p.date, p.totalInWishlist]),
+      `product-report-wishlist-${new Date().toISOString().slice(0, 10)}`,
+      buildCsv(
+        ["SL", "Product Name", "SKU", "Date", "Total In Wishlist"],
+        wishlistRows.map((row, index) => [
+          (wishlistPage - 1) * PAGE_SIZE + index + 1,
+          row.name,
+          row.sku,
+          row.lastWishlistedAt ? formatDate(row.lastWishlistedAt) : "—",
+          row.wishlistCount,
+        ]),
+      ),
     );
-    toast.success(`Exported ${filteredWishlist.length} wishlist row${filteredWishlist.length === 1 ? "" : "s"}`);
+    toast.success(
+      `Exported ${wishlistRows.length} wishlist row${wishlistRows.length === 1 ? "" : "s"}`,
+    );
   }
+
+  // --- Column definitions ------------------------------------------------
+  const allColumns = [
+    {
+      key: "sl",
+      header: "SL",
+      width: "56px",
+      align: "center" as const,
+      render: (_row: ProductSalesRow, index: number) =>
+        (allPage - 1) * PAGE_SIZE + index + 1,
+    },
+    {
+      key: "name",
+      header: "Product Name",
+      render: (row: ProductSalesRow) => (
+        <div className="product-cell">
+          {row.imageUrl ? (
+            <img className="product-img" src={row.imageUrl} alt={row.name} />
+          ) : (
+            <div
+              className="product-img"
+              style={{
+                background: "linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "18px",
+              }}
+            >
+              📦
+            </div>
+          )}
+          <div className="vendor-info">
+            <span className="product-name">{row.name}</span>
+            <span className="vendor-email">
+              {row.sku}
+              {row.categoryName ? ` · ${row.categoryName}` : ""}
+            </span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "unitPricePaise",
+      header: "Unit Price",
+      align: "right" as const,
+      render: (row: ProductSalesRow) => formatPrice(row.unitPricePaise),
+    },
+    {
+      key: "totalAmountPaise",
+      header: "Total Amount Sold",
+      align: "right" as const,
+      render: (row: ProductSalesRow) => formatPrice(row.totalAmountPaise),
+    },
+    {
+      key: "unitsSold",
+      header: "Total Quantity Sold",
+      align: "right" as const,
+      render: (row: ProductSalesRow) => row.unitsSold,
+    },
+    {
+      key: "averageProductValuePaise",
+      header: "Average Product Value",
+      align: "right" as const,
+      render: (row: ProductSalesRow) => formatPrice(row.averageProductValuePaise),
+    },
+    {
+      key: "currentStock",
+      header: "Current Stock",
+      align: "right" as const,
+      render: (row: ProductSalesRow) => row.currentStock,
+    },
+    {
+      key: "averageRating",
+      header: "Average Ratings",
+      render: (row: ProductSalesRow) => (
+        <span className="rating">
+          ⭐ {row.averageRating} ({row.reviewCount})
+        </span>
+      ),
+    },
+  ];
+
+  const stockColumns = [
+    {
+      key: "sl",
+      header: "SL",
+      width: "56px",
+      align: "center" as const,
+      render: (_row: Product, index: number) =>
+        (stockPage - 1) * PAGE_SIZE + index + 1,
+    },
+    {
+      key: "name",
+      header: "Product Name",
+      render: (product: Product) => (
+        <div className="vendor-info">
+          <span className="product-name">{product.name}</span>
+          <span className="vendor-email">{product.sku}</span>
+        </div>
+      ),
+    },
+    {
+      key: "updatedAt",
+      header: "Last Updated Stock",
+      render: (product: Product) => formatDateTime(product.updatedAt),
+    },
+    {
+      key: "stockQuantity",
+      header: "Current Stock",
+      align: "right" as const,
+      render: (product: Product) => product.stockQuantity,
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (product: Product) => {
+        const status = stockStatus(product);
+        return <span className={`status-text ${status.cssClass}`}>{status.label}</span>;
+      },
+    },
+  ];
+
+  const wishlistColumns = [
+    {
+      key: "sl",
+      header: "SL",
+      width: "56px",
+      align: "center" as const,
+      render: (_row: WishlistCountRow, index: number) =>
+        (wishlistPage - 1) * PAGE_SIZE + index + 1,
+    },
+    {
+      key: "name",
+      header: "Product Name",
+      render: (row: WishlistCountRow) => (
+        <div className="vendor-info">
+          <span className="product-name">{row.name}</span>
+          <span className="vendor-email">
+            {row.sku} · {formatPrice(row.pricePaise)}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: "lastWishlistedAt",
+      header: "Date",
+      render: (row: WishlistCountRow) =>
+        row.lastWishlistedAt ? formatDate(row.lastWishlistedAt) : "—",
+    },
+    {
+      key: "wishlistCount",
+      header: "Total In Wishlist",
+      align: "right" as const,
+      render: (row: WishlistCountRow) => row.wishlistCount,
+    },
+  ];
 
   return (
     <div className="reports-container">
@@ -241,6 +435,12 @@ export default function ProductReport() {
         </button>
       </div>
 
+      {error && (
+        <div className="report-card" style={{ borderLeft: "4px solid #f44336" }}>
+          <p style={{ margin: 0, color: "#f44336" }}>{error}</p>
+        </div>
+      )}
+
       {activeTab === "all" && (
         <>
           <div className="filter-card">
@@ -250,16 +450,30 @@ export default function ProductReport() {
                 <label htmlFor="all-date">Date</label>
                 <select
                   id="all-date"
-                  value={allDateFilter}
-                  onChange={(e) => setAllDateFilter(e.target.value as DateFilter)}
+                  value={range}
+                  onChange={(e) => {
+                    setRange(e.target.value as DashboardRange);
+                    setAllPage(1);
+                  }}
                 >
-                  {DATE_OPTIONS.map(d => (
-                    <option key={d.value} value={d.value}>{d.label}</option>
+                  {DATE_OPTIONS.map((d) => (
+                    <option key={d.value} value={d.value}>
+                      {d.label}
+                    </option>
                   ))}
                 </select>
               </div>
-              <button className="btn-filter-primary" type="button" disabled>Filter</button>
-              <button className="btn-filter-secondary" type="button" onClick={handleResetAll}>Reset</button>
+              <button
+                className="btn-filter-secondary"
+                type="button"
+                onClick={() => {
+                  setRange(DEFAULT_RANGE);
+                  setSearch("");
+                  setAllPage(1);
+                }}
+              >
+                Reset
+              </button>
             </div>
           </div>
 
@@ -267,20 +481,16 @@ export default function ProductReport() {
             <div className="stat-card">
               <div className="stat-icon yellow">📦</div>
               <div className="stat-content">
-                <h2>{totalProducts}</h2>
+                <h2>{allTotal}</h2>
                 <p>Total Product</p>
                 <div className="stat-breakdown">
-                  <div className="breakdown-item red">
-                    <span>{rejected}</span>
-                    <label>Rejected</label>
-                  </div>
                   <div className="breakdown-item blue">
-                    <span>{pending}</span>
-                    <label>Pending</label>
+                    <span>{allStats.totalStock}</span>
+                    <label>In Stock</label>
                   </div>
                   <div className="breakdown-item green">
-                    <span>{active}</span>
-                    <label>Active</label>
+                    <span>{allStats.unitsSold}</span>
+                    <label>Units Sold</label>
                   </div>
                 </div>
               </div>
@@ -289,51 +499,35 @@ export default function ProductReport() {
             <div className="stat-card">
               <div className="stat-icon orange">🛒</div>
               <div className="stat-content">
-                <h2>{totalProductSale}</h2>
-                <p>Total Product Sale</p>
+                <h2>{formatPrice(allStats.totalAmountPaise, { compact: true })}</h2>
+                <p>Total Amount Sold</p>
               </div>
             </div>
 
             <div className="stat-card">
-              <div className="stat-icon yellow">🏷️</div>
+              <div className="stat-icon green">🏷️</div>
               <div className="stat-content">
-                <h2>₹{totalDiscountGiven.toLocaleString()}</h2>
-                <p>Total Discount Given ⓘ</p>
+                <h2>{allStats.unitsSold.toLocaleString()}</h2>
+                <p>Total Quantity Sold</p>
               </div>
             </div>
           </div>
 
-          <div className="chart-card" style={{ marginBottom: "24px" }}>
-            <h3>Product Statistics</h3>
-            <p className="chart-subtitle">Demo chart — connect a backend to see real data</p>
-            <div className="chart-placeholder" style={{ height: "300px" }}>
-              <div className="line-chart-visual">
-                <svg viewBox="0 0 800 200" className="line-chart-svg">
-                  <polyline
-                    fill="none"
-                    stroke="#0d6efd"
-                    strokeWidth="2"
-                    points="0,180 50,180 100,180 150,140 200,100 250,60 300,80 350,180 400,180 450,180 500,120 550,180 600,180 650,180 700,180 750,180 800,180"
-                  />
-                  <polyline
-                    fill="rgba(13,110,253,0.1)"
-                    stroke="none"
-                    points="0,200 0,180 50,180 100,180 150,140 200,100 250,60 300,80 350,180 400,180 450,180 500,120 550,180 600,180 650,180 700,180 750,180 800,180 800,200"
-                  />
-                </svg>
-                <div className="chart-x-axis">
-                  {["Jan 2026", "Feb 2026", "Mar 2026", "Apr 2026", "May 2026", "Jun 2026", "Jul 2026", "Aug 2026", "Sep 2026", "Oct 2026", "Nov 2026", "Dec 2026"].map((month) => (
-                    <span key={month}>{month}</span>
-                  ))}
-                </div>
-              </div>
-            </div>
+          <div style={{ marginBottom: "24px" }}>
+            <ChartCard
+              title="Product Statistics"
+              subtitle="Top sellers by units sold"
+              isLoading={loading}
+              empty={!loading && topSellingItems.length === 0}
+            >
+              <TopSellingChart items={topSellingItems} />
+            </ChartCard>
           </div>
 
           <div className="table-card">
             <div className="table-header">
               <h3>
-                Total Products <span className="count">{filteredAll.length}</span>
+                Total Products <span className="count">{allTotal}</span>
               </h3>
               <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
                 <div className="search-box">
@@ -344,11 +538,19 @@ export default function ProductReport() {
                   <input
                     type="text"
                     placeholder="Search product name"
-                    value={allSearch}
-                    onChange={(e) => setAllSearch(e.target.value)}
+                    value={search}
+                    onChange={(e) => {
+                      setSearch(e.target.value);
+                      setAllPage(1);
+                    }}
                   />
                 </div>
-                <button className="btn-export" type="button" onClick={handleExportAll}>
+                <button
+                  className="btn-export"
+                  type="button"
+                  onClick={handleExportAll}
+                  disabled={allRows.length === 0}
+                >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                     <polyline points="7,10 12,15 17,10" />
@@ -358,52 +560,22 @@ export default function ProductReport() {
                 </button>
               </div>
             </div>
-            <div className="table-container">
-              {filteredAll.length === 0 ? (
-                <div className="empty-state">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                    <circle cx="8.5" cy="8.5" r="1.5" />
-                    <polyline points="21,15 16,10 5,21" />
-                  </svg>
-                  <h3>No products match your search</h3>
-                  <p>Try a different name or clear the search box.</p>
-                </div>
-              ) : (
-                <table className="report-table">
-                  <thead>
-                    <tr>
-                      <th>SL</th>
-                      <th>Product Name</th>
-                      <th>Product Unit Price</th>
-                      <th>Total Amount Sold</th>
-                      <th>Total Quantity Sold</th>
-                      <th>Average Product Value</th>
-                      <th>Current Stock Amount</th>
-                      <th>Average Ratings</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredAll.map((product, index) => (
-                      <tr key={product.sl}>
-                        <td>{index + 1}</td>
-                        <td>{product.productName}</td>
-                        <td>₹{product.productUnitPrice.toLocaleString()}</td>
-                        <td>₹{product.totalAmountSold.toLocaleString()}</td>
-                        <td>{product.totalQuantitySold}</td>
-                        <td>₹{product.averageProductValue.toLocaleString()}</td>
-                        <td>{product.currentStockAmount}</td>
-                        <td>
-                          <span className="rating">
-                            ⭐ {product.averageRatings} ({product.reviewCount})
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
+
+            <DataTable
+              columns={allColumns}
+              data={allRows}
+              loading={loading}
+              loadingText="Loading products…"
+              emptyIcon="box"
+              emptyTitle="No products match your search"
+              emptyDescription="Try a different name or widen the date range."
+              keyExtractor={(row) => row.productId}
+              currentPage={allPage}
+              totalPages={allTotalPages}
+              totalItems={allTotal}
+              itemsPerPage={PAGE_SIZE}
+              onPageChange={setAllPage}
+            />
           </div>
         </>
       )}
@@ -414,37 +586,37 @@ export default function ProductReport() {
             <h3>Filter Data</h3>
             <div className="filter-row">
               <div className="filter-group">
-                <label htmlFor="stock-category">Category</label>
-                <select
-                  id="stock-category"
-                  value={stockCategory}
-                  onChange={(e) => setStockCategory(e.target.value)}
-                >
-                  {CATEGORY_OPTIONS.map(c => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="filter-group">
                 <label htmlFor="stock-sort">Sort by stock</label>
                 <select
                   id="stock-sort"
                   value={stockSort}
-                  onChange={(e) => setStockSort(e.target.value as StockSort)}
+                  onChange={(e) => {
+                    setStockSort(e.target.value as StockSort);
+                    setStockPage(1);
+                  }}
                 >
                   <option value="stock_asc">Stock: low to high</option>
                   <option value="stock_desc">Stock: high to low</option>
                 </select>
               </div>
-              <button className="btn-filter-primary" type="button" disabled>Filter</button>
-              <button className="btn-filter-secondary" type="button" onClick={handleResetStock}>Reset</button>
+              <button
+                className="btn-filter-secondary"
+                type="button"
+                onClick={() => {
+                  setStockSort("stock_asc");
+                  setStockSearch("");
+                  setStockPage(1);
+                }}
+              >
+                Reset
+              </button>
             </div>
           </div>
 
           <div className="table-card">
             <div className="table-header">
               <h3>
-                Total Products <span className="count">{filteredStock.length}</span>
+                Limited Stock Products <span className="count">{stockTotal}</span>
               </h3>
               <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
                 <div className="search-box">
@@ -456,10 +628,18 @@ export default function ProductReport() {
                     type="text"
                     placeholder="Search Product Name"
                     value={stockSearch}
-                    onChange={(e) => setStockSearch(e.target.value)}
+                    onChange={(e) => {
+                      setStockSearch(e.target.value);
+                      setStockPage(1);
+                    }}
                   />
                 </div>
-                <button className="btn-export" type="button" onClick={handleExportStock}>
+                <button
+                  className="btn-export"
+                  type="button"
+                  onClick={handleExportStock}
+                  disabled={stockRows.length === 0}
+                >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                     <polyline points="7,10 12,15 17,10" />
@@ -469,46 +649,22 @@ export default function ProductReport() {
                 </button>
               </div>
             </div>
-            <div className="table-container">
-              {filteredStock.length === 0 ? (
-                <div className="empty-state">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                    <circle cx="8.5" cy="8.5" r="1.5" />
-                    <polyline points="21,15 16,10 5,21" />
-                  </svg>
-                  <h3>No products match your search</h3>
-                  <p>Try a different name or clear the search box.</p>
-                </div>
-              ) : (
-                <table className="report-table">
-                  <thead>
-                    <tr>
-                      <th>SL</th>
-                      <th>Product Name</th>
-                      <th>Last Updated Stock</th>
-                      <th>Current Stock</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredStock.map((item, index) => (
-                      <tr key={item.sl}>
-                        <td>{index + 1}</td>
-                        <td>{item.productName}</td>
-                        <td>{item.lastUpdatedStock}</td>
-                        <td>{item.currentStock}</td>
-                        <td>
-                          <span className={`status-text ${item.status === "out_of_stock" ? "out-of-stock" : item.status === "low_stock" ? "low-stock" : "in-stock"}`}>
-                            {item.status === "out_of_stock" ? "Out of Stock" : item.status === "low_stock" ? "Low Stock" : "In Stock"}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
+
+            <DataTable
+              columns={stockColumns}
+              data={stockRows}
+              loading={loading}
+              loadingText="Loading stock…"
+              emptyIcon="box"
+              emptyTitle="No low-stock products"
+              emptyDescription="Every product is above its low-stock threshold."
+              keyExtractor={(product) => product.id}
+              currentPage={stockPage}
+              totalPages={stockTotalPages}
+              totalItems={stockTotal}
+              itemsPerPage={PAGE_SIZE}
+              onPageChange={setStockPage}
+            />
           </div>
         </>
       )}
@@ -519,25 +675,53 @@ export default function ProductReport() {
             <h3>Filter Data</h3>
             <div className="filter-row">
               <div className="filter-group">
-                <label htmlFor="wishlist-sort">Sort by wishlist count</label>
+                <label htmlFor="wishlist-sort">Sort by</label>
                 <select
                   id="wishlist-sort"
                   value={wishlistSort}
-                  onChange={(e) => setWishlistSort(e.target.value as WishlistSort)}
+                  onChange={(e) => {
+                    setWishlistSort(e.target.value as WishlistSort);
+                    setWishlistPage(1);
+                  }}
                 >
-                  <option value="wishlist_asc">Wishlist: low to high</option>
-                  <option value="wishlist_desc">Wishlist: high to low</option>
+                  <option value="count">Wishlist count</option>
+                  <option value="name">Product name</option>
+                  <option value="recent">Last wishlisted</option>
                 </select>
               </div>
-              <button className="btn-filter-primary" type="button" disabled>Filter</button>
-              <button className="btn-filter-secondary" type="button" onClick={handleResetWishlist}>Reset</button>
+              <div className="filter-group">
+                <label htmlFor="wishlist-order">Order</label>
+                <select
+                  id="wishlist-order"
+                  value={wishlistOrder}
+                  onChange={(e) => {
+                    setWishlistOrder(e.target.value as WishlistOrder);
+                    setWishlistPage(1);
+                  }}
+                >
+                  <option value="desc">High to low</option>
+                  <option value="asc">Low to high</option>
+                </select>
+              </div>
+              <button
+                className="btn-filter-secondary"
+                type="button"
+                onClick={() => {
+                  setWishlistSort("count");
+                  setWishlistOrder("desc");
+                  setWishlistSearch("");
+                  setWishlistPage(1);
+                }}
+              >
+                Reset
+              </button>
             </div>
           </div>
 
           <div className="table-card">
             <div className="table-header">
               <h3>
-                Total Products <span className="count">{filteredWishlist.length}</span>
+                Wish Listed Products <span className="count">{wishlistTotal}</span>
               </h3>
               <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
                 <div className="search-box">
@@ -549,10 +733,18 @@ export default function ProductReport() {
                     type="text"
                     placeholder="Search Product Name"
                     value={wishlistSearch}
-                    onChange={(e) => setWishlistSearch(e.target.value)}
+                    onChange={(e) => {
+                      setWishlistSearch(e.target.value);
+                      setWishlistPage(1);
+                    }}
                   />
                 </div>
-                <button className="btn-export" type="button" onClick={handleExportWishlist}>
+                <button
+                  className="btn-export"
+                  type="button"
+                  onClick={handleExportWishlist}
+                  disabled={wishlistRows.length === 0}
+                >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                     <polyline points="7,10 12,15 17,10" />
@@ -562,43 +754,40 @@ export default function ProductReport() {
                 </button>
               </div>
             </div>
-            <div className="table-container">
-              {filteredWishlist.length === 0 ? (
-                <div className="empty-state">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                    <circle cx="8.5" cy="8.5" r="1.5" />
-                    <polyline points="21,15 16,10 5,21" />
-                  </svg>
-                  <h3>No products match your search</h3>
-                  <p>Try a different name or clear the search box.</p>
-                </div>
-              ) : (
-                <table className="report-table">
-                  <thead>
-                    <tr>
-                      <th>SL</th>
-                      <th>Product Name</th>
-                      <th>Date</th>
-                      <th>Total In Wishlist</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredWishlist.map((item, index) => (
-                      <tr key={item.sl}>
-                        <td>{index + 1}</td>
-                        <td>{item.productName}</td>
-                        <td>{item.date}</td>
-                        <td>{item.totalInWishlist}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
+
+            <DataTable
+              columns={wishlistColumns}
+              data={wishlistRows}
+              loading={loading}
+              loadingText="Loading wishlist counts…"
+              emptyIcon="cart"
+              emptyTitle="No wishlisted products"
+              emptyDescription="Products appear here once a customer adds them to their wishlist."
+              keyExtractor={(row) => row.productId}
+              currentPage={wishlistPage}
+              totalPages={wishlistTotalPages}
+              totalItems={wishlistTotal}
+              itemsPerPage={PAGE_SIZE}
+              onPageChange={setWishlistPage}
+            />
           </div>
         </>
       )}
     </div>
   );
+}
+
+/**
+ * Classifies a product's stock level against its own threshold. The backend's
+ * limited-stock query already filters to `stockQuantity <= lowStockThreshold`,
+ * so a product in this list is either at zero or running low.
+ */
+function stockStatus(product: Product): { label: string; cssClass: string } {
+  if (product.stockQuantity <= 0) {
+    return { label: "Out of Stock", cssClass: "out-of-stock" };
+  }
+  if (product.stockQuantity <= product.lowStockThreshold) {
+    return { label: "Low Stock", cssClass: "low-stock" };
+  }
+  return { label: "In Stock", cssClass: "in-stock" };
 }

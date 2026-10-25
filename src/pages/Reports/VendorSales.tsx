@@ -1,38 +1,220 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { api } from "../../api/client";
+import { DataTable } from "../../components";
+import { ChartCard, OrdersTrendChart, type DashboardRange } from "../../components/dashboard";
+import type { VendorSalesRow } from "../../types";
+import { formatPrice } from "../../utils/format";
+import { buildCsv, downloadCsv } from "./reportCsv";
+// `ChartCard` and the recharts components live in the dashboard stylesheet;
+// `ak-status` / `ak-table` live in the UI kit.
+import "../../styles/dashboard.css";
+import "../../styles/ui-kit.css";
 import "../../styles/reports.css";
 
-interface VendorData {
-  sl: number;
-  vendorName: string;
-  email: string;
-  phone: string;
-  totalProducts: number;
-  totalOrders: number;
-  totalSales: number;
-  status: "active" | "inactive";
-}
+const PAGE_SIZE = 20;
 
-const mockVendors: VendorData[] = [
-  { sl: 1, vendorName: "Fresh Farms India", email: "contact@freshfarms.in", phone: "+91 98765 43210", totalProducts: 45, totalOrders: 320, totalSales: 450000, status: "active" },
-  { sl: 2, vendorName: "Organic Valley Store", email: "info@organicvalley.com", phone: "+91 87654 32109", totalProducts: 38, totalOrders: 280, totalSales: 380000, status: "active" },
-  { sl: 3, vendorName: "Spice Kingdom", email: "sales@spicekingdom.in", phone: "+91 76543 21098", totalProducts: 52, totalOrders: 195, totalSales: 275000, status: "active" },
-  { sl: 4, vendorName: "Dairy Delight", email: "hello@dairydelight.com", phone: "+91 65432 10987", totalProducts: 22, totalOrders: 410, totalSales: 520000, status: "active" },
-  { sl: 5, vendorName: "Nutri Foods", email: "support@nutrifoods.in", phone: "+91 54321 09876", totalProducts: 31, totalOrders: 150, totalSales: 198000, status: "inactive" },
+const RANGE_OPTIONS: { value: DashboardRange; label: string }[] = [
+  { value: "7d", label: "Last 7 Days" },
+  { value: "30d", label: "Last 30 Days" },
+  { value: "90d", label: "Last 90 Days" },
+  { value: "all", label: "All Time" },
+];
+
+const STATUS_OPTIONS = [
+  { value: "all", label: "All Statuses" },
+  { value: "active", label: "Active" },
+  { value: "inactive", label: "Inactive" },
 ];
 
 export default function VendorSales() {
-  const [selectedVendor, setSelectedVendor] = useState("All Vendor");
-  const [dateFilter, setDateFilter] = useState("This Year");
+  const [range, setRange] = useState<DashboardRange>("30d");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedVendor, setSelectedVendor] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const totalVendors = mockVendors.length;
-  const activeVendors = mockVendors.filter(v => v.status === "active").length;
-  const totalSales = mockVendors.reduce((sum, v) => sum + v.totalSales, 0);
-  const totalOrders = mockVendors.reduce((sum, v) => sum + v.totalOrders, 0);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [rows, setRows] = useState<VendorSalesRow[]>([]);
+  const [totals, setTotals] = useState({
+    totalVendors: 0,
+    activeVendors: 0,
+    totalOrders: 0,
+    totalSalesPaise: 0,
+  });
+  const [vendorNames, setVendorNames] = useState<string[]>([]);
+  const [trend, setTrend] = useState<{ date: string; value: number }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [trendLoading, setTrendLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredVendors = mockVendors.filter((vendor) =>
-    vendor.vendorName.toLowerCase().includes(searchQuery.toLowerCase())
+  const loadVendors = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.getVendorSalesReport({
+        page,
+        limit: PAGE_SIZE,
+        // The dropdown and the search box both narrow by vendor name; the
+        // backend only takes one search term, so the dropdown wins when set.
+        search: selectedVendor || searchQuery.trim() || undefined,
+        status: statusFilter !== "all" ? statusFilter : undefined,
+        range,
+      });
+      setRows(response.data || []);
+      setTotalPages(response.pagination?.totalPages || 1);
+      setTotalItems(response.pagination?.total || 0);
+      setTotals(
+        response.totals ?? {
+          totalVendors: 0,
+          activeVendors: 0,
+          totalOrders: 0,
+          totalSalesPaise: 0,
+        },
+      );
+    }
+    catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load vendor sales");
+    }
+    finally {
+      setLoading(false);
+    }
+  }, [page, selectedVendor, searchQuery, statusFilter, range]);
+
+  useEffect(() => {
+    loadVendors();
+  }, [loadVendors]);
+
+  // The dropdown lists every vendor, so it needs an unfiltered read. It is
+  // fetched once per range change — the vendor list itself doesn't move.
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .getVendorSalesReport({ page: 1, limit: 100, range })
+      .then((response) => {
+        if (cancelled) return;
+        setVendorNames((response.data || []).map((v) => v.name));
+      })
+      .catch(() => {
+        if (!cancelled) setVendorNames([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [range]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setTrendLoading(true);
+    api
+      .getDashboardTrend({ metric: "orders", range })
+      .then((data) => {
+        if (!cancelled) setTrend(data?.points ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setTrend([]);
+      })
+      .finally(() => {
+        if (!cancelled) setTrendLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [range]);
+
+  const totalVendorProducts = useMemo(
+    () => rows.reduce((sum, v) => sum + v.totalProducts, 0),
+    [rows],
   );
+
+  const handleExport = () => {
+    const headers = [
+      "SL",
+      "Vendor Name",
+      "Email",
+      "Phone",
+      "Total Products",
+      "Total Orders",
+      "Units Sold",
+      "Total Sales",
+      "Status",
+    ];
+    const data = rows.map((vendor, index) => [
+      (page - 1) * PAGE_SIZE + index + 1,
+      vendor.name,
+      vendor.email ?? "",
+      vendor.phone ?? "",
+      vendor.totalProducts,
+      vendor.totalOrders,
+      vendor.unitsSold,
+      formatPrice(vendor.totalSalesPaise),
+      vendor.status,
+    ]);
+    downloadCsv(`vendor-sales-${new Date().toISOString().slice(0, 10)}`, buildCsv(headers, data));
+  };
+
+  const columns = [
+    {
+      key: "sl",
+      header: "SL",
+      width: "56px",
+      align: "center" as const,
+      render: (_vendor: VendorSalesRow, index: number) =>
+        (page - 1) * PAGE_SIZE + index + 1,
+    },
+    {
+      key: "name",
+      header: "Vendor Name",
+      render: (vendor: VendorSalesRow) => (
+        <div className="vendor-cell">
+          <div className="vendor-avatar">🏪</div>
+          <div className="vendor-info">
+            <span className="vendor-name">{vendor.name}</span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "contact",
+      header: "Contact Info",
+      render: (vendor: VendorSalesRow) => (
+        <div className="vendor-info">
+          <span style={{ fontSize: "13px" }}>{vendor.email || "—"}</span>
+          <span style={{ fontSize: "12px", color: "#888" }}>{vendor.phone || ""}</span>
+        </div>
+      ),
+    },
+    {
+      key: "totalProducts",
+      header: "Total Products",
+      align: "right" as const,
+      render: (vendor: VendorSalesRow) => vendor.totalProducts,
+    },
+    {
+      key: "totalOrders",
+      header: "Total Orders",
+      align: "right" as const,
+      render: (vendor: VendorSalesRow) => vendor.totalOrders,
+    },
+    {
+      key: "totalSalesPaise",
+      header: "Total Sales",
+      align: "right" as const,
+      render: (vendor: VendorSalesRow) => formatPrice(vendor.totalSalesPaise),
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (vendor: VendorSalesRow) => (
+        <span
+          className={`ak-status ak-status--${vendor.status === "active" ? "success" : "neutral"}`}
+        >
+          <span className="ak-status__dot" />
+          {vendor.status.charAt(0).toUpperCase() + vendor.status.slice(1)}
+        </span>
+      ),
+    },
+  ];
 
   return (
     <div className="reports-container">
@@ -43,43 +225,84 @@ export default function VendorSales() {
             <label>Vendor</label>
             <select
               value={selectedVendor}
-              onChange={(e) => setSelectedVendor(e.target.value)}
+              onChange={(e) => {
+                setSelectedVendor(e.target.value);
+                setPage(1);
+              }}
             >
-              <option>All Vendor</option>
-              {mockVendors.map((v) => (
-                <option key={v.sl} value={v.vendorName}>
-                  {v.vendorName}
+              <option value="">All Vendor</option>
+              {vendorNames.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="filter-group">
+            <label>Status</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
+            >
+              {STATUS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </select>
           </div>
           <div className="filter-group">
             <label>Date Type</label>
-            <select value={dateFilter} onChange={(e) => setDateFilter(e.target.value)}>
-              <option>This Year</option>
-              <option>This Month</option>
-              <option>This Week</option>
-              <option>Today</option>
-              <option>Custom Date</option>
+            <select
+              value={range}
+              onChange={(e) => {
+                setRange(e.target.value as DashboardRange);
+                setPage(1);
+              }}
+            >
+              {RANGE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </div>
-          <button className="btn-filter-primary">Filter</button>
+          <button
+            className="btn-filter-secondary"
+            onClick={() => {
+              setSelectedVendor("");
+              setStatusFilter("all");
+              setSearchQuery("");
+              setPage(1);
+            }}
+          >
+            Reset
+          </button>
         </div>
       </div>
+
+      {error && (
+        <div className="report-card" style={{ borderLeft: "4px solid #f44336" }}>
+          <p style={{ margin: 0, color: "#f44336" }}>{error}</p>
+        </div>
+      )}
 
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-icon blue">🏪</div>
           <div className="stat-content">
-            <h2>{totalVendors}</h2>
+            <h2>{totals.totalVendors}</h2>
             <p>Total Vendors</p>
             <div className="stat-breakdown">
               <div className="breakdown-item green">
-                <span>{activeVendors}</span>
+                <span>{totals.activeVendors}</span>
                 <label>Active</label>
               </div>
               <div className="breakdown-item red">
-                <span>{totalVendors - activeVendors}</span>
+                <span>{totals.totalVendors - totals.activeVendors}</span>
                 <label>Inactive</label>
               </div>
             </div>
@@ -89,7 +312,7 @@ export default function VendorSales() {
         <div className="stat-card">
           <div className="stat-icon green">💰</div>
           <div className="stat-content">
-            <h2>₹{totalSales.toLocaleString()}</h2>
+            <h2>{formatPrice(totals.totalSalesPaise, { compact: true })}</h2>
             <p>Total Sales</p>
           </div>
         </div>
@@ -97,7 +320,7 @@ export default function VendorSales() {
         <div className="stat-card">
           <div className="stat-icon yellow">📦</div>
           <div className="stat-content">
-            <h2>{totalOrders}</h2>
+            <h2>{totals.totalOrders}</h2>
             <p>Total Orders</p>
           </div>
         </div>
@@ -105,45 +328,29 @@ export default function VendorSales() {
         <div className="stat-card">
           <div className="stat-icon purple">🛒</div>
           <div className="stat-content">
-            <h2>{mockVendors.reduce((sum, v) => sum + v.totalProducts, 0)}</h2>
-            <p>Total Vendor Products</p>
+            <h2>{totalVendorProducts}</h2>
+            <p>Vendor Products (this page)</p>
           </div>
         </div>
       </div>
 
       <div className="charts-row">
-        <div className="chart-card" style={{ gridColumn: "1 / -1" }}>
-          <h3>Order Statistics</h3>
-          <div className="chart-legend-inline">
-            <div className="legend-item">
-              <span className="dot blue"></span>
-              Orders
-            </div>
-            <div className="legend-item">
-              <span className="dot green"></span>
-              Sales Amount
-            </div>
-          </div>
-          <div className="chart-placeholder">
-            <div className="chart-bars">
-              {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].map((month) => (
-                <div key={month} className="chart-bar-group">
-                  <div
-                    className="chart-bar"
-                    style={{ height: `${Math.random() * 60 + 20}%` }}
-                  ></div>
-                  <span>{month}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+        <div style={{ gridColumn: "1 / -1" }}>
+          <ChartCard
+            title="Order Statistics"
+            subtitle="Orders placed over the selected period"
+            isLoading={trendLoading}
+            empty={!trendLoading && trend.length === 0}
+          >
+            <OrdersTrendChart data={trend} />
+          </ChartCard>
         </div>
       </div>
 
       <div className="table-card">
         <div className="table-header">
           <h3>
-            Vendor List <span className="count">{filteredVendors.length}</span>
+            Vendor List <span className="count">{totalItems}</span>
           </h3>
           <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
             <div className="search-box">
@@ -155,10 +362,13 @@ export default function VendorSales() {
                 type="text"
                 placeholder="Search by vendor name..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setPage(1);
+                }}
               />
             </div>
-            <button className="btn-export">
+            <button className="btn-export" onClick={handleExport} disabled={rows.length === 0}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7,10 12,15 17,10" />
@@ -169,74 +379,21 @@ export default function VendorSales() {
           </div>
         </div>
 
-        <div className="table-container">
-          <table className="report-table">
-            <thead>
-              <tr>
-                <th>SL</th>
-                <th>Vendor Name</th>
-                <th>Contact Info</th>
-                <th>Total Products</th>
-                <th>Total Orders</th>
-                <th>Total Sales</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredVendors.map((vendor) => (
-                <tr key={vendor.sl}>
-                  <td>{vendor.sl}</td>
-                  <td>
-                    <div className="vendor-cell">
-                      <div className="vendor-avatar">🏪</div>
-                      <div className="vendor-info">
-                        <span className="vendor-name">{vendor.vendorName}</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="vendor-info">
-                      <span style={{ fontSize: "13px" }}>{vendor.email}</span>
-                      <span style={{ fontSize: "12px", color: "#888" }}>{vendor.phone}</span>
-                    </div>
-                  </td>
-                  <td>{vendor.totalProducts}</td>
-                  <td>{vendor.totalOrders}</td>
-                  <td>₹{vendor.totalSales.toLocaleString()}</td>
-                  <td>
-                    <span className={`status-badge ${vendor.status}`}>
-                      {vendor.status.charAt(0).toUpperCase() + vendor.status.slice(1)}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="actions-cell">
-                      <button className="btn-action btn-icon-view" title="View Details">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#4f46e5" strokeWidth="2"/>
-                          <circle cx="12" cy="12" r="3" stroke="#4f46e5" strokeWidth="2"/>
-                        </svg>
-                      </button>
-                      <button className="btn-action btn-icon-download" title="Download Report">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="#22c55e" strokeWidth="2"/>
-                          <polyline points="7,10 12,15 17,10" stroke="#22c55e" strokeWidth="2"/>
-                          <line x1="12" y1="15" x2="12" y2="3" stroke="#22c55e" strokeWidth="2"/>
-                        </svg>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="pagination">
-          <button disabled>&lt;</button>
-          <button className="active">1</button>
-          <button>&gt;</button>
-        </div>
+        <DataTable
+          columns={columns}
+          data={rows}
+          loading={loading}
+          loadingText="Loading vendors…"
+          emptyIcon="users"
+          emptyTitle="No vendors found"
+          emptyDescription="Vendors appear here once they exist and have products assigned to them."
+          keyExtractor={(vendor) => vendor.vendorId}
+          currentPage={page}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={PAGE_SIZE}
+          onPageChange={setPage}
+        />
       </div>
     </div>
   );

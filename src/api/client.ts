@@ -1,5 +1,15 @@
 import { API_BASE_URL } from "../config/env";
-import type { Address, CustomerAddressInput } from "../types";
+import type {
+  Address,
+  CustomerAddressInput,
+  EarningsReport,
+  ExpensesReport,
+  InhouseSalesReport,
+  ProductSalesReport,
+  VendorEarningsReport,
+  VendorSalesReport,
+  WishlistCountsReport,
+} from "../types";
 
 interface ApiResponse<T> {
   data?: T;
@@ -69,6 +79,116 @@ export const api = {
     q.set("limit", String(params.limit ?? 5));
     q.set("range", params.range ?? "30d");
     return request<any[]>(`/dashboard/top-products?${q}`);
+  },
+
+  // Sales & Transaction Reports.
+  // These live on the dashboard module — the backend serves both the
+  // Dashboard screen and the report screens from there.
+  getProductSalesReport: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    categoryId?: string;
+    range?: "7d" | "30d" | "90d" | "all";
+  } = {}) => {
+    const q = new URLSearchParams();
+    if (params.page) q.set("page", String(params.page));
+    if (params.limit) q.set("limit", String(params.limit));
+    if (params.search) q.set("search", params.search);
+    if (params.categoryId) q.set("categoryId", params.categoryId);
+    q.set("range", params.range ?? "30d");
+    return request<ProductSalesReport>(`/dashboard/product-sales?${q}`);
+  },
+  getWishlistCountsReport: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    sort?: "count" | "name" | "recent";
+    order?: "asc" | "desc";
+  } = {}) => {
+    const q = new URLSearchParams();
+    if (params.page) q.set("page", String(params.page));
+    if (params.limit) q.set("limit", String(params.limit));
+    if (params.search) q.set("search", params.search);
+    q.set("sort", params.sort ?? "count");
+    q.set("order", params.order ?? "desc");
+    return request<WishlistCountsReport>(`/dashboard/wishlist-counts?${q}`);
+  },
+  getExpensesReport: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    category?: string;
+    status?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  } = {}) => {
+    const q = new URLSearchParams();
+    if (params.page) q.set("page", String(params.page));
+    if (params.limit) q.set("limit", String(params.limit));
+    if (params.search) q.set("search", params.search);
+    if (params.category) q.set("category", params.category);
+    if (params.status) q.set("status", params.status);
+    if (params.dateFrom) q.set("dateFrom", params.dateFrom);
+    if (params.dateTo) q.set("dateTo", params.dateTo);
+    return request<ExpensesReport>(`/dashboard/expenses?${q}`);
+  },
+  getInhouseSalesReport: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    /** Category / Sub Category / Sub Sub Category id — all are `categories` rows. */
+    categoryId?: string;
+    range?: "7d" | "30d" | "90d" | "all";
+  } = {}) => {
+    const q = new URLSearchParams();
+    if (params.page) q.set("page", String(params.page));
+    if (params.limit) q.set("limit", String(params.limit));
+    if (params.search) q.set("search", params.search);
+    if (params.categoryId) q.set("categoryId", params.categoryId);
+    q.set("range", params.range ?? "30d");
+    return request<InhouseSalesReport>(`/dashboard/inhouse-sales?${q}`);
+  },
+  getVendorSalesReport: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: "active" | "inactive";
+    range?: "7d" | "30d" | "90d" | "all";
+  } = {}) => {
+    const q = new URLSearchParams();
+    if (params.page) q.set("page", String(params.page));
+    if (params.limit) q.set("limit", String(params.limit));
+    if (params.search) q.set("search", params.search);
+    if (params.status) q.set("status", params.status);
+    q.set("range", params.range ?? "30d");
+    return request<VendorSalesReport>(`/dashboard/vendors?${q}`);
+  },
+  getEarningsReport: (params: {
+    dateFrom?: string;
+    dateTo?: string;
+    groupBy?: "month" | "week" | "day";
+  } = {}) => {
+    const q = new URLSearchParams();
+    if (params.dateFrom) q.set("dateFrom", params.dateFrom);
+    if (params.dateTo) q.set("dateTo", params.dateTo);
+    q.set("groupBy", params.groupBy ?? "month");
+    return request<EarningsReport>(`/dashboard/earnings?${q}`);
+  },
+  getVendorEarningsReport: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: "active" | "inactive";
+    range?: "7d" | "30d" | "90d" | "all";
+  } = {}) => {
+    const q = new URLSearchParams();
+    if (params.page) q.set("page", String(params.page));
+    if (params.limit) q.set("limit", String(params.limit));
+    if (params.search) q.set("search", params.search);
+    if (params.status) q.set("status", params.status);
+    q.set("range", params.range ?? "30d");
+    return request<VendorEarningsReport>(`/dashboard/vendor-earnings?${q}`);
   },
 
   // Products
@@ -270,6 +390,12 @@ export const api = {
       /** Several statuses at once — sent comma-separated. Wins over `status`. */
       statuses?: string[];
       paymentState?: string;
+      /**
+       * The raw stored payment status. The backend's `paymentState` filter
+       * wins over this one when both are sent, so use it alone when you need
+       * a value `paymentState` doesn't expose — e.g. `partially_refunded`.
+       */
+      paymentStatus?: string;
       orderChannel?: string;
       dateFrom?: string;
       dateTo?: string;
@@ -283,6 +409,7 @@ export const api = {
     if (params.status) query.set("status", params.status);
     if (params.statuses?.length) query.set("statuses", params.statuses.join(","));
     if (params.paymentState) query.set("paymentState", params.paymentState);
+    if (params.paymentStatus) query.set("paymentStatus", params.paymentStatus);
     if (params.orderChannel) query.set("orderChannel", params.orderChannel);
     if (params.dateFrom) query.set("dateFrom", params.dateFrom);
     if (params.dateTo) query.set("dateTo", params.dateTo);
