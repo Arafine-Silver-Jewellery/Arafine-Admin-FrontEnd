@@ -78,10 +78,5 @@ export const authApi = {
       method: "POST",
     }),
 
-  logoutAll: () =>
-    authRequest<void>("/auth/logout-all", {
-      method: "POST",
-    }),
-
   getMe: () => authRequest<MeResponse>("/auth/me"),
 };

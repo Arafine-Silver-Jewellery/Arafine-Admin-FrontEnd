@@ -24,11 +24,14 @@ const STATUS_OPTIONS = [
   { value: "all", label: "All Statuses" },
   { value: "active", label: "Active" },
   { value: "inactive", label: "Inactive" },
-];
+] as const;
+
+/** The status filter, widened with "all" for the "no filter" case. */
+type VendorStatusFilter = (typeof STATUS_OPTIONS)[number]["value"];
 
 export default function VendorSales() {
   const [range, setRange] = useState<DashboardRange>("30d");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<VendorStatusFilter>("all");
   const [selectedVendor, setSelectedVendor] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -243,7 +246,7 @@ export default function VendorSales() {
             <select
               value={statusFilter}
               onChange={(e) => {
-                setStatusFilter(e.target.value);
+                setStatusFilter(e.target.value as VendorStatusFilter);
                 setPage(1);
               }}
             >

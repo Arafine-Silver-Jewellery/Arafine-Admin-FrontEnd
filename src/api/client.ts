@@ -224,11 +224,6 @@ export const api = {
     }),
   deleteProduct: (id: string) =>
     request<any>(`/products/${id}`, { method: "DELETE" }),
-  bulkUpdateProductStatus: (ids: string[], status: string) =>
-    request<any>("/products/bulk/status", {
-      method: "PATCH",
-      body: JSON.stringify({ ids, status }),
-    }),
   getLimitedStockProducts: (params: {
     page?: number;
     limit?: number;
@@ -329,8 +324,7 @@ export const api = {
     }>(`/categories/sub-sub${queryString ? `?${queryString}` : ""}`);
   },
   getAllSubSubCategories: () => request<any[]>("/categories/sub-sub/all"),
-  
-  getCategory: (id: string) => request<any>(`/categories/${id}`),
+
   createCategory: (data: any) =>
     request<any>("/categories", {
       method: "POST",
@@ -361,7 +355,6 @@ export const api = {
     const queryString = query.toString();
     return request<ApiResponse<any[]>>(`/banners${queryString ? `?${queryString}` : ""}`);
   },
-  getBanner: (id: string) => request<any>(`/banners/${id}`),
   createBanner: (data: any) =>
     request<any>("/banners", {
       method: "POST",
@@ -484,10 +477,7 @@ export const api = {
   
   getHoldOrdersCount: () =>
     request<{ count: number }>("/pos/hold/count"),
-  
-  getHoldOrder: (id: string) =>
-    request<{ data: any }>(`/pos/hold/${id}`),
-  
+
   createHoldOrder: (data: {
     customerName?: string;
     customerPhone?: string;
@@ -509,12 +499,6 @@ export const api = {
       body: JSON.stringify(data),
     }),
   
-  updateHoldOrder: (id: string, data: { note?: string; customerName?: string; customerPhone?: string }) =>
-    request<{ message: string; data: any }>(`/pos/hold/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify(data),
-    }),
-  
   deleteHoldOrder: (id: string) =>
     request<{ message: string; data: any }>(`/pos/hold/${id}`, {
       method: "DELETE",
@@ -524,20 +508,6 @@ export const api = {
   searchPOSCustomers: (phone: string) =>
     request<{ data: { id: string; mobileNumber: string; firstName: string; lastName: string; email: string | null; fullName: string }[] }>(
       `/pos/customers/search?phone=${encodeURIComponent(phone)}`
-    ),
-
-  getPOSCustomerByPhone: (phone: string) =>
-    request<{ data: { id: string; mobileNumber: string; firstName: string; lastName: string; email: string | null; fullName: string } }>(
-      `/pos/customers/by-phone/${encodeURIComponent(phone)}`
-    ),
-
-  createPOSCustomer: (data: { mobileNumber: string; firstName: string; lastName?: string; email?: string | null }) =>
-    request<{ message: string; data: { id: string; mobileNumber: string; firstName: string; lastName: string; email: string | null; fullName: string; isNew: boolean } }>(
-      "/pos/customers",
-      {
-        method: "POST",
-        body: JSON.stringify(data),
-      }
     ),
 
   getPOSCustomerAddresses: (customerId: string) =>
@@ -623,29 +593,8 @@ export const api = {
   togglePromotion: (id: string) =>
     request<any>(`/promotions/${id}/toggle`, { method: "PATCH" }),
 
-  // SMTP Configs
-  getSmtpConfigs: () => request<{ data: any[] }>("/smtp-configs"),
-  getSmtpConfig: (id: string) => request<any>(`/smtp-configs/${id}`),
-  createSmtpConfig: (data: any) =>
-    request<any>("/smtp-configs", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
-  updateSmtpConfig: (id: string, data: any) =>
-    request<any>(`/smtp-configs/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(data),
-    }),
-  deleteSmtpConfig: (id: string) =>
-    request<any>(`/smtp-configs/${id}`, { method: "DELETE" }),
-  activateSmtpConfig: (id: string) =>
-    request<any>(`/smtp-configs/${id}/activate`, { method: "PUT" }),
-  deactivateSmtpConfig: (id: string) =>
-    request<any>(`/smtp-configs/${id}/deactivate`, { method: "PUT" }),
-
   // Storage Providers
   getStorageProviders: () => request<{ data: any[] }>("/storage-providers"),
-  getStorageProvider: (id: string) => request<any>(`/storage-providers/${id}`),
   createStorageProvider: (data: any) =>
     request<any>("/storage-providers", {
       method: "POST",
@@ -670,7 +619,6 @@ export const api = {
 
   // Employees
   getEmployees: () => request<{ data: any[] }>("/employees"),
-  getEmployee: (id: string) => request<any>(`/employees/${id}`),
   createEmployee: (data: any) =>
     request<any>("/employees", {
       method: "POST",
@@ -764,26 +712,11 @@ export const api = {
       body: JSON.stringify({ key, newName, isFolder }),
     }),
 
-  explorerDeleteFolder: (path: string) =>
-    request<any>("/storage-providers/explorer/folder", {
-      method: "DELETE",
-      body: JSON.stringify({ path }),
-    }),
-
   explorerBulkDelete: (items: { key: string; isFolder: boolean }[]) =>
     request<any>("/storage-providers/explorer/bulk-delete", {
       method: "POST",
       body: JSON.stringify({ items }),
     }),
-
-  explorerGetFileInfo: (key: string) =>
-    request<any>("/storage-providers/explorer/info", {
-      method: "POST",
-      body: JSON.stringify({ key }),
-    }),
-
-  explorerGetStats: () =>
-    request<any>("/storage-providers/explorer/stats"),
 
   explorerUpload: async (file: File, path: string = ""): Promise<{
     url: string;

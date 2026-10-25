@@ -560,7 +560,6 @@ export default function TransactionReport() {
     },
   ];
 
-  const activeData = activeTab === "expense" ? expenses : orders;
   const exportDisabled =
     activeTab === "expense" ? expenses.length === 0 : visibleOrders.length === 0;
 
