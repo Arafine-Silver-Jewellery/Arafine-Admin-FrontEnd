@@ -25,6 +25,31 @@
 }
 
 /* ========== SIDEBAR ========== */
+
+/*
+ * Mobile search inside the drawer.
+ *
+ * The header search is hidden below 768px, so this is where a phone user
+ * searches for a screen. It reuses the header's `.app-header__search`
+ * component wholesale — only the width and padding differ — so both
+ * inputs behave identically.
+ *
+ * The markup only renders while the drawer is open, and the drawer is
+ * off-canvas above 1025px, so this never appears on desktop — where the
+ * header search is always visible.
+ */
+.sidebar-search {
+  padding: 0.75rem 0.75rem 0.25rem;
+  flex-shrink: 0;
+}
+
+.sidebar-search .sidebar-search__input {
+  width: 100%;
+  /* The header variant is a grid item; here it is a plain block, so the
+     grid placement does not apply and the width is the drawer's. */
+  grid-column: auto;
+}
+
 .sidebar {
   width: var(--sidebar-width);
   background: var(--color-white);

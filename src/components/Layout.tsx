@@ -2,6 +2,8 @@ import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { AppHeader } from "./layout/AppHeader";
+import { MenuSearchInput } from "./layout/MenuSearchInput";
+import { MENU_ITEMS } from "../config/menu";
 import "../styles/layout.css";
 
 const categorySubmenus = [
@@ -138,6 +140,18 @@ export default function Layout() {
   const isReportsActive = location.pathname.startsWith("/reports");
   const isCustomersActive = location.pathname.startsWith("/customers");
 
+  /*
+   * Menu search.
+   *
+   * `searchQuery` is the single source of truth: the header input and the
+   * drawer's input (on mobile, where the header search is hidden) both write
+   * to it, and both results dropdowns read from it.
+   *
+   * The sidebar deliberately does NOT react to it. The nav is a fixed map
+   * of the panel — narrowing it while the user types makes the menu jump
+   * around under the pointer, and a link that vanishes is a link that
+   * cannot be clicked. The dropdown is the only place results appear.
+   */
   const currentPage = getPageTitle(location.pathname);
 
   return (
@@ -167,6 +181,36 @@ export default function Layout() {
           </button>
         </div>
 
+        {/*
+          * Mobile/tablet search.
+          *
+          * The header search is hidden below 768px, so on phones the only
+          * place to search is inside the drawer. It shares `searchQuery`
+          * with the header input — same text, same results — so whichever
+          * one the user typed in stays in sync.
+          *
+          * Rendered only while the drawer is open: the drawer slides
+          * off-screen rather than being removed, so a mounted-but-hidden
+          * input would still be focusable and would steal the Ctrl+K
+          * shortcut from the header.
+          *
+          * The results panel is portaled to <body>, so it is not clipped by
+          * the drawer's own overflow and renders above the drawer (z-index
+          * 1300 vs the drawer's 1200).
+          */}
+        {sidebarOpen && (
+          <div className="sidebar-search">
+            <MenuSearchInput
+              query={searchQuery}
+              onQueryChange={setSearchQuery}
+              items={MENU_ITEMS}
+              hasPermission={hasPermission}
+              className="sidebar-search__input"
+              onNavigate={() => setSidebarOpen(false)}
+            />
+          </div>
+        )}
+
         <nav className="sidebar-nav">
           {hasPermission("dashboard") && (
           <NavLink to="/" end className={({ isActive }) => isActive ? "active" : ""}>
@@ -187,14 +231,14 @@ export default function Layout() {
             POS
           </NavLink>
           )}
-          
+
           {(hasPermission("orders") || hasPermission("refund-requests")) && (
           <>
           <div className="sidebar-divider" />
           <span className="sidebar-label">Order Management</span>
           </>
           )}
-          
+
           {hasPermission("orders") && (
             <NavLink
               to="/orders-management"
@@ -221,14 +265,14 @@ export default function Layout() {
               <span>Refund Requests</span>
             </NavLink>
           )}
-          
+
           {(hasPermission("category-setup") || hasPermission("products-module")) && (
           <>
           <div className="sidebar-divider" />
           <span className="sidebar-label">Product Management</span>
           </>
           )}
-          
+
           {hasPermission("category-setup") && (
           <div className={`nav-item-with-submenu ${isCategoryActive ? "expanded" : ""}`}>
             <button 
@@ -301,7 +345,7 @@ export default function Layout() {
           <span className="sidebar-label">Promotion Management</span>
           </>
           )}
-          
+
           {hasPermission("banners") && (
           <NavLink to="/banners" className={({ isActive }) => isActive ? "active" : ""}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -312,7 +356,7 @@ export default function Layout() {
             Banner Setup
           </NavLink>
           )}
-          
+
           {hasPermission("offers-deals") && (
           <div className={`nav-item-with-submenu ${isOffersDealsActive ? "expanded" : ""}`}>
             <button 
@@ -479,7 +523,7 @@ export default function Layout() {
           <span className="sidebar-label">User Management</span>
           </>
           )}
-          
+
           {hasPermission("customers") && (
           <div className={`nav-item-with-submenu ${isCustomersActive ? "expanded" : ""}`}>
             <button 
@@ -522,14 +566,14 @@ export default function Layout() {
             Employees
           </NavLink>
           )}
-          
+
           {hasPermission("storage") && (
           <>
           <div className="sidebar-divider" />
           <span className="sidebar-label">Settings</span>
           </>
           )}
-          
+
           {hasPermission("storage") && (
           <NavLink to="/storage" className={({ isActive }) => isActive ? "active" : ""}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -551,6 +595,8 @@ export default function Layout() {
           onLogout={handleLogout}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
+          searchItems={MENU_ITEMS}
+          hasPermission={hasPermission}
         />
         {false && (
         <header className="top-header">

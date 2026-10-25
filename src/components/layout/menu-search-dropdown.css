@@ -1,0 +1,123 @@
+/* ============================================================
+   MenuSearchDropdown — the results panel for the top-bar search
+   ============================================================ */
+
+/*
+ * Positioned entirely from JS: `top` / `left` / `min-width` are set inline
+ * against the search input's viewport rect, the same way StatusDropdown
+ * does it. Nothing positional belongs in this rule.
+ */
+.menu-search-dropdown {
+  position: fixed;
+  width: max-content;
+  max-width: calc(100vw - 2rem);
+  max-height: calc(100vh - 7rem);
+  overflow-y: auto;
+  /* Keep a scroll inside the panel from chaining to the page behind it. */
+  overscroll-behavior: contain;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border-color, #e4e7ec);
+  border-radius: var(--radius-md, 10px);
+  box-shadow: var(--shadow-lg, 0 12px 28px rgba(16, 24, 40, 0.12));
+  /* Above the mobile drawer (1200) and the existing dropdown (1200) — it
+     lives on <body>, so it is outside the header's stacking context. */
+  z-index: 1300;
+  animation: menu-search-appear 0.15s ease-out;
+  padding: 0.35rem 0;
+}
+
+@keyframes menu-search-appear {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* The panel scrolls silently otherwise — a WebKit overlay scrollbar is
+   nearly invisible, so a clipped last option just looks like it is not there. */
+.menu-search-dropdown::-webkit-scrollbar {
+  width: 8px;
+}
+.menu-search-dropdown::-webkit-scrollbar-thumb {
+  background: var(--border-strong, #d4d8df);
+  border-radius: 999px;
+}
+.menu-search-dropdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ── Group heading ── */
+.menu-search-dropdown__group-label {
+  display: block;
+  padding: 0.6rem 0.85rem 0.3rem;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--color-charcoal-muted, #6b7280);
+}
+
+/* ── A result row ── */
+.menu-search-dropdown__option {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.55rem 0.85rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition-fast, 150ms ease);
+}
+
+.menu-search-dropdown__option:hover {
+  background: var(--color-ivory, #f1f3f6);
+}
+
+/* The keyboard's current row. */
+.menu-search-dropdown__option--active,
+.menu-search-dropdown__option--active:hover {
+  background: var(--brand-weak, #f6edda);
+}
+
+.menu-search-dropdown__label {
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-strong, #1c2128);
+  white-space: nowrap;
+}
+
+.menu-search-dropdown__option--active .menu-search-dropdown__label {
+  color: var(--color-champagne-dark, #96722f);
+}
+
+/* The route, in muted text — disambiguates items with similar labels and
+   tells the user where they are about to land. */
+.menu-search-dropdown__path {
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  font-size: 0.7rem;
+  color: var(--text-faint, #9aa1ad);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── No results ── */
+.menu-search-dropdown__empty {
+  padding: 0.9rem 0.85rem;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  font-size: 0.82rem;
+  color: var(--text-muted, #6b7280);
+}
+
+.menu-search-dropdown__empty strong {
+  color: var(--text-strong, #1c2128);
+  font-weight: 600;
+}

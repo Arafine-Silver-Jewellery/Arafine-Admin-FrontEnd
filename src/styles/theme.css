@@ -144,6 +144,23 @@ html {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/*
+ * Visible to screen readers, invisible on screen. Used for live-region
+ * announcements (e.g. "3 menu items available") that would be noise on the
+ * page itself.
+ */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 body {
   font-family: var(--font-sans);
   font-weight: 400;

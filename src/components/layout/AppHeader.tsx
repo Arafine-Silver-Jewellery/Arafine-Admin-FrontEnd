@@ -1,5 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
+import type { MenuItem } from "../../config/menu";
+import { MenuSearchInput } from "./MenuSearchInput";
 import "./app-header.css";
 
 interface AppHeaderProps {
@@ -15,6 +17,10 @@ interface AppHeaderProps {
   searchQuery: string;
   /** Menu-search change handler */
   onSearchChange: (value: string) => void;
+  /** Every screen the admin panel can reach — drives the search results */
+  searchItems: MenuItem[];
+  /** Whether the user may open a screen — the same `hasPermission` the nav uses */
+  hasPermission: (permission: string | string[]) => boolean;
 }
 
 /**
@@ -23,7 +29,16 @@ interface AppHeaderProps {
  * across every screen. Left: hamburger (mobile) + page title.
  * Right: notifications + profile menu.
  */
-export function AppHeader({ title, onMenuClick, employee, onLogout, searchQuery, onSearchChange }: AppHeaderProps) {
+export function AppHeader({
+  title,
+  onMenuClick,
+  employee,
+  onLogout,
+  searchQuery,
+  onSearchChange,
+  searchItems,
+  hasPermission,
+}: AppHeaderProps) {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -62,19 +77,12 @@ export function AppHeader({ title, onMenuClick, employee, onLogout, searchQuery,
       </div>
 
       {/* Middle: menu search — moved here from the sidebar */}
-      <div className="app-header__search">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="11" cy="11" r="8" />
-          <path d="M21 21l-4.35-4.35" />
-        </svg>
-        <input
-          type="text"
-          placeholder="Search menu"
-          aria-label="Search menu"
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-        />
-      </div>
+      <MenuSearchInput
+        query={searchQuery}
+        onQueryChange={onSearchChange}
+        items={searchItems}
+        hasPermission={hasPermission}
+      />
 
       {/* Right: notifications + profile */}
       <div className="app-header__right">

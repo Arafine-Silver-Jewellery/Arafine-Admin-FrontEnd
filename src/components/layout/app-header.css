@@ -87,6 +87,9 @@
   align-items: center;
   gap: 0.5rem;
   width: min(340px, 30vw);
+  /* The results panel is portaled to <body>, so this only anchors the
+     component; nothing is positioned against it. */
+  position: relative;
 }
 
 .app-header__search svg {
@@ -109,6 +112,40 @@
   font-family: var(--font-sans, 'Inter', sans-serif);
   font-size: 0.8125rem;
   transition: all var(--transition-fast);
+}
+
+/* Leave room for the clear button, but only while there is text to clear. */
+.app-header__search:has(.app-header__search-clear) input {
+  padding-right: 2rem;
+}
+
+/* ── Clear (×) button ── */
+.app-header__search-clear {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-right: 0.15rem;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  color: var(--color-charcoal-muted, #6b6b6b);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.app-header__search-clear:hover {
+  background: var(--border-color, #e8e4dc);
+  color: var(--color-charcoal, #1a1a1a);
+}
+
+.app-header__search-clear svg {
+  width: 13px;
+  height: 13px;
+  pointer-events: none;
 }
 
 .app-header__search input::placeholder {

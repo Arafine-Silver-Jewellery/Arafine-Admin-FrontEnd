@@ -129,7 +129,11 @@ function App() {
             <Route path="promotions" element={<RequirePermission permission="offers-deals"><Promotions /></RequirePermission>} />
             
             {/* Settings */}
-            <Route path="storage" element={<RequirePermission permission="storage-settings"><StorageProviders /></RequirePermission>} />
+            {/* The sidebar shows this link under `storage`, so accept either
+                key — otherwise a user holding only one of them sees the link
+                and lands on "Access Denied". `hasPermission` treats an array
+                as "any of these". */}
+            <Route path="storage" element={<RequirePermission permission={["storage", "storage-settings"]}><StorageProviders /></RequirePermission>} />
             
             {/* Employee Management - requires employees permission */}
             <Route path="employees" element={<RequirePermission permission="employees"><Employees /></RequirePermission>} />
