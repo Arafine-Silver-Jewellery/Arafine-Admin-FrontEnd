@@ -410,6 +410,8 @@ export const api = {
        * a value `paymentState` doesn't expose — e.g. `partially_refunded`.
        */
       paymentStatus?: string;
+      /** Payment method filter (cash, card, upi, wallet, cod, etc.) */
+      paymentMethod?: string;
       orderChannel?: string;
       dateFrom?: string;
       dateTo?: string;
@@ -424,6 +426,7 @@ export const api = {
     if (params.statuses?.length) query.set("statuses", params.statuses.join(","));
     if (params.paymentState) query.set("paymentState", params.paymentState);
     if (params.paymentStatus) query.set("paymentStatus", params.paymentStatus);
+    if (params.paymentMethod) query.set("paymentMethod", params.paymentMethod);
     if (params.orderChannel) query.set("orderChannel", params.orderChannel);
     if (params.dateFrom) query.set("dateFrom", params.dateFrom);
     if (params.dateTo) query.set("dateTo", params.dateTo);
