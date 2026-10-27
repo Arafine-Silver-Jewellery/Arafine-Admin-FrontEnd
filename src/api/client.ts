@@ -1,6 +1,8 @@
 import { API_BASE_URL } from "../config/env";
 import type {
   Address,
+  Coupon,
+  CreateCouponInput,
   CustomerAddressInput,
   EarningsReport,
   ExpensesReport,
@@ -594,7 +596,7 @@ export const api = {
     return `${API_BASE_URL}/users/export/csv?${query}`;
   },
 
-  // Promotions
+  // Promotions (legacy - keeping for backwards compatibility)
   getPromotions: (params: { page?: number; limit?: number; isActive?: boolean }) => {
     const query = new URLSearchParams();
     if (params.page) query.set("page", params.page.toString());
@@ -616,6 +618,51 @@ export const api = {
     request<any>(`/promotions/${id}`, { method: "DELETE" }),
   togglePromotion: (id: string) =>
     request<any>(`/promotions/${id}/toggle`, { method: "PATCH" }),
+
+  // Coupons (Offers & Deals module)
+  getCoupons: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    type?: string;
+    scope?: string;
+    isActive?: boolean;
+  }) => {
+    const query = new URLSearchParams();
+    if (params.page) query.set("page", params.page.toString());
+    if (params.limit) query.set("limit", params.limit.toString());
+    if (params.search) query.set("search", params.search);
+    if (params.type) query.set("type", params.type);
+    if (params.scope) query.set("scope", params.scope);
+    if (params.isActive !== undefined) query.set("isActive", params.isActive.toString());
+    return request<{
+      data: Coupon[];
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+      stats: { totalCoupons: number; activeCoupons: number; expiredCoupons: number; totalUsage: number };
+    }>(`/offers-deals/coupons?${query}`);
+  },
+  getCoupon: (id: string) => request<Coupon>(`/offers-deals/coupons/${id}`),
+  getCouponByCode: (code: string) => request<Coupon>(`/offers-deals/coupons/code/${code}`),
+  createCoupon: (data: CreateCouponInput) =>
+    request<Coupon>("/offers-deals/coupons", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  updateCoupon: (id: string, data: Partial<CreateCouponInput>) =>
+    request<Coupon>(`/offers-deals/coupons/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  deleteCoupon: (id: string) =>
+    request<{ message: string }>(`/offers-deals/coupons/${id}`, { method: "DELETE" }),
+  toggleCouponStatus: (id: string) =>
+    request<Coupon>(`/offers-deals/coupons/${id}/toggle`, { method: "PATCH" }),
+  generateCouponCode: (length?: number) => {
+    const query = length ? `?length=${length}` : "";
+    return request<{ code: string }>(`/offers-deals/coupons/generate-code${query}`);
+  },
+  checkCouponCode: (code: string) =>
+    request<{ available: boolean; code: string }>(`/offers-deals/coupons/check-code/${code}`),
 
   // Storage Providers
   getStorageProviders: () => request<{ data: any[] }>("/storage-providers"),

@@ -542,3 +542,68 @@ export interface Banner {
   createdAt: string;
   updatedAt: string;
 }
+
+
+// ---------------------------------------------------------------------------
+// Coupon (Promotion) types
+// ---------------------------------------------------------------------------
+
+export type CouponType = "percentage" | "fixed_amount" | "buy_x_get_y" | "free_shipping";
+export type CouponScope = "all" | "category" | "product" | "cart";
+
+export interface Coupon {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  type: CouponType;
+  scope: CouponScope;
+  value: number;
+  minQuantity: number | null;
+  minCartValuePaise: number | null;
+  maxDiscountPaise: number | null;
+  categoryIds: string[];
+  productIds: string[];
+  startsAt: string;
+  endsAt: string;
+  isRecurring: boolean;
+  recurringDays: number[];
+  recurringStartMinutes: number | null;
+  recurringEndMinutes: number | null;
+  maxUses: number | null;
+  currentUses: number;
+  maxUsesPerUser: number | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateCouponInput {
+  code: string;
+  name: string;
+  description?: string | null;
+  type: CouponType;
+  scope?: CouponScope;
+  value: number;
+  minQuantity?: number | null;
+  minCartValuePaise?: number | null;
+  maxDiscountPaise?: number | null;
+  categoryIds?: string[];
+  productIds?: string[];
+  startsAt: string;
+  endsAt: string;
+  isRecurring?: boolean;
+  recurringDays?: number[];
+  recurringStartMinutes?: number | null;
+  recurringEndMinutes?: number | null;
+  maxUses?: number | null;
+  maxUsesPerUser?: number | null;
+  isActive?: boolean;
+}
+
+export interface CouponStats {
+  totalCoupons: number;
+  activeCoupons: number;
+  expiredCoupons: number;
+  totalUsage: number;
+}
