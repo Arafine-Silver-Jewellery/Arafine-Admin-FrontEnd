@@ -607,3 +607,53 @@ export interface CouponStats {
   expiredCoupons: number;
   totalUsage: number;
 }
+
+
+// ---------------------------------------------------------------------------
+// Flash Deal types
+// ---------------------------------------------------------------------------
+
+export type FlashDealStatus = "active" | "expired" | "upcoming";
+
+export interface FlashDealProductInfo {
+  id: string;
+  name: string;
+  sku: string;
+  pricePaise: number;
+  stockQuantity: number;
+  imageUrl: string | null;
+}
+
+export interface FlashDeal {
+  id: string;
+  title: string;
+  description: string | null;
+  bannerImageUrl: string | null;
+  startsAt: string;
+  endsAt: string;
+  isPublished: boolean;
+  productIds: string[];
+  status: FlashDealStatus;
+  activeProductsCount: number;
+  products?: FlashDealProductInfo[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateFlashDealInput {
+  title: string;
+  description?: string | null;
+  bannerImageUrl?: string | null;
+  startsAt: string;
+  endsAt: string;
+  isPublished?: boolean;
+  productIds?: string[];
+}
+
+export interface FlashDealStats {
+  totalDeals: number;
+  activeDeals: number;
+  expiredDeals: number;
+  upcomingDeals: number;
+  totalProducts: number;
+}

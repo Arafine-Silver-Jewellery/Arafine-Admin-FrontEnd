@@ -3,9 +3,12 @@ import type {
   Address,
   Coupon,
   CreateCouponInput,
+  CreateFlashDealInput,
   CustomerAddressInput,
   EarningsReport,
   ExpensesReport,
+  FlashDeal,
+  FlashDealProductInfo,
   InhouseSalesReport,
   ProductSalesReport,
   VendorEarningsReport,
@@ -663,6 +666,69 @@ export const api = {
   },
   checkCouponCode: (code: string) =>
     request<{ available: boolean; code: string }>(`/offers-deals/coupons/check-code/${code}`),
+
+  // Flash Deals (Offers & Deals module)
+  getFlashDeals: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: "active" | "expired" | "upcoming";
+    isPublished?: boolean;
+  }) => {
+    const query = new URLSearchParams();
+    if (params.page) query.set("page", params.page.toString());
+    if (params.limit) query.set("limit", params.limit.toString());
+    if (params.search) query.set("search", params.search);
+    if (params.status) query.set("status", params.status);
+    if (params.isPublished !== undefined) query.set("isPublished", params.isPublished.toString());
+    return request<{
+      data: FlashDeal[];
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+      stats: { totalDeals: number; activeDeals: number; expiredDeals: number; upcomingDeals: number; totalProducts: number };
+    }>(`/offers-deals/flash-deals?${query}`);
+  },
+  getFlashDeal: (id: string, includeProducts: boolean = false) => {
+    const query = includeProducts ? "?includeProducts=true" : "";
+    return request<FlashDeal>(`/offers-deals/flash-deals/${id}${query}`);
+  },
+  createFlashDeal: (data: CreateFlashDealInput) =>
+    request<FlashDeal>("/offers-deals/flash-deals", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  updateFlashDeal: (id: string, data: Partial<CreateFlashDealInput>) =>
+    request<FlashDeal>(`/offers-deals/flash-deals/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  deleteFlashDeal: (id: string) =>
+    request<{ message: string }>(`/offers-deals/flash-deals/${id}`, { method: "DELETE" }),
+  toggleFlashDealPublish: (id: string) =>
+    request<FlashDeal>(`/offers-deals/flash-deals/${id}/toggle-publish`, { method: "PATCH" }),
+  addFlashDealProducts: (id: string, productIds: string[]) =>
+    request<FlashDeal>(`/offers-deals/flash-deals/${id}/products`, {
+      method: "POST",
+      body: JSON.stringify({ productIds }),
+    }),
+  removeFlashDealProducts: (id: string, productIds: string[]) =>
+    request<FlashDeal>(`/offers-deals/flash-deals/${id}/products`, {
+      method: "DELETE",
+      body: JSON.stringify({ productIds }),
+    }),
+  getAvailableFlashDealProducts: (id: string, params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  } = {}) => {
+    const query = new URLSearchParams();
+    if (params.page) query.set("page", params.page.toString());
+    if (params.limit) query.set("limit", params.limit.toString());
+    if (params.search) query.set("search", params.search);
+    return request<{
+      data: FlashDealProductInfo[];
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+    }>(`/offers-deals/flash-deals/${id}/available-products?${query}`);
+  },
 
   // Storage Providers
   getStorageProviders: () => request<{ data: any[] }>("/storage-providers"),
