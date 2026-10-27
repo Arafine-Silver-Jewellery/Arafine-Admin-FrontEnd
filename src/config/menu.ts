@@ -313,4 +313,11 @@ export const MENU_ITEMS: MenuItem[] = [
     permission: ["storage", "storage-settings"],
     keywords: ["storage", "s3", "files", "provider"],
   },
+  {
+    path: "/settings",
+    label: "Settings",
+    group: "Settings",
+    permission: [],
+    keywords: ["settings", "configuration", "preferences", "business", "payment", "shipping", "security", "system"],
+  },
 ];
