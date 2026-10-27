@@ -1471,3 +1471,27 @@
   font-size: 13px;
   color: #666;
 }
+
+
+/* ============================================================
+   ORDER REPORT - Large value handling
+   ============================================================ */
+
+.product-report-stat-content h2 {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+}
+
+/* Responsive font size for large monetary values */
+@media (max-width: 1200px) {
+  .product-report-stat-content h2 {
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 900px) {
+  .product-report-stat-content h2 {
+    font-size: 20px;
+  }
+}
