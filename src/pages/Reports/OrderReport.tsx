@@ -12,6 +12,7 @@ import "../../styles/ui-kit.css";
 import "../../styles/reports.css";
 
 type DatePreset = "all" | "today" | "7d" | "30d" | "90d" | "year";
+type OrderTab = "all" | "delivered" | "pending" | "cancelled";
 
 interface DateRange {
   dateFrom?: string;
@@ -142,6 +143,7 @@ function titleCase(value: string): string {
 }
 
 export default function OrderReport() {
+  const [activeTab, setActiveTab] = useState<OrderTab>("all");
   const [datePreset, setDatePreset] = useState<DatePreset>("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [channelFilter, setChannelFilter] = useState("all");
@@ -319,81 +321,105 @@ export default function OrderReport() {
 
   return (
     <div className="reports-container">
-      <div className="filter-card">
-        <h3>Filter Data</h3>
-        <div className="filter-row">
-          <div className="filter-group">
-            <label>Select Date</label>
-            <select
-              value={datePreset}
-              onChange={(e) => {
-                setDatePreset(e.target.value as DatePreset);
-                setPage(1);
-              }}
-            >
-              {DATE_PRESETS.map((preset) => (
-                <option key={preset.value} value={preset.value}>
-                  {preset.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="filter-group">
-            <label>Order Status</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setPage(1);
-              }}
-            >
-              {STATUS_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="filter-group">
-            <label>Channel</label>
-            <select
-              value={channelFilter}
-              onChange={(e) => {
-                setChannelFilter(e.target.value);
-                setPage(1);
-              }}
-            >
-              {CHANNEL_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="filter-group">
-            <label>Payment Status</label>
-            <select
-              value={paymentFilter}
-              onChange={(e) => {
-                setPaymentFilter(e.target.value);
-                setPage(1);
-              }}
-            >
-              {PAYMENT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
+      {/* Tabs and Filter Row */}
+      <div className="product-report-header">
+        <div className="report-tabs">
           <button
-            className="btn-filter-secondary"
+            className={activeTab === "all" ? "active" : ""}
+            onClick={() => {
+              setActiveTab("all");
+              setStatusFilter("all");
+              setPage(1);
+            }}
+          >
+            All Orders
+          </button>
+          <button
+            className={activeTab === "delivered" ? "active" : ""}
+            onClick={() => {
+              setActiveTab("delivered");
+              setStatusFilter("delivered");
+              setPage(1);
+            }}
+          >
+            Delivered
+          </button>
+          <button
+            className={activeTab === "pending" ? "active" : ""}
+            onClick={() => {
+              setActiveTab("pending");
+              setStatusFilter("pending");
+              setPage(1);
+            }}
+          >
+            Pending
+          </button>
+          <button
+            className={activeTab === "cancelled" ? "active" : ""}
+            onClick={() => {
+              setActiveTab("cancelled");
+              setStatusFilter("cancelled");
+              setPage(1);
+            }}
+          >
+            Cancelled
+          </button>
+        </div>
+
+        {/* Inline Filters */}
+        <div className="product-report-filter-inline">
+          <span className="filter-label">Filter Data</span>
+          <span className="filter-date-label">DATE</span>
+          <select
+            value={datePreset}
+            onChange={(e) => {
+              setDatePreset(e.target.value as DatePreset);
+              setPage(1);
+            }}
+          >
+            {DATE_PRESETS.map((preset) => (
+              <option key={preset.value} value={preset.value}>
+                {preset.label}
+              </option>
+            ))}
+          </select>
+          <span className="filter-date-label">CHANNEL</span>
+          <select
+            value={channelFilter}
+            onChange={(e) => {
+              setChannelFilter(e.target.value);
+              setPage(1);
+            }}
+          >
+            {CHANNEL_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <span className="filter-date-label">PAYMENT</span>
+          <select
+            value={paymentFilter}
+            onChange={(e) => {
+              setPaymentFilter(e.target.value);
+              setPage(1);
+            }}
+          >
+            {PAYMENT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <button
+            className="btn-reset"
             onClick={() => {
               setDatePreset("all");
               setStatusFilter("all");
               setChannelFilter("all");
               setPaymentFilter("all");
               setSearchQuery("");
+              setActiveTab("all");
               setPage(1);
             }}
           >
@@ -408,57 +434,102 @@ export default function OrderReport() {
         </div>
       )}
 
-      <div className="reports-stats-grid">
-        <div className="reports-stat-card">
-          <div className="reports-stat-icon blue">📦</div>
-          <div className="reports-stat-content">
-            <h2>{totalItems}</h2>
+      {/* Stats Grid - 2x2 layout */}
+      <div className="product-report-stats-grid">
+        {/* Total Orders Card */}
+        <div className="product-report-stat-card">
+          <div className="product-report-stat-icon yellow">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+              <line x1="12" y1="22.08" x2="12" y2="12" />
+            </svg>
+          </div>
+          <div className="product-report-stat-content">
+            <h2>{totalItems.toLocaleString()}</h2>
             <p>Total Orders</p>
           </div>
         </div>
 
-        <div className="reports-stat-card">
-          <div className="reports-stat-icon green">💰</div>
-          <div className="reports-stat-content">
-            <h2>{formatPrice(kpis.totalSalesPaise, { compact: true })}</h2>
+        {/* Total Sales Card */}
+        <div className="product-report-stat-card">
+          <div className="product-report-stat-icon green">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="12" y1="1" x2="12" y2="23" />
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+          </div>
+          <div className="product-report-stat-content">
+            <h2 style={{ fontSize: kpis.totalSalesPaise > 10000000 ? "22px" : "28px" }}>
+              {formatPrice(kpis.totalSalesPaise, { compact: true })}
+            </h2>
             <p>Sales (this page)</p>
           </div>
         </div>
 
-        <div className="reports-stat-card">
-          <div className="reports-stat-icon teal">✅</div>
-          <div className="reports-stat-content">
+        {/* Delivered Card */}
+        <div className="product-report-stat-card">
+          <div className="product-report-stat-icon teal">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+          </div>
+          <div className="product-report-stat-content">
             <h2>{kpis.delivered}</h2>
             <p>Delivered</p>
           </div>
         </div>
 
-        <div className="reports-stat-card">
-          <div className="reports-stat-icon yellow">⏳</div>
-          <div className="reports-stat-content">
+        {/* Pending/Confirmed Card */}
+        <div className="product-report-stat-card">
+          <div className="product-report-stat-icon orange">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+          </div>
+          <div className="product-report-stat-content">
             <h2>{kpis.pending}</h2>
             <p>Pending/Confirmed</p>
           </div>
         </div>
+      </div>
 
-        <div className="reports-stat-card">
-          <div className="reports-stat-icon red">❌</div>
-          <div className="reports-stat-content">
+      {/* Secondary Stats Row - Cancelled & Returned */}
+      <div className="product-report-stats-grid" style={{ gridTemplateColumns: "repeat(2, 1fr)", marginBottom: "24px" }}>
+        {/* Cancelled Card */}
+        <div className="product-report-stat-card">
+          <div className="product-report-stat-icon" style={{ background: "#ffebee", color: "#f44336" }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="15" y1="9" x2="9" y2="15" />
+              <line x1="9" y1="9" x2="15" y2="15" />
+            </svg>
+          </div>
+          <div className="product-report-stat-content">
             <h2>{kpis.cancelled}</h2>
-            <p>Canceled</p>
+            <p>Cancelled</p>
           </div>
         </div>
 
-        <div className="reports-stat-card">
-          <div className="reports-stat-icon orange">🔄</div>
-          <div className="reports-stat-content">
+        {/* Returned/Refunded Card */}
+        <div className="product-report-stat-card">
+          <div className="product-report-stat-icon" style={{ background: "#fff3e0", color: "#ff9800" }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="1 4 1 10 7 10" />
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+            </svg>
+          </div>
+          <div className="product-report-stat-content">
             <h2>{kpis.returned}</h2>
             <p>Returned/Refunded</p>
           </div>
         </div>
       </div>
 
-      <div className="charts-row">
+      {/* Order Statistics Chart */}
+      <div className="product-report-cards-row" style={{ marginBottom: "24px" }}>
         <div style={{ gridColumn: "1 / -1" }}>
           <ChartCard
             title="Order Statistics"
@@ -471,6 +542,7 @@ export default function OrderReport() {
         </div>
       </div>
 
+      {/* Orders Table */}
       <div className="table-card">
         <div className="table-header">
           <h3>
@@ -493,11 +565,6 @@ export default function OrderReport() {
               />
             </div>
             <button className="btn-export" onClick={handleExport} disabled={orders.length === 0}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7,10 12,15 17,10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
               Export
             </button>
           </div>

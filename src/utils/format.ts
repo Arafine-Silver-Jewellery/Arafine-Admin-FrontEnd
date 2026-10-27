@@ -1,7 +1,7 @@
 export function formatPrice(paise: number, opts: { compact?: boolean } = {}): string {
   const rupees = paise / 100;
-  if (opts.compact && Math.abs(rupees) >= 100000) {
-    // ₹1.2L / ₹3.4Cr for axis labels
+  if (opts.compact && Math.abs(rupees) >= 10000) {
+    // ₹10K+ uses compact notation: ₹1.2L / ₹3.4Cr for large values
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
       currency: "INR",

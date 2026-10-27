@@ -119,7 +119,7 @@ export function AppHeader({
               <button
                 type="button"
                 className="app-header__menu-item"
-                onClick={() => { navigate("/storage"); setMenuOpen(false); }}
+                onClick={() => { navigate("/settings"); setMenuOpen(false); }}
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="12" cy="12" r="3" />

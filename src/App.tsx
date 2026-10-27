@@ -22,6 +22,7 @@ import { SendNotification, PushNotificationsSetup } from "./pages/Notifications"
 import { Inbox, Messages, SupportTicket } from "./pages/HelpSupport";
 import { EarningReports, InhouseSales, VendorSales, TransactionReport, ProductReport, OrderReport } from "./pages/Reports";
 import { CustomerList, CustomerReviews, Wallet, WalletBonusSetup, LoyaltyPoints } from "./pages/Customers";
+import { Settings } from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 function App() {
@@ -135,6 +136,7 @@ function App() {
                 and lands on "Access Denied". `hasPermission` treats an array
                 as "any of these". */}
             <Route path="storage" element={<RequirePermission permission={["storage", "storage-settings"]}><StorageProviders /></RequirePermission>} />
+            <Route path="settings" element={<Settings />} />
             
             {/* Employee Management - requires employees permission */}
             <Route path="employees" element={<RequirePermission permission="employees"><Employees /></RequirePermission>} />

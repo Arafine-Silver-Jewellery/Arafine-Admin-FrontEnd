@@ -1,9 +1,14 @@
 import { API_BASE_URL } from "../config/env";
 import type {
   Address,
+  Coupon,
+  CreateCouponInput,
+  CreateFlashDealInput,
   CustomerAddressInput,
   EarningsReport,
   ExpensesReport,
+  FlashDeal,
+  FlashDealProductInfo,
   InhouseSalesReport,
   ProductSalesReport,
   VendorEarningsReport,
@@ -113,6 +118,27 @@ export const api = {
     q.set("sort", params.sort ?? "count");
     q.set("order", params.order ?? "desc");
     return request<WishlistCountsReport>(`/dashboard/wishlist-counts?${q}`);
+  },
+
+  getWishlistUsersReport: (productId: string, params: {
+    page?: number;
+    limit?: number;
+  } = {}) => {
+    const q = new URLSearchParams();
+    if (params.page) q.set("page", String(params.page));
+    if (params.limit) q.set("limit", String(params.limit));
+    return request<{
+      data: {
+        userId: string;
+        firstName: string;
+        lastName: string;
+        email: string | null;
+        mobileNumber: string;
+        addedAt: string;
+      }[];
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+      product: { id: string; name: string; sku: string };
+    }>(`/dashboard/wishlist-users/${productId}?${q}`);
   },
   getExpensesReport: (params: {
     page?: number;
@@ -389,6 +415,8 @@ export const api = {
        * a value `paymentState` doesn't expose — e.g. `partially_refunded`.
        */
       paymentStatus?: string;
+      /** Payment method filter (cash, card, upi, wallet, cod, etc.) */
+      paymentMethod?: string;
       orderChannel?: string;
       dateFrom?: string;
       dateTo?: string;
@@ -403,6 +431,7 @@ export const api = {
     if (params.statuses?.length) query.set("statuses", params.statuses.join(","));
     if (params.paymentState) query.set("paymentState", params.paymentState);
     if (params.paymentStatus) query.set("paymentStatus", params.paymentStatus);
+    if (params.paymentMethod) query.set("paymentMethod", params.paymentMethod);
     if (params.orderChannel) query.set("orderChannel", params.orderChannel);
     if (params.dateFrom) query.set("dateFrom", params.dateFrom);
     if (params.dateTo) query.set("dateTo", params.dateTo);
@@ -570,7 +599,7 @@ export const api = {
     return `${API_BASE_URL}/users/export/csv?${query}`;
   },
 
-  // Promotions
+  // Promotions (legacy - keeping for backwards compatibility)
   getPromotions: (params: { page?: number; limit?: number; isActive?: boolean }) => {
     const query = new URLSearchParams();
     if (params.page) query.set("page", params.page.toString());
@@ -592,6 +621,114 @@ export const api = {
     request<any>(`/promotions/${id}`, { method: "DELETE" }),
   togglePromotion: (id: string) =>
     request<any>(`/promotions/${id}/toggle`, { method: "PATCH" }),
+
+  // Coupons (Offers & Deals module)
+  getCoupons: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    type?: string;
+    scope?: string;
+    isActive?: boolean;
+  }) => {
+    const query = new URLSearchParams();
+    if (params.page) query.set("page", params.page.toString());
+    if (params.limit) query.set("limit", params.limit.toString());
+    if (params.search) query.set("search", params.search);
+    if (params.type) query.set("type", params.type);
+    if (params.scope) query.set("scope", params.scope);
+    if (params.isActive !== undefined) query.set("isActive", params.isActive.toString());
+    return request<{
+      data: Coupon[];
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+      stats: { totalCoupons: number; activeCoupons: number; expiredCoupons: number; totalUsage: number };
+    }>(`/offers-deals/coupons?${query}`);
+  },
+  getCoupon: (id: string) => request<Coupon>(`/offers-deals/coupons/${id}`),
+  getCouponByCode: (code: string) => request<Coupon>(`/offers-deals/coupons/code/${code}`),
+  createCoupon: (data: CreateCouponInput) =>
+    request<Coupon>("/offers-deals/coupons", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  updateCoupon: (id: string, data: Partial<CreateCouponInput>) =>
+    request<Coupon>(`/offers-deals/coupons/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  deleteCoupon: (id: string) =>
+    request<{ message: string }>(`/offers-deals/coupons/${id}`, { method: "DELETE" }),
+  toggleCouponStatus: (id: string) =>
+    request<Coupon>(`/offers-deals/coupons/${id}/toggle`, { method: "PATCH" }),
+  generateCouponCode: (length?: number) => {
+    const query = length ? `?length=${length}` : "";
+    return request<{ code: string }>(`/offers-deals/coupons/generate-code${query}`);
+  },
+  checkCouponCode: (code: string) =>
+    request<{ available: boolean; code: string }>(`/offers-deals/coupons/check-code/${code}`),
+
+  // Flash Deals (Offers & Deals module)
+  getFlashDeals: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: "active" | "expired" | "upcoming";
+    isPublished?: boolean;
+  }) => {
+    const query = new URLSearchParams();
+    if (params.page) query.set("page", params.page.toString());
+    if (params.limit) query.set("limit", params.limit.toString());
+    if (params.search) query.set("search", params.search);
+    if (params.status) query.set("status", params.status);
+    if (params.isPublished !== undefined) query.set("isPublished", params.isPublished.toString());
+    return request<{
+      data: FlashDeal[];
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+      stats: { totalDeals: number; activeDeals: number; expiredDeals: number; upcomingDeals: number; totalProducts: number };
+    }>(`/offers-deals/flash-deals?${query}`);
+  },
+  getFlashDeal: (id: string, includeProducts: boolean = false) => {
+    const query = includeProducts ? "?includeProducts=true" : "";
+    return request<FlashDeal>(`/offers-deals/flash-deals/${id}${query}`);
+  },
+  createFlashDeal: (data: CreateFlashDealInput) =>
+    request<FlashDeal>("/offers-deals/flash-deals", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  updateFlashDeal: (id: string, data: Partial<CreateFlashDealInput>) =>
+    request<FlashDeal>(`/offers-deals/flash-deals/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  deleteFlashDeal: (id: string) =>
+    request<{ message: string }>(`/offers-deals/flash-deals/${id}`, { method: "DELETE" }),
+  toggleFlashDealPublish: (id: string) =>
+    request<FlashDeal>(`/offers-deals/flash-deals/${id}/toggle-publish`, { method: "PATCH" }),
+  addFlashDealProducts: (id: string, productIds: string[]) =>
+    request<FlashDeal>(`/offers-deals/flash-deals/${id}/products`, {
+      method: "POST",
+      body: JSON.stringify({ productIds }),
+    }),
+  removeFlashDealProducts: (id: string, productIds: string[]) =>
+    request<FlashDeal>(`/offers-deals/flash-deals/${id}/products`, {
+      method: "DELETE",
+      body: JSON.stringify({ productIds }),
+    }),
+  getAvailableFlashDealProducts: (id: string, params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  } = {}) => {
+    const query = new URLSearchParams();
+    if (params.page) query.set("page", params.page.toString());
+    if (params.limit) query.set("limit", params.limit.toString());
+    if (params.search) query.set("search", params.search);
+    return request<{
+      data: FlashDealProductInfo[];
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+    }>(`/offers-deals/flash-deals/${id}/available-products?${query}`);
+  },
 
   // Storage Providers
   getStorageProviders: () => request<{ data: any[] }>("/storage-providers"),
