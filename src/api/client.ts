@@ -114,6 +114,27 @@ export const api = {
     q.set("order", params.order ?? "desc");
     return request<WishlistCountsReport>(`/dashboard/wishlist-counts?${q}`);
   },
+
+  getWishlistUsersReport: (productId: string, params: {
+    page?: number;
+    limit?: number;
+  } = {}) => {
+    const q = new URLSearchParams();
+    if (params.page) q.set("page", String(params.page));
+    if (params.limit) q.set("limit", String(params.limit));
+    return request<{
+      data: {
+        userId: string;
+        firstName: string;
+        lastName: string;
+        email: string | null;
+        mobileNumber: string;
+        addedAt: string;
+      }[];
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+      product: { id: string; name: string; sku: string };
+    }>(`/dashboard/wishlist-users/${productId}?${q}`);
+  },
   getExpensesReport: (params: {
     page?: number;
     limit?: number;

@@ -2,12 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../../api/client";
 import { DataTable } from "../../components";
 import { useToast } from "../../components/Toast";
-import { ChartCard, TopSellingChart } from "../../components/dashboard";
 import type { Product, ProductSalesRow, WishlistCountRow } from "../../types";
 import { formatDate, formatDateTime, formatPrice } from "../../utils/format";
 import { buildCsv, downloadCsv } from "./reportCsv";
-// `ChartCard` and the recharts components live in the dashboard stylesheet;
-// `ak-status` / `ak-table` live in the UI kit.
 import "../../styles/dashboard.css";
 import "../../styles/ui-kit.css";
 import "../../styles/reports.css";
@@ -17,6 +14,15 @@ type DashboardRange = "7d" | "30d" | "90d" | "all";
 type StockSort = "stock_asc" | "stock_desc";
 type WishlistSort = "count" | "name" | "recent";
 type WishlistOrder = "asc" | "desc";
+
+interface WishlistUser {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  mobileNumber: string;
+  addedAt: string;
+}
 
 const PAGE_SIZE = 20;
 
@@ -61,6 +67,14 @@ export default function ProductReport() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Wishlist users modal state
+  const [selectedProduct, setSelectedProduct] = useState<WishlistCountRow | null>(null);
+  const [wishlistUsers, setWishlistUsers] = useState<WishlistUser[]>([]);
+  const [wishlistUsersLoading, setWishlistUsersLoading] = useState(false);
+  const [wishlistUsersPage, setWishlistUsersPage] = useState(1);
+  const [wishlistUsersTotalPages, setWishlistUsersTotalPages] = useState(1);
+  const [wishlistUsersTotal, setWishlistUsersTotal] = useState(0);
+
   // --- All tab -----------------------------------------------------------
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -85,8 +99,6 @@ export default function ProductReport() {
   }, [allPage, search, range]);
 
   // --- Stock tab ---------------------------------------------------------
-  // The limited-stock endpoint sorts by stock ascending and doesn't take a
-  // sort direction, so the direction is applied client-side to the page.
   const loadStock = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -138,8 +150,36 @@ export default function ProductReport() {
     }
   }, [wishlistPage, wishlistSearch, wishlistSort, wishlistOrder]);
 
-  // Switching tabs resets each list to page 1 so a stale page number from a
-  // differently-sized list doesn't render an empty page.
+  // --- Wishlist users modal -------------------------------------------
+  const loadWishlistUsers = useCallback(async (productId: string, page: number = 1) => {
+    setWishlistUsersLoading(true);
+    try {
+      const response = await api.getWishlistUsersReport(productId, {
+        page,
+        limit: 10,
+      });
+      setWishlistUsers(response.data || []);
+      setWishlistUsersTotal(response.pagination?.total || 0);
+      setWishlistUsersTotalPages(response.pagination?.totalPages || 1);
+      setWishlistUsersPage(page);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to load users");
+    } finally {
+      setWishlistUsersLoading(false);
+    }
+  }, [toast]);
+
+  const handleViewWishlistUsers = (row: WishlistCountRow) => {
+    setSelectedProduct(row);
+    setWishlistUsersPage(1);
+    loadWishlistUsers(row.productId, 1);
+  };
+
+  const closeModal = () => {
+    setSelectedProduct(null);
+    setWishlistUsers([]);
+  };
+
   useEffect(() => {
     setAllPage(1);
     setStockPage(1);
@@ -157,26 +197,31 @@ export default function ProductReport() {
     const totalAmountPaise = allRows.reduce((sum, r) => sum + r.totalAmountPaise, 0);
     const unitsSold = allRows.reduce((sum, r) => sum + r.unitsSold, 0);
     const totalStock = allRows.reduce((sum, r) => sum + r.currentStock, 0);
-    return { totalAmountPaise, unitsSold, totalStock };
+    const outOfStock = allRows.filter((r) => r.currentStock <= 0).length;
+    return { totalAmountPaise, unitsSold, totalStock, outOfStock };
   }, [allRows]);
 
-  // The chart shows the top sellers on the current page, in the same shape
-  // the shared `TopSellingChart` expects.
-  const topSellingItems = useMemo(
+  // Top sellers for the Product Statistics section
+  const topSellers = useMemo(
     () =>
       [...allRows]
         .sort((a, b) => b.unitsSold - a.unitsSold)
-        .slice(0, 8)
-        .map((row) => ({
-          productId: row.productId,
-          name: row.name,
-          sku: row.sku,
-          unitsSold: row.unitsSold,
-          revenuePaise: row.totalAmountPaise,
-          imageUrl: row.imageUrl,
-        })),
+        .slice(0, 6),
     [allRows],
   );
+
+  // Stock alerts - out of stock and low stock products
+  const stockAlerts = useMemo(() => {
+    return allRows
+      .filter((r) => r.currentStock <= 10)
+      .sort((a, b) => a.currentStock - b.currentStock)
+      .slice(0, 5)
+      .map((r) => ({
+        ...r,
+        status: r.currentStock <= 0 ? "out" : "low",
+        stockLeft: r.currentStock,
+      }));
+  }, [allRows]);
 
   // --- Export ------------------------------------------------------------
   function handleExportAll() {
@@ -187,31 +232,17 @@ export default function ProductReport() {
           "SL",
           "Product Name",
           "SKU",
-          "Category",
           "Unit Price",
           "Total Amount Sold",
           "Total Quantity Sold",
-          "Gross Quantity",
-          "Returned Quantity",
-          "Average Product Value",
-          "Current Stock",
-          "Average Rating",
-          "Review Count",
         ],
         allRows.map((row, index) => [
           (allPage - 1) * PAGE_SIZE + index + 1,
           row.name,
           row.sku,
-          row.categoryName ?? "",
           formatPrice(row.unitPricePaise),
           formatPrice(row.totalAmountPaise),
           row.unitsSold,
-          row.grossQuantity,
-          row.returnedQuantity,
-          formatPrice(row.averageProductValuePaise),
-          row.currentStock,
-          row.averageRating,
-          row.reviewCount,
         ]),
       ),
     );
@@ -274,24 +305,14 @@ export default function ProductReport() {
             <img className="product-img" src={row.imageUrl} alt={row.name} />
           ) : (
             <div
-              className="product-img"
-              style={{
-                background: "linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "18px",
-              }}
+              className="product-img product-img-placeholder"
             >
               📦
             </div>
           )}
           <div className="vendor-info">
             <span className="product-name">{row.name}</span>
-            <span className="vendor-email">
-              {row.sku}
-              {row.categoryName ? ` · ${row.categoryName}` : ""}
-            </span>
+            <span className="vendor-email">{row.sku}</span>
           </div>
         </div>
       ),
@@ -313,27 +334,6 @@ export default function ProductReport() {
       header: "Total Quantity Sold",
       align: "right" as const,
       render: (row: ProductSalesRow) => row.unitsSold,
-    },
-    {
-      key: "averageProductValuePaise",
-      header: "Average Product Value",
-      align: "right" as const,
-      render: (row: ProductSalesRow) => formatPrice(row.averageProductValuePaise),
-    },
-    {
-      key: "currentStock",
-      header: "Current Stock",
-      align: "right" as const,
-      render: (row: ProductSalesRow) => row.currentStock,
-    },
-    {
-      key: "averageRating",
-      header: "Average Ratings",
-      render: (row: ProductSalesRow) => (
-        <span className="rating">
-          ⭐ {row.averageRating} ({row.reviewCount})
-        </span>
-      ),
     },
   ];
 
@@ -410,29 +410,85 @@ export default function ProductReport() {
       align: "right" as const,
       render: (row: WishlistCountRow) => row.wishlistCount,
     },
+    {
+      key: "actions",
+      header: "Actions",
+      width: "100px",
+      align: "center" as const,
+      render: (row: WishlistCountRow) => (
+        <button
+          className="btn-view-users"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleViewWishlistUsers(row);
+          }}
+          title="View users"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+          View
+        </button>
+      ),
+    },
   ];
 
   return (
     <div className="reports-container">
-      <div className="report-tabs">
-        <button
-          className={activeTab === "all" ? "active" : ""}
-          onClick={() => setActiveTab("all")}
-        >
-          All Products
-        </button>
-        <button
-          className={activeTab === "stock" ? "active" : ""}
-          onClick={() => setActiveTab("stock")}
-        >
-          Product Stock
-        </button>
-        <button
-          className={activeTab === "wishlist" ? "active" : ""}
-          onClick={() => setActiveTab("wishlist")}
-        >
-          Wish Listed Products
-        </button>
+      {/* Tabs and Filter Row */}
+      <div className="product-report-header">
+        <div className="report-tabs">
+          <button
+            className={activeTab === "all" ? "active" : ""}
+            onClick={() => setActiveTab("all")}
+          >
+            All Products
+          </button>
+          <button
+            className={activeTab === "stock" ? "active" : ""}
+            onClick={() => setActiveTab("stock")}
+          >
+            Product Stock
+          </button>
+          <button
+            className={activeTab === "wishlist" ? "active" : ""}
+            onClick={() => setActiveTab("wishlist")}
+          >
+            Wish Listed Products
+          </button>
+        </div>
+
+        {activeTab === "all" && (
+          <div className="product-report-filter-inline">
+            <span className="filter-label">Filter Data</span>
+            <span className="filter-date-label">DATE</span>
+            <select
+              value={range}
+              onChange={(e) => {
+                setRange(e.target.value as DashboardRange);
+                setAllPage(1);
+              }}
+            >
+              {DATE_OPTIONS.map((d) => (
+                <option key={d.value} value={d.value}>
+                  {d.label}
+                </option>
+              ))}
+            </select>
+            <button
+              className="btn-reset"
+              type="button"
+              onClick={() => {
+                setRange(DEFAULT_RANGE);
+                setSearch("");
+                setAllPage(1);
+              }}
+            >
+              Reset
+            </button>
+          </div>
+        )}
       </div>
 
       {error && (
@@ -443,52 +499,25 @@ export default function ProductReport() {
 
       {activeTab === "all" && (
         <>
-          <div className="filter-card">
-            <h3>Filter Data</h3>
-            <div className="filter-row">
-              <div className="filter-group">
-                <label htmlFor="all-date">Date</label>
-                <select
-                  id="all-date"
-                  value={range}
-                  onChange={(e) => {
-                    setRange(e.target.value as DashboardRange);
-                    setAllPage(1);
-                  }}
-                >
-                  {DATE_OPTIONS.map((d) => (
-                    <option key={d.value} value={d.value}>
-                      {d.label}
-                    </option>
-                  ))}
-                </select>
+          {/* Stats Grid - 2x2 layout */}
+          <div className="product-report-stats-grid">
+            {/* Total Product Card */}
+            <div className="product-report-stat-card">
+              <div className="product-report-stat-icon yellow">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                  <line x1="7" y1="7" x2="7.01" y2="7" />
+                </svg>
               </div>
-              <button
-                className="btn-filter-secondary"
-                type="button"
-                onClick={() => {
-                  setRange(DEFAULT_RANGE);
-                  setSearch("");
-                  setAllPage(1);
-                }}
-              >
-                Reset
-              </button>
-            </div>
-          </div>
-
-          <div className="reports-stats-grid product-stats">
-            <div className="reports-stat-card">
-              <div className="reports-stat-icon yellow">📦</div>
-              <div className="reports-stat-content">
+              <div className="product-report-stat-content">
                 <h2>{allTotal}</h2>
                 <p>Total Product</p>
-                <div className="reports-stat-breakdown">
-                  <div className="reports-breakdown-item blue">
+                <div className="product-report-stat-breakdown">
+                  <div className="product-report-breakdown-item blue">
                     <span>{allStats.totalStock}</span>
                     <label>In Stock</label>
                   </div>
-                  <div className="reports-breakdown-item green">
+                  <div className="product-report-breakdown-item green">
                     <span>{allStats.unitsSold}</span>
                     <label>Units Sold</label>
                   </div>
@@ -496,34 +525,106 @@ export default function ProductReport() {
               </div>
             </div>
 
-            <div className="reports-stat-card">
-              <div className="reports-stat-icon orange">🛒</div>
-              <div className="reports-stat-content">
+            {/* Total Amount Sold Card */}
+            <div className="product-report-stat-card">
+              <div className="product-report-stat-icon green">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="9" cy="21" r="1" />
+                  <circle cx="20" cy="21" r="1" />
+                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+                </svg>
+              </div>
+              <div className="product-report-stat-content">
                 <h2>{formatPrice(allStats.totalAmountPaise, { compact: true })}</h2>
                 <p>Total Amount Sold</p>
               </div>
             </div>
 
-            <div className="reports-stat-card">
-              <div className="reports-stat-icon green">🏷️</div>
-              <div className="reports-stat-content">
+            {/* Total Quantity Sold Card */}
+            <div className="product-report-stat-card">
+              <div className="product-report-stat-icon teal">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                  <line x1="7" y1="7" x2="7.01" y2="7" />
+                </svg>
+              </div>
+              <div className="product-report-stat-content">
                 <h2>{allStats.unitsSold.toLocaleString()}</h2>
                 <p>Total Quantity Sold</p>
               </div>
             </div>
+
+            {/* Out of Stock Card */}
+            <div className="product-report-stat-card">
+              <div className="product-report-stat-icon orange">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+              </div>
+              <div className="product-report-stat-content">
+                <h2>{allStats.outOfStock}</h2>
+                <p>Out of Stock</p>
+              </div>
+            </div>
           </div>
 
-          <div style={{ marginBottom: "24px" }}>
-            <ChartCard
-              title="Product Statistics"
-              subtitle="Top sellers by units sold"
-              isLoading={loading}
-              empty={!loading && topSellingItems.length === 0}
-            >
-              <TopSellingChart items={topSellingItems} />
-            </ChartCard>
+          {/* Product Statistics & Stock Alerts Row */}
+          <div className="product-report-cards-row">
+            {/* Product Statistics */}
+            <div className="product-report-card">
+              <h3>Product Statistics</h3>
+              <p className="product-report-card-subtitle">Top sellers by units sold</p>
+              <div className="product-stats-list">
+                {loading ? (
+                  <div className="product-stats-loading">Loading...</div>
+                ) : topSellers.length === 0 ? (
+                  <div className="product-stats-empty">No sales data available</div>
+                ) : (
+                  topSellers.map((item) => (
+                    <div key={item.productId} className="product-stats-item">
+                      <div className="product-stats-info">
+                        <span className="product-stats-name">{item.name}</span>
+                        <span className="product-stats-sku">{item.sku}</span>
+                      </div>
+                      <div className="product-stats-values">
+                        <span className="product-stats-units">{item.unitsSold} units</span>
+                        <span className="product-stats-revenue">{formatPrice(item.totalAmountPaise, { compact: true })}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Stock Alerts */}
+            <div className="product-report-card">
+              <h3>Stock Alerts</h3>
+              <p className="product-report-card-subtitle">Out of stock and low stock products</p>
+              <div className="stock-alerts-list">
+                {loading ? (
+                  <div className="product-stats-loading">Loading...</div>
+                ) : stockAlerts.length === 0 ? (
+                  <div className="product-stats-empty">All products are well-stocked</div>
+                ) : (
+                  stockAlerts.map((item) => (
+                    <div key={item.productId} className="stock-alert-item">
+                      <div className="stock-alert-info">
+                        <span className="stock-alert-name">{item.name}</span>
+                        <span className="stock-alert-sku">{item.sku}</span>
+                      </div>
+                      <span className={`stock-alert-status ${item.status === "out" ? "out-of-stock" : "low-stock"}`}>
+                        {item.status === "out" ? "Out of stock" : `${item.stockLeft} left`}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
 
+          {/* Products Table */}
           <div className="table-card">
             <div className="table-header">
               <h3>
@@ -551,11 +652,6 @@ export default function ProductReport() {
                   onClick={handleExportAll}
                   disabled={allRows.length === 0}
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7,10 12,15 17,10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
                   Export
                 </button>
               </div>
@@ -640,11 +736,6 @@ export default function ProductReport() {
                   onClick={handleExportStock}
                   disabled={stockRows.length === 0}
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7,10 12,15 17,10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
                   Export
                 </button>
               </div>
@@ -745,11 +836,6 @@ export default function ProductReport() {
                   onClick={handleExportWishlist}
                   disabled={wishlistRows.length === 0}
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7,10 12,15 17,10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
                   Export
                 </button>
               </div>
@@ -773,14 +859,90 @@ export default function ProductReport() {
           </div>
         </>
       )}
+
+      {/* Wishlist Users Modal */}
+      {selectedProduct && (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal-content wishlist-users-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <h2>Users who wishlisted this product</h2>
+                <p className="modal-subtitle">
+                  {selectedProduct.name} ({selectedProduct.sku})
+                </p>
+              </div>
+              <button className="modal-close" onClick={closeModal}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+            <div className="modal-body">
+              {wishlistUsersLoading ? (
+                <div className="modal-loading">Loading users...</div>
+              ) : wishlistUsers.length === 0 ? (
+                <div className="modal-empty">No users found</div>
+              ) : (
+                <>
+                  <div className="wishlist-users-count">
+                    {wishlistUsersTotal} user{wishlistUsersTotal !== 1 ? "s" : ""} have this product in their wishlist
+                  </div>
+                  <table className="wishlist-users-table">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Mobile</th>
+                        <th>Email</th>
+                        <th>Added On</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {wishlistUsers.map((user) => (
+                        <tr key={user.userId}>
+                          <td>{user.firstName} {user.lastName}</td>
+                          <td>{user.mobileNumber}</td>
+                          <td>{user.email || "—"}</td>
+                          <td>{formatDate(user.addedAt)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {wishlistUsersTotalPages > 1 && (
+                    <div className="modal-pagination">
+                      <button
+                        disabled={wishlistUsersPage <= 1}
+                        onClick={() => {
+                          const newPage = wishlistUsersPage - 1;
+                          loadWishlistUsers(selectedProduct.productId, newPage);
+                        }}
+                      >
+                        Previous
+                      </button>
+                      <span>Page {wishlistUsersPage} of {wishlistUsersTotalPages}</span>
+                      <button
+                        disabled={wishlistUsersPage >= wishlistUsersTotalPages}
+                        onClick={() => {
+                          const newPage = wishlistUsersPage + 1;
+                          loadWishlistUsers(selectedProduct.productId, newPage);
+                        }}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 /**
- * Classifies a product's stock level against its own threshold. The backend's
- * limited-stock query already filters to `stockQuantity <= lowStockThreshold`,
- * so a product in this list is either at zero or running low.
+ * Classifies a product's stock level against its own threshold.
  */
 function stockStatus(product: Product): { label: string; cssClass: string } {
   if (product.stockQuantity <= 0) {
