@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useToast } from "../../components/Toast";
 import "../../styles/settings.css";
 
-type SettingsTab = "business" | "orders" | "payments" | "shipping" | "security" | "system";
+type SettingsTab = "business" | "orders" | "payments" | "shipping" | "security" | "system" | "notifications";
 
 interface BusinessSettings {
   storeName: string;
@@ -61,6 +61,20 @@ interface SystemSettings {
   timezone: string;
   maintenanceMode: boolean;
   maintenanceMessage: string;
+}
+
+interface NotificationSettings {
+  emailOrderPlaced: boolean;
+  emailOrderShipped: boolean;
+  emailOrderDelivered: boolean;
+  emailOrderCancelled: boolean;
+  smsOrderPlaced: boolean;
+  smsOrderShipped: boolean;
+  smsOrderDelivered: boolean;
+  pushEnabled: boolean;
+  adminEmailAlerts: boolean;
+  lowStockAlerts: boolean;
+  lowStockThreshold: number;
 }
 
 const DEFAULT_BUSINESS: BusinessSettings = {
@@ -122,6 +136,20 @@ const DEFAULT_SYSTEM: SystemSettings = {
   maintenanceMessage: "We are currently performing maintenance. Please check back soon.",
 };
 
+const DEFAULT_NOTIFICATIONS: NotificationSettings = {
+  emailOrderPlaced: true,
+  emailOrderShipped: true,
+  emailOrderDelivered: true,
+  emailOrderCancelled: true,
+  smsOrderPlaced: false,
+  smsOrderShipped: false,
+  smsOrderDelivered: false,
+  pushEnabled: false,
+  adminEmailAlerts: true,
+  lowStockAlerts: true,
+  lowStockThreshold: 10,
+};
+
 export default function Settings() {
   const toast = useToast();
   const [activeTab, setActiveTab] = useState<SettingsTab>("business");
@@ -135,6 +163,7 @@ export default function Settings() {
   const [shipping, setShipping] = useState<ShippingSettings>(DEFAULT_SHIPPING);
   const [security, setSecurity] = useState<SecuritySettings>(DEFAULT_SECURITY);
   const [system, setSystem] = useState<SystemSettings>(DEFAULT_SYSTEM);
+  const [notifications, setNotifications] = useState<NotificationSettings>(DEFAULT_NOTIFICATIONS);
 
   // Load settings from localStorage (simulating API)
   useEffect(() => {
@@ -148,6 +177,7 @@ export default function Settings() {
         if (parsed.shipping) setShipping({ ...DEFAULT_SHIPPING, ...parsed.shipping });
         if (parsed.security) setSecurity({ ...DEFAULT_SECURITY, ...parsed.security });
         if (parsed.system) setSystem({ ...DEFAULT_SYSTEM, ...parsed.system });
+        if (parsed.notifications) setNotifications({ ...DEFAULT_NOTIFICATIONS, ...parsed.notifications });
       } catch {
         // Use defaults if parse fails
       }
@@ -158,7 +188,7 @@ export default function Settings() {
     setSaving(true);
     try {
       // Simulate API call - save to localStorage
-      const settings = { business, orders, payments, shipping, security, system };
+      const settings = { business, orders, payments, shipping, security, system, notifications };
       localStorage.setItem("adminSettings", JSON.stringify(settings));
       
       // Simulate network delay
@@ -171,7 +201,7 @@ export default function Settings() {
     } finally {
       setSaving(false);
     }
-  }, [business, orders, payments, shipping, security, system, toast]);
+  }, [business, orders, payments, shipping, security, system, notifications, toast]);
 
   const updateBusiness = (updates: Partial<BusinessSettings>) => {
     setBusiness((prev) => ({ ...prev, ...updates }));
@@ -203,7 +233,12 @@ export default function Settings() {
     setHasChanges(true);
   };
 
-  const tabs: { id: SettingsTab; label: string; icon: JSX.Element }[] = [
+  const updateNotifications = (updates: Partial<NotificationSettings>) => {
+    setNotifications((prev) => ({ ...prev, ...updates }));
+    setHasChanges(true);
+  };
+
+  const tabs: { id: SettingsTab; label: string; icon: React.ReactNode }[] = [
     {
       id: "business",
       label: "Business Info",
@@ -263,6 +298,16 @@ export default function Settings() {
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <circle cx="12" cy="12" r="3" />
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+      ),
+    },
+    {
+      id: "notifications",
+      label: "Notifications",
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
       ),
     },

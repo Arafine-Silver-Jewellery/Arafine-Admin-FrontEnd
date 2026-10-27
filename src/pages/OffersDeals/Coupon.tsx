@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "../../api/client";
 import { DataTable } from "../../components";
 import type { Coupon, CouponScope, CouponStats, CouponType, CreateCouponInput } from "../../types";
@@ -386,13 +386,13 @@ export default function CouponPage() {
     }
   };
 
-  // Reset filters
-  const handleResetFilters = () => {
-    setSearchQuery("");
-    setStatusFilter("all");
-    setTypeFilter("");
-    setPage(1);
-  };
+  // Reset filters (keeping for future use)
+  // const handleResetFilters = () => {
+  //   setSearchQuery("");
+  //   setStatusFilter("all");
+  //   setTypeFilter("");
+  //   setPage(1);
+  // };
 
   // Format coupon value for display
   const formatCouponValue = (coupon: Coupon) => {

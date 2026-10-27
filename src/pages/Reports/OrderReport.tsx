@@ -69,17 +69,18 @@ const DATE_PRESETS: { value: DatePreset; label: string }[] = [
   { value: "year", label: "This Year" },
 ];
 
-const STATUS_OPTIONS = [
-  { value: "all", label: "All Statuses" },
-  { value: "pending", label: "Pending" },
-  { value: "confirmed", label: "Confirmed" },
-  { value: "processing", label: "Processing" },
-  { value: "shipped", label: "Shipped" },
-  { value: "out_for_delivery", label: "Out for Delivery" },
-  { value: "delivered", label: "Delivered" },
-  { value: "cancelled", label: "Cancelled" },
-  { value: "returned", label: "Returned" },
-];
+// Status options (keeping for future use)
+// const STATUS_OPTIONS = [
+//   { value: "all", label: "All Statuses" },
+//   { value: "pending", label: "Pending" },
+//   { value: "confirmed", label: "Confirmed" },
+//   { value: "processing", label: "Processing" },
+//   { value: "shipped", label: "Shipped" },
+//   { value: "out_for_delivery", label: "Out for Delivery" },
+//   { value: "delivered", label: "Delivered" },
+//   { value: "cancelled", label: "Cancelled" },
+//   { value: "returned", label: "Returned" },
+// ];
 
 const CHANNEL_OPTIONS = [
   { value: "all", label: "All Channels" },
