@@ -1,5 +1,4 @@
-export function formatPrice(paise: number, opts: { compact?: boolean } = {}): string {
-  const rupees = paise / 100;
+export function formatPrice(rupees: number, opts: { compact?: boolean } = {}): string {
   if (opts.compact && Math.abs(rupees) >= 10000) {
     // ₹10K+ uses compact notation: ₹1.2L / ₹3.4Cr for large values
     return new Intl.NumberFormat("en-IN", {

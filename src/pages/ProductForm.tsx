@@ -18,9 +18,9 @@ export default function ProductForm() {
     description: "",
     shortDescription: "",
     sku: "",
-    pricePaise: "",
-    compareAtPricePaise: "",
-    costPricePaise: "",
+    price: "",
+    compareAtPrice: "",
+    costPrice: "",
     categoryId: "",
     stockQuantity: "0",
     lowStockThreshold: "5",
@@ -52,12 +52,12 @@ export default function ProductForm() {
             description: product.description || "",
             shortDescription: product.shortDescription || "",
             sku: product.sku,
-            pricePaise: (product.pricePaise / 100).toString(),
-            compareAtPricePaise: product.compareAtPricePaise
-              ? (product.compareAtPricePaise / 100).toString()
+            price: product.price.toString(),
+            compareAtPrice: product.compareAtPrice
+              ? product.compareAtPrice.toString()
               : "",
-            costPricePaise: product.costPricePaise
-              ? (product.costPricePaise / 100).toString()
+            costPrice: product.costPrice
+              ? product.costPrice.toString()
               : "",
             categoryId: product.categoryId,
             stockQuantity: product.stockQuantity.toString(),
@@ -115,12 +115,12 @@ export default function ProductForm() {
         description: formData.description || null,
         shortDescription: formData.shortDescription || null,
         sku: formData.sku,
-        pricePaise: Math.round(parseFloat(formData.pricePaise) * 100),
-        compareAtPricePaise: formData.compareAtPricePaise
-          ? Math.round(parseFloat(formData.compareAtPricePaise) * 100)
+        price: parseFloat(formData.price),
+        compareAtPrice: formData.compareAtPrice
+          ? parseFloat(formData.compareAtPrice)
           : null,
-        costPricePaise: formData.costPricePaise
-          ? Math.round(parseFloat(formData.costPricePaise) * 100)
+        costPrice: formData.costPrice
+          ? parseFloat(formData.costPrice)
           : null,
         categoryId: formData.categoryId,
         stockQuantity: parseInt(formData.stockQuantity),
@@ -254,8 +254,8 @@ export default function ProductForm() {
                   <label>Price (₹) *</label>
                   <input
                     type="number"
-                    name="pricePaise"
-                    value={formData.pricePaise}
+                    name="price"
+                    value={formData.price}
                     onChange={handleChange}
                     step="0.01"
                     min="0"
@@ -266,8 +266,8 @@ export default function ProductForm() {
                   <label>Compare at Price (₹)</label>
                   <input
                     type="number"
-                    name="compareAtPricePaise"
-                    value={formData.compareAtPricePaise}
+                    name="compareAtPrice"
+                    value={formData.compareAtPrice}
                     onChange={handleChange}
                     step="0.01"
                     min="0"
@@ -279,8 +279,8 @@ export default function ProductForm() {
                   <label>Cost Price (₹)</label>
                   <input
                     type="number"
-                    name="costPricePaise"
-                    value={formData.costPricePaise}
+                    name="costPrice"
+                    value={formData.costPrice}
                     onChange={handleChange}
                     step="0.01"
                     min="0"

@@ -13,9 +13,9 @@ export interface Product {
   description: string | null;
   shortDescription: string | null;
   sku: string;
-  pricePaise: number;
-  compareAtPricePaise: number | null;
-  costPricePaise: number | null;
+  price: number;
+  compareAtPrice: number | null;
+  costPrice: number | null;
   categoryId: string;
   category?: Category;
   images?: ProductImage[];
@@ -80,14 +80,14 @@ export interface Order {
   status: OrderStatus;
   paymentStatus: PaymentStatus;
   orderChannel: OrderChannel;
-  subtotalPaise: number;
-  discountPaise: number;
-  extraDiscountPaise: number;
-  shippingPaise: number;
-  taxPaise: number;
-  totalPaise: number;
-  paidAmountPaise: number | null;
-  changeAmountPaise: number | null;
+  subtotal: number;
+  discount: number;
+  extraDiscount: number;
+  shipping: number;
+  tax: number;
+  total: number;
+  paidAmount: number | null;
+  changeAmount: number | null;
   couponCode: string | null;
   paymentMethod: string | null;
   paymentReference: string | null;
@@ -101,7 +101,7 @@ export interface Order {
   adminNote: string | null;
   returnReason: string | null;
   returnRequestedAt: string | null;
-  refundAmountPaise: number | null;
+  refundAmount: number | null;
   refundedAt: string | null;
   processedById: string | null;
   createdAt: string;
@@ -116,8 +116,8 @@ export interface OrderItem {
   productSku: string;
   productImageUrl: string | null;
   quantity: number;
-  unitPricePaise: number;
-  totalPricePaise: number;
+  unitPrice: number;
+  totalPrice: number;
 }
 
 export interface ShippingAddress {
@@ -226,8 +226,8 @@ export interface DashboardStats {
     total: number;
   };
   revenue: {
-    totalPaise: number;
-    todayPaise: number;
+    total: number;
+    todayRupees: number;
   };
 }
 
@@ -267,7 +267,7 @@ export interface TopSellingItem {
   name: string;
   sku: string;
   unitsSold: number;
-  revenuePaise: number;
+  revenue: number;
   imageUrl: string | null;
 }
 
@@ -289,12 +289,12 @@ export interface ProductSalesRow {
   name: string;
   sku: string;
   categoryName: string | null;
-  unitPricePaise: number;
-  totalAmountPaise: number;
+  unitPrice: number;
+  totalAmount: number;
   unitsSold: number;
   grossQuantity: number;
   returnedQuantity: number;
-  averageProductValuePaise: number;
+  averageProductValue: number;
   currentStock: number;
   averageRating: number;
   reviewCount: number;
@@ -311,7 +311,7 @@ export interface WishlistCountRow {
   productId: string;
   name: string;
   sku: string;
-  pricePaise: number;
+  price: number;
   stockQuantity: number;
   status: ProductStatus;
   wishlistCount: number;
@@ -342,7 +342,7 @@ export interface ExpenseRow {
   id: string;
   category: ExpenseCategory;
   description: string | null;
-  amountPaise: number;
+  amount: number;
   expenseDate: string;
   status: ExpenseStatus;
   createdById: string | null;
@@ -355,8 +355,8 @@ export interface ExpensesReport {
   pagination: ReportPagination;
   totals: {
     count: number;
-    totalAmountPaise: number;
-    paidAmountPaise: number;
+    totalAmount: number;
+    paidAmount: number;
   };
 }
 
@@ -365,7 +365,7 @@ export interface InhouseSaleRow {
   productId: string;
   name: string;
   sku: string;
-  totalSalePaise: number;
+  totalSale: number;
   unitsSold: number;
   imageUrl: string | null;
 }
@@ -374,7 +374,7 @@ export interface InhouseSalesReport {
   data: InhouseSaleRow[];
   pagination: ReportPagination;
   totals: {
-    totalSalePaise: number;
+    totalSale: number;
     unitsSold: number;
   };
 }
@@ -391,7 +391,7 @@ export interface VendorSalesRow {
   totalProducts: number;
   totalOrders: number;
   unitsSold: number;
-  totalSalesPaise: number;
+  totalSales: number;
 }
 
 export interface VendorSalesReport {
@@ -401,7 +401,7 @@ export interface VendorSalesReport {
     totalVendors: number;
     activeVendors: number;
     totalOrders: number;
-    totalSalesPaise: number;
+    totalSales: number;
   };
 }
 
@@ -454,13 +454,13 @@ export interface EarningTotals {
   vatTax: number;
   refundGiven: number;
   totalEarning: number;
-  fullRefundsPaise: number;
+  fullRefunds: number;
 }
 
 export interface PaymentMethodBreakdown {
   method: string;
   orders: number;
-  amountPaise: number;
+  amount: number;
 }
 
 export interface EarningsReport {
@@ -484,21 +484,21 @@ export interface VendorEarningRow {
   totalProducts: number;
   approvedProducts: number;
   pendingApprovalProducts: number;
-  totalEarnedPaise: number;
-  pendingPaise: number;
-  withdrawablePaise: number;
-  withdrawnPaise: number;
-  walletBalancePaise: number;
+  totalEarned: number;
+  pending: number;
+  withdrawable: number;
+  withdrawn: number;
+  walletBalance: number;
 }
 
 export interface VendorEarningsReport {
   data: VendorEarningRow[];
   pagination: ReportPagination;
   totals: {
-    totalEarnedPaise: number;
-    pendingPaise: number;
-    withdrawablePaise: number;
-    withdrawnPaise: number;
+    totalEarned: number;
+    pending: number;
+    withdrawable: number;
+    withdrawn: number;
   };
 }
 
@@ -511,8 +511,8 @@ export interface Promotion {
   scope: "all" | "category" | "product" | "cart";
   value: number;
   minQuantity: number | null;
-  minCartValuePaise: number | null;
-  maxDiscountPaise: number | null;
+  minCartValueRupees: number | null;
+  maxDiscountRupees: number | null;
   categoryIds: string[];
   productIds: string[];
   startsAt: string;
@@ -560,8 +560,8 @@ export interface Coupon {
   scope: CouponScope;
   value: number;
   minQuantity: number | null;
-  minCartValuePaise: number | null;
-  maxDiscountPaise: number | null;
+  minCartValueRupees: number | null;
+  maxDiscountRupees: number | null;
   categoryIds: string[];
   productIds: string[];
   startsAt: string;
@@ -586,8 +586,8 @@ export interface CreateCouponInput {
   scope?: CouponScope;
   value: number;
   minQuantity?: number | null;
-  minCartValuePaise?: number | null;
-  maxDiscountPaise?: number | null;
+  minCartValueRupees?: number | null;
+  maxDiscountRupees?: number | null;
   categoryIds?: string[];
   productIds?: string[];
   startsAt: string;
@@ -619,7 +619,7 @@ export interface FlashDealProductInfo {
   id: string;
   name: string;
   sku: string;
-  pricePaise: number;
+  price: number;
   stockQuantity: number;
   imageUrl: string | null;
 }
@@ -655,5 +655,43 @@ export interface FlashDealStats {
   activeDeals: number;
   expiredDeals: number;
   upcomingDeals: number;
+  totalProducts: number;
+}
+
+// ---------------------------------------------------------------------------
+// Deal of the Day types
+// ---------------------------------------------------------------------------
+
+export interface DealOfTheDayProductInfo {
+  id: string;
+  name: string;
+  sku: string;
+  price: number;
+  stockQuantity: number;
+  imageUrl: string | null;
+}
+
+export interface DealOfTheDay {
+  id: string;
+  title: string;
+  description: string | null;
+  productIds: string[];
+  isActive: boolean;
+  activeProductsCount: number;
+  products?: DealOfTheDayProductInfo[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateDealOfTheDayInput {
+  title: string;
+  description?: string | null;
+  productIds: string[];
+  isActive?: boolean;
+}
+
+export interface DealOfTheDayStats {
+  totalDeals: number;
+  activeDeals: number;
   totalProducts: number;
 }

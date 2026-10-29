@@ -95,8 +95,8 @@ interface Product {
   id: string;
   name: string;
   sku: string;
-  pricePaise: number;
-  compareAtPricePaise: number | null;
+  price: number;
+  compareAtPrice: number | null;
   productType: "physical" | "digital";
   stockQuantity: number;
   images: { url: string; sortOrder: number; isPrimary: boolean }[];
@@ -121,7 +121,7 @@ interface HoldOrderItem {
   productSku: string;
   productImage: string;
   quantity: number;
-  unitPricePaise: number;
+  unitPrice: number;
   stockQuantity: number;
 }
 
@@ -135,8 +135,8 @@ interface HoldOrder {
   note?: string;
   heldAt: string;
   heldBy?: string;
-  subTotalPaise: number;
-  totalPaise: number;
+  subTotal: number;
+  total: number;
 }
 
 export default function POS() {
@@ -580,12 +580,12 @@ export default function POS() {
       const items = cart.map(item => ({
         productId: item.product.id,
         quantity: Number(item.quantity),
-        unitPricePaise: Number(item.product.pricePaise),
+        unitPrice: Number(item.product.price),
       }));
 
-      // Calculate amounts
-      const paidAmountPaise = Math.round((Number(paidAmount) || 0) * 100);
-      const extraDiscountPaise = Math.round(Number(extraDiscount) * 100);
+      // Calculate amounts (already in rupees)
+      const paidAmount_ = Number(paidAmount) || 0;
+      const extraDiscount_ = Number(extraDiscount);
 
       // Prepare order data with customer details
       const orderData: Parameters<typeof api.createPOSOrder>[0] = {
@@ -593,8 +593,8 @@ export default function POS() {
         paymentMethod,
         paymentReference: paymentMethod === "upi" ? upiTransactionId.trim() : undefined,
         couponCode: couponCode.trim() || undefined,
-        extraDiscountPaise,
-        paidAmountPaise,
+        extraDiscount: extraDiscount_,
+        paidAmount: paidAmount_,
         isWalkIn: false,
         customerId: selectedCustomer?.id,
         customerPhone,
@@ -653,10 +653,10 @@ export default function POS() {
 
       // Pass the order response directly to the shared Receipt component.
       // The backend already populates all the fields the receipt needs
-      // (subtotalPaise, discountPaise, extraDiscountPaise, totalPaise,
-      // paidAmountPaise, changeAmountPaise, couponCode, paymentMethod,
-      // paymentReference, items with productName/unitPricePaise/
-      // totalPricePaise). Previously the POS built a local OrderBill
+      // (subtotal, discount, extraDiscount, total,
+      // paidAmount, changeAmount, couponCode, paymentMethod,
+      // paymentReference, items with productName/unitPrice/
+      // totalPrice). Previously the POS built a local OrderBill
       // with cart-derived values; the shared receipt uses the canonical
       // Order shape so the cashier and the admin see identical receipts.
       const order = response.data;
@@ -723,8 +723,8 @@ export default function POS() {
   }
 
   function getDiscountPercentage(product: Product): number | null {
-    if (product.compareAtPricePaise && product.compareAtPricePaise > product.pricePaise) {
-      return Math.round(((product.compareAtPricePaise - product.pricePaise) / product.compareAtPricePaise) * 100);
+    if (product.compareAtPrice && product.compareAtPrice > product.price) {
+      return Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100);
     }
     return null;
   }
@@ -791,8 +791,8 @@ export default function POS() {
     return "https://via.placeholder.com/150?text=No+Image";
   }
 
-  function formatPrice(paise: number): string {
-    return `₹${(paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+  function formatPrice(rupees: number): string {
+    return `₹${rupees.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
   }
 
   function updateQuantity(productId: string, delta: number) {
@@ -862,7 +862,7 @@ export default function POS() {
         productSku: item.product.sku,
         productImage: getProductImage(item.product),
         quantity: item.quantity,
-        unitPricePaise: item.product.pricePaise,
+        unitPrice: item.product.price,
         stockQuantity: item.product.stockQuantity,
       }));
 
@@ -1050,13 +1050,13 @@ export default function POS() {
   }
 
   const subTotal = cart.reduce(
-    (sum, item) => sum + item.product.pricePaise * item.quantity,
+    (sum, item) => sum + item.product.price * item.quantity,
     0
   );
   
   const productDiscount = cart.reduce((sum, item) => {
-    const comparePrice = item.product.compareAtPricePaise || item.product.pricePaise;
-    return sum + (comparePrice - item.product.pricePaise) * item.quantity;
+    const comparePrice = item.product.compareAtPrice || item.product.price;
+    return sum + (comparePrice - item.product.price) * item.quantity;
   }, 0);
   
   const total = subTotal - (extraDiscount * 100);
@@ -1182,13 +1182,13 @@ export default function POS() {
                 <img src={getProductImage(product)} alt={product.name} />
                 <div className="pos-product-info">
                   <span className="pos-product-name">{product.name}</span>
-                  {product.compareAtPricePaise && product.compareAtPricePaise > product.pricePaise && (
+                  {product.compareAtPrice && product.compareAtPrice > product.price && (
                     <span className="pos-product-original">
-                      {formatPrice(product.compareAtPricePaise)}
+                      {formatPrice(product.compareAtPrice)}
                     </span>
                   )}
                   <span className="pos-product-price">
-                    {formatPrice(product.pricePaise)}
+                    {formatPrice(product.price)}
                   </span>
                   {product.productType === "physical" && product.stockQuantity <= 5 && (
                     <span className="pos-product-stock">
@@ -1228,7 +1228,7 @@ export default function POS() {
                   <img src={getProductImage(item.product)} alt={item.product.name} />
                   <div className="pos-cart-item-info">
                     <span className="name">{item.product.name}</span>
-                    <span className="price">{formatPrice(item.product.pricePaise)}</span>
+                    <span className="price">{formatPrice(item.product.price)}</span>
                   </div>
                   <div className="pos-cart-item-qty">
                     <button onClick={() => updateQuantity(item.product.id, -1)}>-</button>
@@ -1421,7 +1421,7 @@ export default function POS() {
                             <img src={item.productImage} alt={item.productName} />
                             <div className="hold-item-info">
                               <span className="item-name">{item.productName}</span>
-                              <span className="item-qty">{item.quantity} × {formatPrice(item.unitPricePaise)}</span>
+                              <span className="item-qty">{item.quantity} × {formatPrice(item.unitPrice)}</span>
                             </div>
                           </div>
                         ))}
@@ -1447,7 +1447,7 @@ export default function POS() {
                       <div className="hold-order-footer">
                         <div className="hold-order-total">
                           <span>Total:</span>
-                          <strong>{formatPrice(order.totalPaise)}</strong>
+                          <strong>{formatPrice(order.total)}</strong>
                         </div>
                         <div className="hold-order-actions">
                           <button 
@@ -1536,10 +1536,10 @@ export default function POS() {
                 <h2 className="quickview-title">{selectedProduct.name}</h2>
 
                 <div className="quickview-price">
-                  {selectedProduct.compareAtPricePaise && selectedProduct.compareAtPricePaise > selectedProduct.pricePaise && (
-                    <span className="quickview-original-price">{formatPrice(selectedProduct.compareAtPricePaise)}</span>
+                  {selectedProduct.compareAtPrice && selectedProduct.compareAtPrice > selectedProduct.price && (
+                    <span className="quickview-original-price">{formatPrice(selectedProduct.compareAtPrice)}</span>
                   )}
-                  <span className="quickview-current-price">{formatPrice(selectedProduct.pricePaise)}</span>
+                  <span className="quickview-current-price">{formatPrice(selectedProduct.price)}</span>
                 </div>
 
                 {/* Stock Warning */}
@@ -1591,7 +1591,7 @@ export default function POS() {
                   </div>
                   <div className="quickview-total">
                     <span>Total Price:</span>
-                    <strong>{formatPrice(selectedProduct.pricePaise * quickViewQty)}</strong>
+                    <strong>{formatPrice(selectedProduct.price * quickViewQty)}</strong>
                   </div>
                 </div>
 

@@ -222,7 +222,7 @@ export default function OrderReport() {
   // list endpoint paginates and doesn't return a status breakdown, so these
   // count the page in view rather than claiming to be site-wide totals.
   const kpis = useMemo(() => {
-    const totalSalesPaise = orders.reduce((sum, o) => sum + (o.totalPaise ?? 0), 0);
+    const totalSales = orders.reduce((sum, o) => sum + (o.total ?? 0), 0);
     const delivered = orders.filter((o) => o.status === "delivered").length;
     const pending = orders.filter(
       (o) => o.status === "pending" || o.status === "confirmed",
@@ -231,7 +231,7 @@ export default function OrderReport() {
     const returned = orders.filter(
       (o) => o.status === "returned" || o.paymentStatus === "refunded",
     ).length;
-    return { totalSalesPaise, delivered, pending, cancelled, returned };
+    return { totalSales, delivered, pending, cancelled, returned };
   }, [orders]);
 
   const handleExport = () => {
@@ -253,7 +253,7 @@ export default function OrderReport() {
       formatDateTime(order.createdAt),
       order.shippingAddress?.fullName ?? "",
       order.shippingAddress?.phone ?? "",
-      formatPrice(order.totalPaise),
+      formatPrice(order.total),
       titleCase(order.status),
       titleCase(order.paymentStatus),
       order.paymentMethod ?? "",
@@ -293,10 +293,10 @@ export default function OrderReport() {
       ),
     },
     {
-      key: "totalPaise",
+      key: "total",
       header: "Total Amount",
       align: "right" as const,
-      render: (order: Order) => formatPrice(order.totalPaise),
+      render: (order: Order) => formatPrice(order.total),
     },
     {
       key: "status",
@@ -461,8 +461,8 @@ export default function OrderReport() {
             </svg>
           </div>
           <div className="product-report-stat-content">
-            <h2 style={{ fontSize: kpis.totalSalesPaise > 10000000 ? "22px" : "28px" }}>
-              {formatPrice(kpis.totalSalesPaise, { compact: true })}
+            <h2 style={{ fontSize: kpis.totalSales > 10000000 ? "22px" : "28px" }}>
+              {formatPrice(kpis.totalSales, { compact: true })}
             </h2>
             <p>Sales (this page)</p>
           </div>

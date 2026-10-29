@@ -96,7 +96,7 @@ export default function RefundRequests({ statusFilter = "pending" }: RefundReque
 
   function openRefundModal(order: Order) {
     setRefundTarget(order);
-    setRefundAmountInr((order.totalPaise / 100).toFixed(2));
+    setRefundAmountInr(order.total.toFixed(2));
   }
 
   function closeRefundModal() {
@@ -194,7 +194,7 @@ export default function RefundRequests({ statusFilter = "pending" }: RefundReque
         return <span className="ak-text-truncate" title={reason} style={{ maxWidth: "180px" }}>{reason}</span>;
       },
     },
-    { key: "amount", header: "Amount", align: "right" as const, render: (order: Order) => <span className="ak-amount">{formatPrice(order.totalPaise)}</span> },
+    { key: "amount", header: "Amount", align: "right" as const, render: (order: Order) => <span className="ak-amount">{formatPrice(order.total)}</span> },
     {
       key: "status",
       header: "Status",
@@ -303,7 +303,7 @@ export default function RefundRequests({ statusFilter = "pending" }: RefundReque
               <button type="button" className="ak-modal__close" onClick={closeRefundModal} disabled={processing === refundTarget.id}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg></button>
             </div>
             <div className="ak-modal__body">
-              <p>Process refund for order <strong>{refundTarget.orderNumber}</strong>?<br />Order total is <strong>{formatPrice(refundTarget.totalPaise)}</strong>.</p>
+              <p>Process refund for order <strong>{refundTarget.orderNumber}</strong>?<br />Order total is <strong>{formatPrice(refundTarget.total)}</strong>.</p>
               <div className="ak-field" style={{ marginTop: "1rem" }}><label className="ak-field__label" htmlFor="refund-amount">Refund Amount (₹)</label><input id="refund-amount" className="ak-input" type="number" step="0.01" min="0" value={refundAmountInr} onChange={(e) => setRefundAmountInr(e.target.value)} /></div>
             </div>
             <div className="ak-modal__footer">

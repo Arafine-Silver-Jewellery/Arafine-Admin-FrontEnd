@@ -891,6 +891,11 @@
   height: 24px;
 }
 
+.product-report-stat-icon.blue {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
 .product-report-stat-icon.yellow {
   background: #fff8e1;
   color: #f9a825;

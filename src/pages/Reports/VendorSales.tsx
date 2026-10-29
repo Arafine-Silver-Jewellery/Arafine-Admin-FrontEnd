@@ -43,7 +43,7 @@ export default function VendorSales() {
     totalVendors: 0,
     activeVendors: 0,
     totalOrders: 0,
-    totalSalesPaise: 0,
+    totalSales: 0,
   });
   const [vendorNames, setVendorNames] = useState<string[]>([]);
   const [trend, setTrend] = useState<{ date: string; value: number }[]>([]);
@@ -72,7 +72,7 @@ export default function VendorSales() {
           totalVendors: 0,
           activeVendors: 0,
           totalOrders: 0,
-          totalSalesPaise: 0,
+          totalSales: 0,
         },
       );
     }
@@ -150,7 +150,7 @@ export default function VendorSales() {
       vendor.totalProducts,
       vendor.totalOrders,
       vendor.unitsSold,
-      formatPrice(vendor.totalSalesPaise),
+      formatPrice(vendor.totalSales),
       vendor.status,
     ]);
     downloadCsv(`vendor-sales-${new Date().toISOString().slice(0, 10)}`, buildCsv(headers, data));
@@ -200,10 +200,10 @@ export default function VendorSales() {
       render: (vendor: VendorSalesRow) => vendor.totalOrders,
     },
     {
-      key: "totalSalesPaise",
+      key: "totalSales",
       header: "Total Sales",
       align: "right" as const,
-      render: (vendor: VendorSalesRow) => formatPrice(vendor.totalSalesPaise),
+      render: (vendor: VendorSalesRow) => formatPrice(vendor.totalSales),
     },
     {
       key: "status",
@@ -315,7 +315,7 @@ export default function VendorSales() {
         <div className="reports-stat-card">
           <div className="reports-stat-icon green">💰</div>
           <div className="reports-stat-content">
-            <h2>{formatPrice(totals.totalSalesPaise, { compact: true })}</h2>
+            <h2>{formatPrice(totals.totalSales, { compact: true })}</h2>
             <p>Total Sales</p>
           </div>
         </div>

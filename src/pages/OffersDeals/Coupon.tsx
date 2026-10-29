@@ -123,8 +123,8 @@ interface FormData {
   type: CouponType;
   scope: CouponScope;
   value: string;
-  minCartValuePaise: string;
-  maxDiscountPaise: string;
+  minCartValueRupees: string;
+  maxDiscountRupees: string;
   maxUses: string;
   maxUsesPerUser: string;
   startsAt: string;
@@ -139,8 +139,8 @@ const initialFormData: FormData = {
   type: "percentage",
   scope: "all",
   value: "",
-  minCartValuePaise: "",
-  maxDiscountPaise: "",
+  minCartValueRupees: "",
+  maxDiscountRupees: "",
   maxUses: "",
   maxUsesPerUser: "",
   startsAt: "",
@@ -255,8 +255,8 @@ export default function CouponPage() {
       type: coupon.type,
       scope: coupon.scope,
       value: coupon.value.toString(),
-      minCartValuePaise: coupon.minCartValuePaise ? (coupon.minCartValuePaise / 100).toString() : "",
-      maxDiscountPaise: coupon.maxDiscountPaise ? (coupon.maxDiscountPaise / 100).toString() : "",
+      minCartValueRupees: coupon.minCartValueRupees ? coupon.minCartValueRupees.toString() : "",
+      maxDiscountRupees: coupon.maxDiscountRupees ? coupon.maxDiscountRupees.toString() : "",
       maxUses: coupon.maxUses?.toString() || "",
       maxUsesPerUser: coupon.maxUsesPerUser?.toString() || "",
       startsAt: coupon.startsAt.slice(0, 16),
@@ -278,8 +278,8 @@ export default function CouponPage() {
       type: coupon.type,
       scope: coupon.scope,
       value: coupon.value.toString(),
-      minCartValuePaise: coupon.minCartValuePaise ? (coupon.minCartValuePaise / 100).toString() : "",
-      maxDiscountPaise: coupon.maxDiscountPaise ? (coupon.maxDiscountPaise / 100).toString() : "",
+      minCartValueRupees: coupon.minCartValueRupees ? coupon.minCartValueRupees.toString() : "",
+      maxDiscountRupees: coupon.maxDiscountRupees ? coupon.maxDiscountRupees.toString() : "",
       maxUses: coupon.maxUses?.toString() || "",
       maxUsesPerUser: coupon.maxUsesPerUser?.toString() || "",
       startsAt: coupon.startsAt.slice(0, 16),
@@ -336,8 +336,8 @@ export default function CouponPage() {
         type: formData.type,
         scope: formData.scope,
         value: parseFloat(formData.value),
-        minCartValuePaise: formData.minCartValuePaise ? Math.round(parseFloat(formData.minCartValuePaise) * 100) : null,
-        maxDiscountPaise: formData.maxDiscountPaise ? Math.round(parseFloat(formData.maxDiscountPaise) * 100) : null,
+        minCartValueRupees: formData.minCartValueRupees ? parseFloat(formData.minCartValueRupees) : null,
+        maxDiscountRupees: formData.maxDiscountRupees ? parseFloat(formData.maxDiscountRupees) : null,
         maxUses: formData.maxUses ? parseInt(formData.maxUses) : null,
         maxUsesPerUser: formData.maxUsesPerUser ? parseInt(formData.maxUsesPerUser) : null,
         startsAt: startsAtDate.toISOString(),
@@ -688,8 +688,8 @@ export default function CouponPage() {
                   type="number"
                   className="ak-input"
                   placeholder="e.g., 500"
-                  value={formData.minCartValuePaise}
-                  onChange={(e) => setFormData({ ...formData, minCartValuePaise: e.target.value })}
+                  value={formData.minCartValueRupees}
+                  onChange={(e) => setFormData({ ...formData, minCartValueRupees: e.target.value })}
                   disabled={formMode === "view"}
                   min="0"
                 />
@@ -703,8 +703,8 @@ export default function CouponPage() {
                   type="number"
                   className="ak-input"
                   placeholder="e.g., 200"
-                  value={formData.maxDiscountPaise}
-                  onChange={(e) => setFormData({ ...formData, maxDiscountPaise: e.target.value })}
+                  value={formData.maxDiscountRupees}
+                  onChange={(e) => setFormData({ ...formData, maxDiscountRupees: e.target.value })}
                   disabled={formMode === "view"}
                   min="0"
                 />

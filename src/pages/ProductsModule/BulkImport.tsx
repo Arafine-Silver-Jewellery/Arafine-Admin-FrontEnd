@@ -384,10 +384,10 @@ export default function BulkImport() {
       return str === "yes" || str === "true" || str === "1";
     };
     
-    // Parse price (convert rupees to paise)
+    // Parse price (rupees directly)
     const parsePrice = (val: any): number => {
       const num = parseFloat(String(val || "0").replace(/[^\d.-]/g, ""));
-      return Math.round((isNaN(num) ? 0 : num) * 100);
+      return isNaN(num) ? 0 : num;
     };
     
     return {
@@ -396,9 +396,9 @@ export default function BulkImport() {
       slug: slug + "-" + Date.now().toString(36) + Math.random().toString(36).substr(2, 4),
       description: data["Description"] || null,
       shortDescription: data["Short Description"] || null,
-      pricePaise: parsePrice(data["Price (₹)"]),
-      compareAtPricePaise: data["Compare At Price (₹)"] ? parsePrice(data["Compare At Price (₹)"]) : null,
-      costPricePaise: data["Cost Price (₹)"] ? parsePrice(data["Cost Price (₹)"]) : null,
+      price: parsePrice(data["Price (₹)"]),
+      compareAtPrice: data["Compare At Price (₹)"] ? parsePrice(data["Compare At Price (₹)"]) : null,
+      costPrice: data["Cost Price (₹)"] ? parsePrice(data["Cost Price (₹)"]) : null,
       categoryId,
       stockQuantity: parseInt(String(data["Stock Quantity"] || "0")) || 0,
       lowStockThreshold: parseInt(String(data["Low Stock Threshold"] || "5")) || 5,

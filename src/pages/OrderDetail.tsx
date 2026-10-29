@@ -156,9 +156,9 @@ export default function OrderDetail() {
                           </div>
                         </td>
                         <td>{item.productSku}</td>
-                        <td>{formatPrice(item.unitPricePaise)}</td>
+                        <td>{formatPrice(item.unitPrice)}</td>
                         <td>{item.quantity}</td>
-                        <td>{formatPrice(item.totalPricePaise)}</td>
+                        <td>{formatPrice(item.totalPrice)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -236,28 +236,28 @@ export default function OrderDetail() {
               <div className="card-body">
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
                   <span>Subtotal</span>
-                  <span>{formatPrice(order.subtotalPaise)}</span>
+                  <span>{formatPrice(order.subtotal)}</span>
                 </div>
-                {order.discountPaise > 0 && (
+                {order.discount > 0 && (
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", color: "#22c55e" }}>
                     <span>Discount</span>
-                    <span>-{formatPrice(order.discountPaise)}</span>
+                    <span>-{formatPrice(order.discount)}</span>
                   </div>
                 )}
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
                   <span>Shipping</span>
-                  <span>{order.shippingPaise > 0 ? formatPrice(order.shippingPaise) : "Free"}</span>
+                  <span>{order.shipping > 0 ? formatPrice(order.shipping) : "Free"}</span>
                 </div>
-                {order.taxPaise > 0 && (
+                {order.tax > 0 && (
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
                     <span>Tax</span>
-                    <span>{formatPrice(order.taxPaise)}</span>
+                    <span>{formatPrice(order.tax)}</span>
                   </div>
                 )}
                 <hr style={{ margin: "1rem 0" }} />
                 <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 600, fontSize: "1.125rem" }}>
                   <span>Total</span>
-                  <span>{formatPrice(order.totalPaise)}</span>
+                  <span>{formatPrice(order.total)}</span>
                 </div>
               </div>
             </div>

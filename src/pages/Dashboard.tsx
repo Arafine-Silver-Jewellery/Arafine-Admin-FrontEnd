@@ -182,7 +182,7 @@ export default function Dashboard() {
       <div className="stats-grid">
         <KpiTile
           label="Total Revenue"
-          value={formatPrice(stats?.revenue.totalPaise || 0)}
+          value={formatPrice(stats?.revenue.total || 0)}
           sub={`${formatPrice(rangeRevenue)} in ${rangeLabel}`}
           spark={sparkPoints.revenue}
           sparkColor="var(--c-series-1)"
@@ -415,7 +415,7 @@ export default function Dashboard() {
                       <td>
                         <Link to={`/orders/${order.id}`}>{order.orderNumber}</Link>
                       </td>
-                      <td>{formatPrice(order.totalPaise)}</td>
+                      <td>{formatPrice(order.total)}</td>
                       <td>
                         <span
                           className="badge"

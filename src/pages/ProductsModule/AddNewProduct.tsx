@@ -18,9 +18,9 @@ interface FormData {
   specification: string;
   shortDescription: string;
   categoryId: string;
-  pricePaise: number;
-  compareAtPricePaise: number;
-  costPricePaise: number;
+  price: number;
+  compareAtPrice: number;
+  costPrice: number;
   stockQuantity: number;
   lowStockThreshold: number;
   status: "active" | "inactive" | "draft";
@@ -59,9 +59,9 @@ const initialFormData: FormData = {
   specification: "",
   shortDescription: "",
   categoryId: "",
-  pricePaise: 0,
-  compareAtPricePaise: 0,
-  costPricePaise: 0,
+  price: 0,
+  compareAtPrice: 0,
+  costPrice: 0,
   stockQuantity: 0,
   lowStockThreshold: 5,
   status: "active",
@@ -266,9 +266,9 @@ export default function AddNewProduct() {
         specification: product.shortDescription || "",
         shortDescription: product.shortDescription || "",
         categoryId: product.categoryId || "",
-        pricePaise: product.pricePaise || 0,
-        compareAtPricePaise: product.compareAtPricePaise || 0,
-        costPricePaise: product.costPricePaise || 0,
+        price: product.price || 0,
+        compareAtPrice: product.compareAtPrice || 0,
+        costPrice: product.costPrice || 0,
         stockQuantity: product.stockQuantity || 0,
         lowStockThreshold: product.lowStockThreshold || 5,
         // A draft has to become editable as a normal product, otherwise Submit
@@ -654,7 +654,7 @@ export default function AddNewProduct() {
     }
     // Drafts exist to be half-finished, so the price gate only applies on
     // the publish path.
-    if (!asDraft && formData.pricePaise <= 0) {
+    if (!asDraft && formData.price <= 0) {
       setError("Price must be greater than 0");
       toast.error("Price must be greater than 0");
       return;
@@ -722,9 +722,9 @@ export default function AddNewProduct() {
         description: formData.description || null,
         shortDescription: formData.specification || null,
         sku: formData.sku || `PRD-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-        pricePaise: formData.pricePaise,
-        compareAtPricePaise: formData.compareAtPricePaise || null,
-        costPricePaise: formData.costPricePaise || null,
+        price: formData.price,
+        compareAtPrice: formData.compareAtPrice || null,
+        costPrice: formData.costPrice || null,
         categoryId: finalCategoryId,
         stockQuantity: formData.stockQuantity,
         lowStockThreshold: formData.lowStockThreshold,
@@ -1053,8 +1053,8 @@ export default function AddNewProduct() {
                     <input
                       type="number"
                       placeholder="0.00"
-                      value={formData.pricePaise / 100 || ""}
-                      onChange={(e) => handleInputChange("pricePaise", Math.round(parseFloat(e.target.value || "0") * 100))}
+                      value={formData.price || ""}
+                      onChange={(e) => handleInputChange("price", parseFloat(e.target.value || "0"))}
                       min="0"
                       step="0.01"
                     />

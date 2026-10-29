@@ -23,7 +23,7 @@ interface Product {
   name: string;
   slug: string;
   sku: string;
-  pricePaise: number;
+  price: number;
   stockQuantity: number;
   lowStockThreshold: number;
   status: string;
@@ -128,8 +128,8 @@ export default function LimitedStock() {
     }
   }
 
-  function formatPrice(paise: number): string {
-    return `₹${(paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+  function formatPrice(rupees: number): string {
+    return `₹${rupees.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
   }
 
   const columns = [
@@ -159,7 +159,7 @@ export default function LimitedStock() {
     {
       key: "price",
       header: "Price",
-      render: (product: Product) => <span className="ak-price-cell__current">{formatPrice(product.pricePaise)}</span>,
+      render: (product: Product) => <span className="ak-price-cell__current">{formatPrice(product.price)}</span>,
     },
     {
       key: "quantity",

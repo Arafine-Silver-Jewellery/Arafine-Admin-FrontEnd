@@ -3,8 +3,12 @@ import type {
   Address,
   Coupon,
   CreateCouponInput,
+  CreateDealOfTheDayInput,
   CreateFlashDealInput,
   CustomerAddressInput,
+  DealOfTheDay,
+  DealOfTheDayProductInfo,
+  DealOfTheDayStats,
   EarningsReport,
   ExpensesReport,
   FlashDeal,
@@ -456,15 +460,15 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ adminNote }),
     }),
-  processOrderRefund: (id: string, refundAmountPaise: number) =>
+  processOrderRefund: (id: string, refundAmount: number) =>
     request<any>(`/orders/${id}/refund`, {
       method: "PATCH",
-      body: JSON.stringify({ refundAmountPaise }),
+      body: JSON.stringify({ refundAmount }),
     }),
 
   // POS Orders
   createPOSOrder: (data: {
-    items: { productId: string; quantity: number; unitPricePaise: number }[];
+    items: { productId: string; quantity: number; unitPrice: number }[];
     customerId?: string;
     customerName?: string;
     customerPhone?: string;
@@ -492,8 +496,8 @@ export const api = {
     paymentMethod: "cash" | "card" | "upi";
     paymentReference?: string;
     couponCode?: string;
-    extraDiscountPaise?: number;
-    paidAmountPaise: number;
+    extraDiscount?: number;
+    paidAmount: number;
   }) =>
     request<{ message: string; data: any }>("/pos/orders", {
       method: "POST",
@@ -516,7 +520,7 @@ export const api = {
       productSku: string;
       productImage: string;
       quantity: number;
-      unitPricePaise: number;
+      unitPrice: number;
       stockQuantity: number;
     }[];
     couponCode?: string;
@@ -728,6 +732,81 @@ export const api = {
       data: FlashDealProductInfo[];
       pagination: { page: number; limit: number; total: number; totalPages: number };
     }>(`/offers-deals/flash-deals/${id}/available-products?${query}`);
+  },
+
+  // Deal of the Day (Offers & Deals module)
+  getDealOfTheDayList: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    isActive?: boolean;
+  } = {}) => {
+    const query = new URLSearchParams();
+    if (params.page) query.set("page", params.page.toString());
+    if (params.limit) query.set("limit", params.limit.toString());
+    if (params.search) query.set("search", params.search);
+    if (params.isActive !== undefined) query.set("isActive", params.isActive.toString());
+    return request<{
+      data: DealOfTheDay[];
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+      stats: DealOfTheDayStats;
+    }>(`/offers-deals/deal-of-the-day?${query}`);
+  },
+  getDealOfTheDay: (id: string, includeProducts: boolean = false) => {
+    const query = includeProducts ? "?includeProducts=true" : "";
+    return request<DealOfTheDay>(`/offers-deals/deal-of-the-day/${id}${query}`);
+  },
+  createDealOfTheDay: (data: CreateDealOfTheDayInput) =>
+    request<DealOfTheDay>("/offers-deals/deal-of-the-day", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  updateDealOfTheDay: (id: string, data: Partial<CreateDealOfTheDayInput>) =>
+    request<DealOfTheDay>(`/offers-deals/deal-of-the-day/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  deleteDealOfTheDay: (id: string) =>
+    request<{ message: string }>(`/offers-deals/deal-of-the-day/${id}`, { method: "DELETE" }),
+  toggleDealOfTheDayActive: (id: string) =>
+    request<DealOfTheDay>(`/offers-deals/deal-of-the-day/${id}/toggle-active`, { method: "PATCH" }),
+  addDealOfTheDayProducts: (id: string, productIds: string[]) =>
+    request<DealOfTheDay>(`/offers-deals/deal-of-the-day/${id}/products`, {
+      method: "POST",
+      body: JSON.stringify({ productIds }),
+    }),
+  removeDealOfTheDayProducts: (id: string, productIds: string[]) =>
+    request<DealOfTheDay>(`/offers-deals/deal-of-the-day/${id}/products`, {
+      method: "DELETE",
+      body: JSON.stringify({ productIds }),
+    }),
+  getAvailableDealOfTheDayProducts: (id: string, params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  } = {}) => {
+    const query = new URLSearchParams();
+    if (params.page) query.set("page", params.page.toString());
+    if (params.limit) query.set("limit", params.limit.toString());
+    if (params.search) query.set("search", params.search);
+    return request<{
+      data: DealOfTheDayProductInfo[];
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+    }>(`/offers-deals/deal-of-the-day/${id}/available-products?${query}`);
+  },
+  searchProductsForDealOfTheDay: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  } = {}) => {
+    const query = new URLSearchParams();
+    if (params.page) query.set("page", params.page.toString());
+    if (params.limit) query.set("limit", params.limit.toString());
+    if (params.search) query.set("search", params.search);
+    return request<{
+      data: DealOfTheDayProductInfo[];
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+    }>(`/offers-deals/deal-of-the-day/products/search?${query}`);
   },
 
   // Storage Providers

@@ -47,7 +47,7 @@ export default function TopSellingChart({ items }: TopSellingChartProps) {
             </div>
             <div className="tops-stats">
               <span className="tops-units">{item.unitsSold.toLocaleString("en-IN")} units</span>
-              <span className="tops-revenue">{formatPrice(item.revenuePaise, { compact: true })}</span>
+              <span className="tops-revenue">{formatPrice(item.revenue, { compact: true })}</span>
             </div>
           </li>
         );

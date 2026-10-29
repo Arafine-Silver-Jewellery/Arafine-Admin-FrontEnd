@@ -23,9 +23,9 @@ interface Product {
   description: string | null;
   shortDescription: string | null;
   sku: string;
-  pricePaise: number;
-  compareAtPricePaise: number | null;
-  costPricePaise: number | null;
+  price: number;
+  compareAtPrice: number | null;
+  costPrice: number | null;
   stockQuantity: number;
   lowStockThreshold: number;
   status: string;
@@ -84,8 +84,8 @@ export default function ProductView() {
     }
   }
 
-  function formatPrice(paise: number): string {
-    return `₹${(paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+  function formatPrice(rupees: number): string {
+    return `₹${rupees.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
   }
 
   function getStockStatus() {
@@ -323,30 +323,30 @@ export default function ProductView() {
                 <div className="info-row">
                   <span className="info-label">Unit Price</span>
                   <span className="info-value price-value">
-                    {formatPrice(product.pricePaise)}
+                    {formatPrice(product.price)}
                   </span>
                 </div>
-                {product.compareAtPricePaise && (
+                {product.compareAtPrice && (
                   <div className="info-row">
                     <span className="info-label">Compare at Price</span>
                     <span className="info-value price-compare">
-                      {formatPrice(product.compareAtPricePaise)}
+                      {formatPrice(product.compareAtPrice)}
                     </span>
                   </div>
                 )}
-                {product.costPricePaise && (
+                {product.costPrice && (
                   <div className="info-row">
                     <span className="info-label">Cost Price</span>
-                    <span className="info-value">{formatPrice(product.costPricePaise)}</span>
+                    <span className="info-value">{formatPrice(product.costPrice)}</span>
                   </div>
                 )}
-                {product.compareAtPricePaise && (
+                {product.compareAtPrice && (
                   <div className="info-row">
                     <span className="info-label">Discount</span>
                     <span className="info-value discount-badge">
                       {Math.round(
-                        ((product.compareAtPricePaise - product.pricePaise) /
-                          product.compareAtPricePaise) *
+                        ((product.compareAtPrice - product.price) /
+                          product.compareAtPrice) *
                           100
                       )}
                       % OFF
