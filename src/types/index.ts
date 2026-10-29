@@ -542,6 +542,10 @@ export interface Banner {
   productId?: string | null;
   /** Storefront path or URL the banner opens; null when the target is gone */
   link: string | null;
+  impressions: number;
+  clicks: number;
+  /** Click-through rate as a percentage */
+  ctr: number;
   published: boolean;
   createdAt: string;
   updatedAt: string;

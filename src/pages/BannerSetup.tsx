@@ -479,6 +479,22 @@ export default function BannerSetup() {
         ),
     },
     {
+      key: "stats",
+      header: "Views / Clicks",
+      width: "130px",
+      render: (banner: Banner) => (
+        <span title={`${banner.impressions} views, ${banner.clicks} clicks`}>
+          {banner.impressions.toLocaleString("en-IN")} / {banner.clicks.toLocaleString("en-IN")}
+        </span>
+      ),
+    },
+    {
+      key: "ctr",
+      header: "CTR",
+      width: "70px",
+      render: (banner: Banner) => <span style={{ fontWeight: 500 }}>{banner.ctr}%</span>,
+    },
+    {
       key: "createdAt",
       header: "Created",
       width: "110px",
