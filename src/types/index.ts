@@ -657,3 +657,41 @@ export interface FlashDealStats {
   upcomingDeals: number;
   totalProducts: number;
 }
+
+// ---------------------------------------------------------------------------
+// Deal of the Day types
+// ---------------------------------------------------------------------------
+
+export interface DealOfTheDayProductInfo {
+  id: string;
+  name: string;
+  sku: string;
+  pricePaise: number;
+  stockQuantity: number;
+  imageUrl: string | null;
+}
+
+export interface DealOfTheDay {
+  id: string;
+  title: string;
+  description: string | null;
+  productIds: string[];
+  isActive: boolean;
+  activeProductsCount: number;
+  products?: DealOfTheDayProductInfo[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateDealOfTheDayInput {
+  title: string;
+  description?: string | null;
+  productIds: string[];
+  isActive?: boolean;
+}
+
+export interface DealOfTheDayStats {
+  totalDeals: number;
+  activeDeals: number;
+  totalProducts: number;
+}
