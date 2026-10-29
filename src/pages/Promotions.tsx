@@ -64,11 +64,11 @@ export default function Promotions() {
         type: promotion.type,
         scope: promotion.scope,
         value: promotion.value.toString(),
-        minCartValue: promotion.minCartValue
-          ? promotion.minCartValue.toString()
+        minCartValue: promotion.minCartValueRupees
+          ? promotion.minCartValueRupees.toString()
           : "",
-        maxDiscount: promotion.maxDiscount
-          ? promotion.maxDiscount.toString()
+        maxDiscount: promotion.maxDiscountRupees
+          ? promotion.maxDiscountRupees.toString()
           : "",
         startsAt: promotion.startsAt.slice(0, 16),
         endsAt: promotion.endsAt.slice(0, 16),
@@ -123,10 +123,10 @@ export default function Promotions() {
       type: formData.type,
       scope: formData.scope,
       value: parseFloat(formData.value),
-      minCartValue: formData.minCartValue
+      minCartValueRupees: formData.minCartValue
         ? parseFloat(formData.minCartValue)
         : null,
-      maxDiscount: formData.maxDiscount
+      maxDiscountRupees: formData.maxDiscount
         ? parseFloat(formData.maxDiscount)
         : null,
       startsAt: formData.startsAt,
@@ -240,7 +240,7 @@ export default function Promotions() {
                         {promo.type === "percentage"
                           ? `${promo.value}%`
                           : promo.type === "fixed_amount"
-                            ? formatPrice(promo.value * 100)
+                            ? formatPrice(promo.value)
                             : "-"}
                       </td>
                       <td>

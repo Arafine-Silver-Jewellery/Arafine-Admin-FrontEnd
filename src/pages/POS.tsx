@@ -1059,7 +1059,7 @@ export default function POS() {
     return sum + (comparePrice - item.product.price) * item.quantity;
   }, 0);
   
-  const total = subTotal - (extraDiscount * 100);
+  const total = subTotal - extraDiscount;
 
   async function handlePlaceOrder() {
     if (cart.length === 0) return;
@@ -1776,7 +1776,7 @@ export default function POS() {
                     {(couponCode || extraDiscount > 0) && (
                       <div className="customer-order-row">
                         <span>Discounts:</span>
-                        <span>-{formatPrice(extraDiscount * 100)}</span>
+                        <span>-{formatPrice(extraDiscount)}</span>
                       </div>
                     )}
                     <div className="customer-order-row total">

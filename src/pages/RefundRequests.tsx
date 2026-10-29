@@ -141,8 +141,8 @@ export default function RefundRequests({ statusFilter = "pending" }: RefundReque
     }
     setProcessing(refundTarget.id);
     try {
-      await api.processOrderRefund(refundTarget.id, Math.round(amountInr * 100));
-      toast.success(`Refunded ${formatPrice(Math.round(amountInr * 100))} for ${refundTarget.orderNumber}`);
+      await api.processOrderRefund(refundTarget.id, Math.round(amountInr));
+      toast.success(`Refunded ${formatPrice(Math.round(amountInr))} for ${refundTarget.orderNumber}`);
       closeRefundModal();
       await loadRefunds();
     } catch (error) {
