@@ -17,7 +17,7 @@ import RefundRequests from "./pages/RefundRequests";
 import { Categories, SubCategories, SubSubCategories } from "./pages/CategorySetup";
 import { ProductList, AddNewProduct, ProductView, GenerateBarcode, LimitedStock, BulkImport, RequestRestockList } from "./pages/ProductsModule";
 import BannerSetup from "./pages/BannerSetup";
-import { Coupon, FlashDeals, DealOfTheDay, FeaturedDeal, ClearanceSale } from "./pages/OffersDeals";
+import { Coupon, FlashDeals, DealOfTheDay, FeaturedDeal, ClearanceSale, Offers } from "./pages/OffersDeals";
 import { SendNotification, PushNotificationsSetup } from "./pages/Notifications";
 import { Inbox, Messages, SupportTicket } from "./pages/HelpSupport";
 import { EarningReports, InhouseSales, VendorSales, TransactionReport, ProductReport, OrderReport } from "./pages/Reports";
@@ -93,6 +93,7 @@ function App() {
             {/* Offers & Deals */}
             <Route path="offers-deals" element={<RequirePermission permission="offers-deals"><Coupon /></RequirePermission>} />
             <Route path="offers-deals/coupon" element={<RequirePermission permission="offers-deals"><Coupon /></RequirePermission>} />
+            <Route path="offers-deals/offers" element={<RequirePermission permission="offers-deals"><Offers /></RequirePermission>} />
             <Route path="offers-deals/flash-deals" element={<RequirePermission permission="offers-deals"><FlashDeals /></RequirePermission>} />
             <Route path="offers-deals/deal-of-the-day" element={<RequirePermission permission="offers-deals"><DealOfTheDay /></RequirePermission>} />
             <Route path="offers-deals/featured-deal" element={<RequirePermission permission="offers-deals"><FeaturedDeal /></RequirePermission>} />

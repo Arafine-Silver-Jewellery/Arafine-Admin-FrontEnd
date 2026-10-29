@@ -148,6 +148,13 @@ export const MENU_ITEMS: MenuItem[] = [
     keywords: ["offer", "deal", "discount", "promo"],
   },
   {
+    path: "/offers-deals/offers",
+    label: "Offers",
+    group: "Promotion Management",
+    permission: "offers-deals",
+    keywords: ["offer", "bogo", "bundle", "clearance", "deal", "discount", "promo"],
+  },
+  {
     path: "/offers-deals/flash-deals",
     label: "Flash Deals",
     group: "Promotion Management",

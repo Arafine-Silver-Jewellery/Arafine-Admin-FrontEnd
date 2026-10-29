@@ -525,9 +525,7 @@ export interface Promotion {
 }
 
 export type BannerType = "Carousel" | "2 X 2 Banner" | "Custom Banner";
-export type BannerResourceType = "Custom" | "Category" | "Product";
-
-export interface Banner {
+export type BannerResourceType = "Custom" | "Category" | "Product";export interface Banner {
   id: string;
   imageUrl: string;
   imageKey?: string;
@@ -550,6 +548,59 @@ export interface Banner {
   createdAt: string;
   updatedAt: string;
 }
+
+// ---------------------------------------------------------------------------
+// Offer (BOGO / bundle / clearance) types
+// ---------------------------------------------------------------------------
+
+export type OfferType = "bogo" | "bundle" | "clearance";
+export type OfferDiscountType = "percentage" | "fixed";
+export type OfferScope = "all" | "category" | "product";
+export type OfferStatus = "inactive" | "scheduled" | "live" | "expired";
+
+export interface Offer {
+  id: string;
+  name: string;
+  description: string | null;
+  offerType: OfferType;
+  discountType: OfferDiscountType;
+  /** Percent or rupees, depending on discountType */
+  discountValue: number;
+  buyQuantity: number;
+  /** BOGO only */
+  getQuantity: number;
+  scope: OfferScope;
+  categoryIds: string[];
+  productIds: string[];
+  categories: { id: string; name: string }[];
+  products: { id: string; name: string }[];
+  startsAt: string;
+  endsAt: string;
+  isActive: boolean;
+  status: OfferStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type OfferStats = Record<OfferStatus, number> & { total: number };
+
+export interface CreateOfferInput {
+  name: string;
+  description?: string | null;
+  offerType: OfferType;
+  discountType: OfferDiscountType;
+  discountValue: number;
+  buyQuantity: number;
+  getQuantity: number;
+  scope: OfferScope;
+  categoryIds: string[];
+  productIds: string[];
+  startsAt: string;
+  endsAt: string;
+  isActive: boolean;
+}
+
+export type UpdateOfferInput = Partial<CreateOfferInput>;
 
 
 // ---------------------------------------------------------------------------

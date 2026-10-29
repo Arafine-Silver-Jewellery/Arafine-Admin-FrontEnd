@@ -22,6 +22,7 @@ const productsSubmenus = [
 
 const offersDealsSubmenus = [
   { path: "/offers-deals/coupon", label: "Coupon" },
+  { path: "/offers-deals/offers", label: "Offers" },
   { path: "/offers-deals/flash-deals", label: "Flash Deals" },
   { path: "/offers-deals/deal-of-the-day", label: "Deal of the day" },
   { path: "/offers-deals/featured-deal", label: "Featured Deal" },
@@ -75,6 +76,7 @@ const pageTitleMap: Record<string, { title: string; icon: string }> = {
   "/banner-setup": { title: "Banner Setup", icon: "banner" },
   "/banners": { title: "Banner Setup", icon: "banner" },
   "/offers-deals/coupon": { title: "Coupon", icon: "offer" },
+  "/offers-deals/offers": { title: "Offers", icon: "offer" },
   "/offers-deals/flash-deals": { title: "Flash Deals", icon: "offer" },
   "/offers-deals/deal-of-the-day": { title: "Deal of the Day", icon: "offer" },
   "/offers-deals/featured-deal": { title: "Featured Deal", icon: "offer" },
