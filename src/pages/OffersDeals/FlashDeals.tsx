@@ -93,8 +93,8 @@ function formatDateForInput(dateStr: string): string {
   return date.toISOString().slice(0, 16);
 }
 
-function formatPaise(paise: number): string {
-  return `₹${(paise / 100).toFixed(2)}`;
+function formatRupees(rupees: number): string {
+  return `₹${rupees.toFixed(2)}`;
 }
 
 type Stats = {
@@ -953,7 +953,7 @@ export default function FlashDeals() {
                           <div style={{ fontWeight: 500, marginBottom: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{product.name}</div>
                           <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "flex", gap: "12px" }}>
                             <span>SKU: {product.sku}</span>
-                            <span>{formatPaise(product.pricePaise)}</span>
+                            <span>{formatRupees(product.price)}</span>
                           </div>
                         </div>
                         <button
@@ -1054,7 +1054,7 @@ export default function FlashDeals() {
                             <div style={{ fontWeight: 500, marginBottom: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{product.name}</div>
                             <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "flex", gap: "12px" }}>
                               <span>SKU: {product.sku}</span>
-                              <span>{formatPaise(product.pricePaise)}</span>
+                              <span>{formatRupees(product.price)}</span>
                               <span>Stock: {product.stockQuantity}</span>
                             </div>
                           </div>

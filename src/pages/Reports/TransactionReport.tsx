@@ -228,8 +228,8 @@ export default function TransactionReport() {
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
   const [expenseTotals, setExpenseTotals] = useState({
     count: 0,
-    totalAmountPaise: 0,
-    paidAmountPaise: 0,
+    totalAmount: 0,
+    paidAmount: 0,
   });
 
   const [loading, setLoading] = useState(true);
@@ -281,7 +281,7 @@ export default function TransactionReport() {
       setTotalPages(response.pagination?.totalPages || 1);
       setTotalItems(response.pagination?.total || 0);
       setExpenseTotals(
-        response.totals ?? { count: 0, totalAmountPaise: 0, paidAmountPaise: 0 },
+        response.totals ?? { count: 0, totalAmount: 0, paidAmount: 0 },
       );
     }
     catch (err) {
@@ -381,20 +381,20 @@ export default function TransactionReport() {
 
   // --- Derived values ----------------------------------------------------
   const orderStats = useMemo(() => {
-    const totalAmountPaise = orders.reduce((sum, o) => sum + (o.totalPaise ?? 0), 0);
+    const totalAmount = orders.reduce((sum, o) => sum + (o.total ?? 0), 0);
     const completed = orders.filter((o) => o.paymentStatus === "paid").length;
     const pending = orders.filter((o) => o.paymentStatus === "pending").length;
-    return { totalAmountPaise, completed, pending };
+    return { totalAmount, completed, pending };
   }, [orders]);
 
   const refundStats = useMemo(() => {
-    const totalRefundPaise = orders.reduce(
-      (sum, o) => sum + (o.refundAmountPaise ?? 0),
+    const totalRefund = orders.reduce(
+      (sum, o) => sum + (o.refundAmount ?? 0),
       0,
     );
     const processed = orders.filter((o) => o.paymentStatus === "refunded").length;
     const pending = orders.filter((o) => o.paymentStatus === "partially_refunded").length;
-    return { totalRefundPaise, processed, pending };
+    return { totalRefund, processed, pending };
   }, [orders]);
 
   // --- Export ------------------------------------------------------------
@@ -409,7 +409,7 @@ export default function TransactionReport() {
         expense.description ?? "",
         formatDate(expense.expenseDate),
         expense.status,
-        formatPrice(expense.amountPaise),
+        formatPrice(expense.amount),
       ]);
       downloadCsv(`expense-transactions-${stamp}`, buildCsv(headers, data));
       return;
@@ -430,7 +430,7 @@ export default function TransactionReport() {
         order.shippingAddress?.fullName ?? "",
         order.refundedAt ? formatDateTime(order.refundedAt) : "—",
         order.returnReason ?? "",
-        formatPrice(order.refundAmountPaise ?? 0),
+        formatPrice(order.refundAmount ?? 0),
         titleCase(order.paymentStatus),
       ]);
       downloadCsv(`refund-transactions-${stamp}`, buildCsv(headers, data));
@@ -451,7 +451,7 @@ export default function TransactionReport() {
       order.shippingAddress?.fullName ?? "",
       formatDateTime(order.createdAt),
       order.paymentMethod ?? "",
-      formatPrice(order.totalPaise),
+      formatPrice(order.total),
       titleCase(order.paymentStatus),
     ]);
     downloadCsv(`order-transactions-${stamp}`, buildCsv(headers, data));
@@ -506,11 +506,11 @@ export default function TransactionReport() {
       ),
     },
     {
-      key: "totalPaise",
+      key: "total",
       header: "Amount",
       align: "right" as const,
       render: (order: Order) => (
-        <span className="amount-positive">{formatPrice(order.totalPaise)}</span>
+        <span className="amount-positive">{formatPrice(order.total)}</span>
       ),
     },
     {
@@ -572,11 +572,11 @@ export default function TransactionReport() {
       render: (expense: ExpenseRow) => formatDate(expense.expenseDate),
     },
     {
-      key: "amountPaise",
+      key: "amount",
       header: "Amount",
       align: "right" as const,
       render: (expense: ExpenseRow) => (
-        <span className="amount-negative">-{formatPrice(expense.amountPaise)}</span>
+        <span className="amount-negative">-{formatPrice(expense.amount)}</span>
       ),
     },
     {
@@ -633,12 +633,12 @@ export default function TransactionReport() {
       render: (order: Order) => order.returnReason || "—",
     },
     {
-      key: "refundAmountPaise",
+      key: "refundAmount",
       header: "Amount",
       align: "right" as const,
       render: (order: Order) => (
         <span className="amount-negative">
-          -{formatPrice(order.refundAmountPaise ?? order.totalPaise)}
+          -{formatPrice(order.refundAmount ?? order.total)}
         </span>
       ),
     },
@@ -770,8 +770,8 @@ export default function TransactionReport() {
               {icons.dollarSign}
             </div>
             <div className="product-report-stat-content">
-              <h2 style={{ fontSize: orderStats.totalAmountPaise > 10000000 ? "22px" : "28px" }}>
-                {formatPrice(orderStats.totalAmountPaise, { compact: true })}
+              <h2 style={{ fontSize: orderStats.totalAmount > 10000000 ? "22px" : "28px" }}>
+                {formatPrice(orderStats.totalAmount, { compact: true })}
               </h2>
               <p>Total Transaction Amount</p>
             </div>
@@ -814,8 +814,8 @@ export default function TransactionReport() {
               {icons.arrowDownLeft}
             </div>
             <div className="product-report-stat-content">
-              <h2 style={{ fontSize: expenseTotals.totalAmountPaise > 10000000 ? "22px" : "28px" }}>
-                {formatPrice(expenseTotals.totalAmountPaise, { compact: true })}
+              <h2 style={{ fontSize: expenseTotals.totalAmount > 10000000 ? "22px" : "28px" }}>
+                {formatPrice(expenseTotals.totalAmount, { compact: true })}
               </h2>
               <p>Total Expenses</p>
             </div>
@@ -834,8 +834,8 @@ export default function TransactionReport() {
               {icons.checkCircle}
             </div>
             <div className="product-report-stat-content">
-              <h2 style={{ fontSize: expenseTotals.paidAmountPaise > 10000000 ? "22px" : "28px" }}>
-                {formatPrice(expenseTotals.paidAmountPaise, { compact: true })}
+              <h2 style={{ fontSize: expenseTotals.paidAmount > 10000000 ? "22px" : "28px" }}>
+                {formatPrice(expenseTotals.paidAmount, { compact: true })}
               </h2>
               <p>Paid Amount</p>
             </div>
@@ -845,8 +845,8 @@ export default function TransactionReport() {
               {icons.clock}
             </div>
             <div className="product-report-stat-content">
-              <h2 style={{ fontSize: (expenseTotals.totalAmountPaise - expenseTotals.paidAmountPaise) > 10000000 ? "22px" : "28px" }}>
-                {formatPrice(expenseTotals.totalAmountPaise - expenseTotals.paidAmountPaise, { compact: true })}
+              <h2 style={{ fontSize: (expenseTotals.totalAmount - expenseTotals.paidAmount) > 10000000 ? "22px" : "28px" }}>
+                {formatPrice(expenseTotals.totalAmount - expenseTotals.paidAmount, { compact: true })}
               </h2>
               <p>Pending Amount</p>
             </div>
@@ -862,8 +862,8 @@ export default function TransactionReport() {
               {icons.refreshCw}
             </div>
             <div className="product-report-stat-content">
-              <h2 style={{ fontSize: refundStats.totalRefundPaise > 10000000 ? "22px" : "28px" }}>
-                {formatPrice(refundStats.totalRefundPaise, { compact: true })}
+              <h2 style={{ fontSize: refundStats.totalRefund > 10000000 ? "22px" : "28px" }}>
+                {formatPrice(refundStats.totalRefund, { compact: true })}
               </h2>
               <p>Total Refund Amount</p>
             </div>

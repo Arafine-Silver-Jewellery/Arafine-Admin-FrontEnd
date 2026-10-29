@@ -64,8 +64,8 @@ const STATUS_FILTERS = [
   { value: "inactive", label: "Inactive" },
 ];
 
-function formatPaise(paise: number): string {
-  return `₹${(paise / 100).toFixed(2)}`;
+function formatRupees(rupees: number): string {
+  return `₹${rupees.toFixed(2)}`;
 }
 
 export default function DealOfTheDay() {
@@ -724,7 +724,7 @@ export default function DealOfTheDay() {
                             {product.name}
                           </div>
                           <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                            SKU: {product.sku} • {formatPaise(product.pricePaise)}
+                            <span>SKU: {product.sku} • {formatRupees(product.price)}</span>
                           </div>
                         </div>
                       </div>

@@ -15,7 +15,7 @@ interface Customer {
   isBlocked: boolean;
   isDeleted: boolean;
   orderCount: number;
-  totalSpentPaise: number;
+  totalSpent: number;
   createdAt: string;
 }
 
@@ -24,7 +24,7 @@ interface CustomerDetails extends Customer {
     id: string;
     orderNumber: string;
     createdAt: string;
-    totalPaise: number;
+    total: number;
     status: string;
     paymentStatus: string;
   }[];
@@ -180,8 +180,8 @@ export default function CustomerList() {
     window.open(exportUrl, "_blank");
   }
 
-  function formatPrice(paise: number): string {
-    return `₹${(paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+  function formatPrice(rupees: number): string {
+    return `₹${rupees.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
   }
 
   function formatDate(dateString: string): string {
@@ -238,7 +238,7 @@ export default function CustomerList() {
       key: "spent",
       header: "Total Spent",
       render: (customer: Customer) => (
-        <span style={{ fontWeight: 500, color: "var(--color-success)" }}>{formatPrice(customer.totalSpentPaise)}</span>
+        <span style={{ fontWeight: 500, color: "var(--color-success)" }}>{formatPrice(customer.totalSpent)}</span>
       ),
     },
     {
@@ -442,7 +442,7 @@ export default function CustomerList() {
                     </div>
                     <div style={{ padding: "1rem", background: "var(--surface-alt)", borderRadius: "var(--radius-md)" }}>
                       <span style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--color-success)" }}>
-                        {formatPrice(selectedCustomer.totalSpentPaise)}
+                        {formatPrice(selectedCustomer.totalSpent)}
                       </span>
                       <span className="ak-text-muted" style={{ display: "block" }}>
                         Total Spent
@@ -474,7 +474,7 @@ export default function CustomerList() {
                               </span>
                             </div>
                             <div style={{ textAlign: "right" }}>
-                              <span style={{ fontWeight: 500 }}>{formatPrice(Number(order.totalPaise))}</span>
+                              <span style={{ fontWeight: 500 }}>{formatPrice(Number(order.total))}</span>
                               <span
                                 className={`ak-status ak-status--${order.status === "delivered" ? "success" : order.status === "cancelled" ? "danger" : "warning"}`}
                                 style={{ display: "block", marginTop: "0.25rem" }}

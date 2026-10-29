@@ -26,8 +26,8 @@ interface Product {
   description: string | null;
   shortDescription: string | null;
   sku: string;
-  pricePaise: number;
-  compareAtPricePaise: number | null;
+  price: number;
+  compareAtPrice: number | null;
   stockQuantity: number;
   lowStockThreshold: number;
   status: string;
@@ -244,8 +244,8 @@ export default function ProductList({ filter = "" }: { filter?: StatusFilter }) 
     }
   }
 
-  function formatPrice(paise: number): string {
-    return `₹${(paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+  function formatPrice(rupees: number): string {
+    return `₹${rupees.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
   }
 
   async function handleExport() {
@@ -257,7 +257,7 @@ export default function ProductList({ filter = "" }: { filter?: StatusFilter }) 
         "Product Name": product.name,
         SKU: product.sku,
         Category: product.category?.name || "",
-        "Price (₹)": (product.pricePaise / 100).toFixed(2),
+        "Price (₹)": product.price.toFixed(2),
         Stock: product.stockQuantity,
         Status: product.status,
         Featured: product.isFeatured ? "Yes" : "No",
@@ -335,9 +335,9 @@ export default function ProductList({ filter = "" }: { filter?: StatusFilter }) 
       header: "Price",
       render: (product: Product) => (
         <div className="ak-price-cell">
-          <span className="ak-price-cell__current">{formatPrice(product.pricePaise)}</span>
-          {product.compareAtPricePaise && (
-            <span className="ak-price-cell__compare">{formatPrice(product.compareAtPricePaise)}</span>
+          <span className="ak-price-cell__current">{formatPrice(product.price)}</span>
+          {product.compareAtPrice && (
+            <span className="ak-price-cell__compare">{formatPrice(product.compareAtPrice)}</span>
           )}
         </div>
       ),

@@ -8,7 +8,7 @@ interface Product {
   id: string;
   name: string;
   sku: string;
-  pricePaise: number;
+  price: number;
   stockQuantity: number;
 }
 
@@ -40,8 +40,8 @@ export default function GenerateBarcode() {
     }
   }
 
-  function formatPrice(paise: number): string {
-    return `₹${(paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+  function formatPrice(rupees: number): string {
+    return `₹${rupees.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
   }
 
   function generateBarcodes() {
@@ -270,7 +270,7 @@ export default function GenerateBarcode() {
               <div key={index} className="barcode-print-item">
                 <div className="barcode-company">{companyName}</div>
                 <div className="barcode-product-name">{product.name}</div>
-                <div className="barcode-price">{formatPrice(product.pricePaise)}</div>
+                <div className="barcode-price">{formatPrice(product.price)}</div>
                 <svg className="barcode-svg"></svg>
                 <div className="barcode-code">Code : {code}</div>
               </div>

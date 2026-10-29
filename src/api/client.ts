@@ -460,15 +460,15 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ adminNote }),
     }),
-  processOrderRefund: (id: string, refundAmountPaise: number) =>
+  processOrderRefund: (id: string, refundAmount: number) =>
     request<any>(`/orders/${id}/refund`, {
       method: "PATCH",
-      body: JSON.stringify({ refundAmountPaise }),
+      body: JSON.stringify({ refundAmount }),
     }),
 
   // POS Orders
   createPOSOrder: (data: {
-    items: { productId: string; quantity: number; unitPricePaise: number }[];
+    items: { productId: string; quantity: number; unitPrice: number }[];
     customerId?: string;
     customerName?: string;
     customerPhone?: string;
@@ -496,8 +496,8 @@ export const api = {
     paymentMethod: "cash" | "card" | "upi";
     paymentReference?: string;
     couponCode?: string;
-    extraDiscountPaise?: number;
-    paidAmountPaise: number;
+    extraDiscount?: number;
+    paidAmount: number;
   }) =>
     request<{ message: string; data: any }>("/pos/orders", {
       method: "POST",
@@ -520,7 +520,7 @@ export const api = {
       productSku: string;
       productImage: string;
       quantity: number;
-      unitPricePaise: number;
+      unitPrice: number;
       stockQuantity: number;
     }[];
     couponCode?: string;

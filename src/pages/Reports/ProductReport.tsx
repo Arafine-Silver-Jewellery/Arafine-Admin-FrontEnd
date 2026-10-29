@@ -194,11 +194,11 @@ export default function ProductReport() {
 
   // --- Derived values ----------------------------------------------------
   const allStats = useMemo(() => {
-    const totalAmountPaise = allRows.reduce((sum, r) => sum + r.totalAmountPaise, 0);
+    const totalAmount = allRows.reduce((sum, r) => sum + r.totalAmount, 0);
     const unitsSold = allRows.reduce((sum, r) => sum + r.unitsSold, 0);
     const totalStock = allRows.reduce((sum, r) => sum + r.currentStock, 0);
     const outOfStock = allRows.filter((r) => r.currentStock <= 0).length;
-    return { totalAmountPaise, unitsSold, totalStock, outOfStock };
+    return { totalAmount, unitsSold, totalStock, outOfStock };
   }, [allRows]);
 
   // Top sellers for the Product Statistics section
@@ -289,8 +289,8 @@ export default function ProductReport() {
           (allPage - 1) * PAGE_SIZE + index + 1,
           row.name,
           row.sku,
-          formatPrice(row.unitPricePaise),
-          formatPrice(row.totalAmountPaise),
+          formatPrice(row.unitPrice),
+          formatPrice(row.totalAmount),
           row.unitsSold,
         ]),
       ),
@@ -367,16 +367,16 @@ export default function ProductReport() {
       ),
     },
     {
-      key: "unitPricePaise",
+      key: "unitPrice",
       header: "Unit Price",
       align: "right" as const,
-      render: (row: ProductSalesRow) => formatPrice(row.unitPricePaise),
+      render: (row: ProductSalesRow) => formatPrice(row.unitPrice),
     },
     {
-      key: "totalAmountPaise",
+      key: "totalAmount",
       header: "Total Amount Sold",
       align: "right" as const,
-      render: (row: ProductSalesRow) => formatPrice(row.totalAmountPaise),
+      render: (row: ProductSalesRow) => formatPrice(row.totalAmount),
     },
     {
       key: "unitsSold",
@@ -442,7 +442,7 @@ export default function ProductReport() {
         <div className="vendor-info">
           <span className="product-name">{row.name}</span>
           <span className="vendor-email">
-            {row.sku} · {formatPrice(row.pricePaise)}
+            {row.sku} · {formatPrice(row.price)}
           </span>
         </div>
       ),
@@ -656,7 +656,7 @@ export default function ProductReport() {
                 </svg>
               </div>
               <div className="product-report-stat-content">
-                <h2>{formatPrice(allStats.totalAmountPaise, { compact: true })}</h2>
+                <h2>{formatPrice(allStats.totalAmount, { compact: true })}</h2>
                 <p>Total Amount Sold</p>
               </div>
             </div>
@@ -711,7 +711,7 @@ export default function ProductReport() {
                       </div>
                       <div className="product-stats-values">
                         <span className="product-stats-units">{item.unitsSold} units</span>
-                        <span className="product-stats-revenue">{formatPrice(item.totalAmountPaise, { compact: true })}</span>
+                        <span className="product-stats-revenue">{formatPrice(item.totalAmount, { compact: true })}</span>
                       </div>
                     </div>
                   ))
@@ -1090,7 +1090,7 @@ export default function ProductReport() {
                       </div>
                       <div className="product-stats-values">
                         <span className="product-stats-units">{item.wishlistCount} wishes</span>
-                        <span className="product-stats-revenue">{formatPrice(item.pricePaise)}</span>
+                        <span className="product-stats-revenue">{formatPrice(item.price)}</span>
                       </div>
                     </div>
                   ))

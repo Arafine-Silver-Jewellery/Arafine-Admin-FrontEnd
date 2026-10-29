@@ -190,10 +190,10 @@ export default function EarningReports() {
 
   const [vendorRows, setVendorRows] = useState<VendorEarningRow[]>([]);
   const [vendorTotals, setVendorTotals] = useState({
-    totalEarnedPaise: 0,
-    pendingPaise: 0,
-    withdrawablePaise: 0,
-    withdrawnPaise: 0,
+    totalEarned: 0,
+    pending: 0,
+    withdrawable: 0,
+    withdrawn: 0,
   });
   const [vendorPage, setVendorPage] = useState(1);
   const [vendorTotalPages, setVendorTotalPages] = useState(1);
@@ -236,10 +236,10 @@ export default function EarningReports() {
       setVendorTotal(response.pagination?.total || 0);
       setVendorTotals(
         response.totals ?? {
-          totalEarnedPaise: 0,
-          pendingPaise: 0,
-          withdrawablePaise: 0,
-          withdrawnPaise: 0,
+          totalEarned: 0,
+          pending: 0,
+          withdrawable: 0,
+          withdrawn: 0,
         },
       );
     }
@@ -264,7 +264,7 @@ export default function EarningReports() {
   const notes = report?.notes;
 
   const paymentBreakdown = report?.paymentMethodBreakdown ?? [];
-  const paymentTotal = paymentBreakdown.reduce((sum, p) => sum + p.amountPaise, 0);
+  const paymentTotal = paymentBreakdown.reduce((sum, p) => sum + p.amount, 0);
 
   // The month-over-month movement on the headline figure, taken from the
   // last two periods the API returned.
@@ -344,7 +344,7 @@ export default function EarningReports() {
     const colors = ["#22c55e", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
     
     return paymentBreakdown.map((entry, index) => {
-      const percentage = (entry.amountPaise / total) * 100;
+      const percentage = (entry.amount / total) * 100;
       const angle = (percentage / 100) * 360;
       const segment = {
         method: entry.method,
@@ -352,7 +352,7 @@ export default function EarningReports() {
         startAngle: currentAngle,
         endAngle: currentAngle + angle,
         color: colors[index % colors.length],
-        amount: entry.amountPaise,
+        amount: entry.amount,
         orders: entry.orders,
       };
       currentAngle += angle;
@@ -431,11 +431,11 @@ export default function EarningReports() {
           row.totalProducts,
           row.approvedProducts,
           row.pendingApprovalProducts,
-          formatPrice(row.totalEarnedPaise),
-          formatPrice(row.pendingPaise),
-          formatPrice(row.withdrawablePaise),
-          formatPrice(row.withdrawnPaise),
-          formatPrice(row.walletBalancePaise),
+          formatPrice(row.totalEarned),
+          formatPrice(row.pending),
+          formatPrice(row.withdrawable),
+          formatPrice(row.withdrawn),
+          formatPrice(row.walletBalance),
         ]),
       ),
     );
@@ -546,28 +546,28 @@ export default function EarningReports() {
       ),
     },
     {
-      key: "totalEarnedPaise",
+      key: "totalEarned",
       header: "Total Earned",
       align: "right" as const,
-      render: (row: VendorEarningRow) => formatPrice(row.totalEarnedPaise),
+      render: (row: VendorEarningRow) => formatPrice(row.totalEarned),
     },
     {
-      key: "pendingPaise",
+      key: "pending",
       header: "Pending",
       align: "right" as const,
-      render: (row: VendorEarningRow) => formatPrice(row.pendingPaise),
+      render: (row: VendorEarningRow) => formatPrice(row.pending),
     },
     {
-      key: "withdrawablePaise",
+      key: "withdrawable",
       header: "Withdrawable",
       align: "right" as const,
-      render: (row: VendorEarningRow) => formatPrice(row.withdrawablePaise),
+      render: (row: VendorEarningRow) => formatPrice(row.withdrawable),
     },
     {
-      key: "withdrawnPaise",
+      key: "withdrawn",
       header: "Withdrawn",
       align: "right" as const,
-      render: (row: VendorEarningRow) => formatPrice(row.withdrawnPaise),
+      render: (row: VendorEarningRow) => formatPrice(row.withdrawn),
     },
     {
       key: "status",
@@ -992,7 +992,7 @@ export default function EarningReports() {
               <div className="er-summary-icon er-summary-icon--green">💵</div>
               <div className="er-summary-label">Total Earning</div>
               <div className="er-summary-value">
-                {formatPrice(vendorTotals.totalEarnedPaise, { compact: true })}
+                {formatPrice(vendorTotals.totalEarned, { compact: true })}
               </div>
             </div>
           </div>
@@ -1005,22 +1005,22 @@ export default function EarningReports() {
               <div className="er-wallet-stats">
                 <div className="er-wallet-amount">
                   <span className="er-wallet-value">
-                    {formatPrice(vendorTotals.withdrawablePaise, { compact: true })}
+                    {formatPrice(vendorTotals.withdrawable, { compact: true })}
                   </span>
                   <span className="er-wallet-label">Wallet Amount</span>
                 </div>
                 <div className="er-payment-legend">
                   <div className="er-legend-item">
                     <span className="er-legend-dot" style={{ background: "#3b82f6" }} />
-                    Withdrawable Balance ({formatPrice(vendorTotals.withdrawablePaise)})
+                    Withdrawable Balance ({formatPrice(vendorTotals.withdrawable)})
                   </div>
                   <div className="er-legend-item">
                     <span className="er-legend-dot" style={{ background: "#1e40af" }} />
-                    Pending Withdraws ({formatPrice(vendorTotals.pendingPaise)})
+                    Pending Withdraws ({formatPrice(vendorTotals.pending)})
                   </div>
                   <div className="er-legend-item">
                     <span className="er-legend-dot" style={{ background: "#fbbf24" }} />
-                    Already Withdrawn ({formatPrice(vendorTotals.withdrawnPaise)})
+                    Already Withdrawn ({formatPrice(vendorTotals.withdrawn)})
                   </div>
                 </div>
               </div>

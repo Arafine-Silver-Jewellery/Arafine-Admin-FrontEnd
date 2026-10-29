@@ -16,8 +16,8 @@ interface OrderItem {
   productName: string;
   productSku: string;
   quantity: number;
-  unitPricePaise: number;
-  totalPricePaise: number;
+  unitPrice: number;
+  totalPrice: number;
 }
 
 interface Order {
@@ -33,13 +33,13 @@ interface Order {
     state?: string;
     postalCode?: string;
   };
-  subtotalPaise: number;
-  discountPaise: number;
-  extraDiscountPaise?: number;
-  shippingPaise: number;
-  taxPaise: number;
-  totalPaise: number;
-  paidAmountPaise?: number;
+  subtotal: number;
+  discount: number;
+  extraDiscount?: number;
+  shipping: number;
+  tax: number;
+  total: number;
+  paidAmount?: number;
   paymentStatus: "pending" | "paid" | "failed" | "refunded" | "partially_refunded";
   paymentMethod?: string;
   status: string;
@@ -211,8 +211,8 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     return new Date(dateString).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
   }
 
-  function formatPrice(paise: number): string {
-    return `₹${(paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+  function formatPrice(rupees: number): string {
+    return `₹${rupees.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
   }
 
   function getStatusVariant(status: string): string {
@@ -234,8 +234,8 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
   }
 
   function getPaymentStatusDisplay(order: Order): { label: string; variant: string } {
-    const paidAmount = Number(order.paidAmountPaise || 0);
-    const totalAmount = Number(order.totalPaise);
+    const paidAmount = Number(order.paidAmount || 0);
+    const totalAmount = Number(order.total);
     if (paidAmount >= totalAmount) return { label: "Paid", variant: "success" };
     if (paidAmount > 0) return { label: "Partial", variant: "warning" };
     return { label: "Unpaid", variant: "danger" };
@@ -295,7 +295,7 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     const headers = ["Order ID", "Order Date", "Customer Name", "Phone", "Channel", "Total", "Payment Status", "Order Status"];
     const rows = orders.map(order => {
       const payment = getPaymentStatusDisplay(order);
-      return [order.orderNumber, formatDateTime(order.createdAt), order.shippingAddress?.fullName || "Walk-in", order.shippingAddress?.phone || "", order.orderChannel.toUpperCase(), (order.totalPaise / 100).toFixed(2), payment.label, getStatusLabel(order.status)];
+      return [order.orderNumber, formatDateTime(order.createdAt), order.shippingAddress?.fullName || "Walk-in", order.shippingAddress?.phone || "", order.orderChannel.toUpperCase(), order.total.toFixed(2), payment.label, getStatusLabel(order.status)];
     });
     const csvContent = [headers.join(","), ...rows.map(row => row.map(cell => `"${cell}"`).join(","))].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -360,7 +360,7 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
         const payment = getPaymentStatusDisplay(order);
         return (
           <div style={{ textAlign: "right" }}>
-            <div className="ak-amount">{formatPrice(order.totalPaise)}</div>
+            <div className="ak-amount">{formatPrice(order.total)}</div>
             <span className={`ak-status ak-status--${payment.variant}`} style={{ marginTop: 4 }}>{payment.label}</span>
           </div>
         );
@@ -544,14 +544,14 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
                 </div>
                 <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "2rem" }}>
                   <thead><tr style={{ background: "#f9fafb" }}><th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.7rem", textTransform: "uppercase", color: "#6b7280" }}>Item</th><th style={{ padding: "0.75rem", textAlign: "center", fontSize: "0.7rem", textTransform: "uppercase", color: "#6b7280" }}>Qty</th><th style={{ padding: "0.75rem", textAlign: "right", fontSize: "0.7rem", textTransform: "uppercase", color: "#6b7280" }}>Price</th><th style={{ padding: "0.75rem", textAlign: "right", fontSize: "0.7rem", textTransform: "uppercase", color: "#6b7280" }}>Total</th></tr></thead>
-                  <tbody>{selectedOrder.items?.map((item) => (<tr key={item.id} style={{ borderBottom: "1px solid #e5e7eb" }}><td style={{ padding: "0.75rem" }}>{item.productName}</td><td style={{ padding: "0.75rem", textAlign: "center" }}>{item.quantity}</td><td style={{ padding: "0.75rem", textAlign: "right" }}>{formatPrice(item.unitPricePaise)}</td><td style={{ padding: "0.75rem", textAlign: "right" }}>{formatPrice(item.totalPricePaise)}</td></tr>))}</tbody>
+                  <tbody>{selectedOrder.items?.map((item) => (<tr key={item.id} style={{ borderBottom: "1px solid #e5e7eb" }}><td style={{ padding: "0.75rem" }}>{item.productName}</td><td style={{ padding: "0.75rem", textAlign: "center" }}>{item.quantity}</td><td style={{ padding: "0.75rem", textAlign: "right" }}>{formatPrice(item.unitPrice)}</td><td style={{ padding: "0.75rem", textAlign: "right" }}>{formatPrice(item.totalPrice)}</td></tr>))}</tbody>
                 </table>
                 <div style={{ display: "flex", justifyContent: "flex-end" }}>
                   <div style={{ width: "250px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", padding: "0.5rem 0" }}><span>Subtotal</span><span>{formatPrice(selectedOrder.subtotalPaise)}</span></div>
-                    {selectedOrder.discountPaise > 0 && <div style={{ display: "flex", justifyContent: "space-between", padding: "0.5rem 0", color: "#22c55e" }}><span>Discount</span><span>-{formatPrice(selectedOrder.discountPaise)}</span></div>}
-                    {selectedOrder.taxPaise > 0 && <div style={{ display: "flex", justifyContent: "space-between", padding: "0.5rem 0" }}><span>Tax</span><span>{formatPrice(selectedOrder.taxPaise)}</span></div>}
-                    <div style={{ display: "flex", justifyContent: "space-between", padding: "0.75rem 0", borderTop: "2px solid #e5e7eb", fontWeight: 700, fontSize: "1.1rem" }}><span>Total</span><span>{formatPrice(selectedOrder.totalPaise)}</span></div>
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: "0.5rem 0" }}><span>Subtotal</span><span>{formatPrice(selectedOrder.subtotal)}</span></div>
+                    {selectedOrder.discount > 0 && <div style={{ display: "flex", justifyContent: "space-between", padding: "0.5rem 0", color: "#22c55e" }}><span>Discount</span><span>-{formatPrice(selectedOrder.discount)}</span></div>}
+                    {selectedOrder.tax > 0 && <div style={{ display: "flex", justifyContent: "space-between", padding: "0.5rem 0" }}><span>Tax</span><span>{formatPrice(selectedOrder.tax)}</span></div>}
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: "0.75rem 0", borderTop: "2px solid #e5e7eb", fontWeight: 700, fontSize: "1.1rem" }}><span>Total</span><span>{formatPrice(selectedOrder.total)}</span></div>
                   </div>
                 </div>
               </div>

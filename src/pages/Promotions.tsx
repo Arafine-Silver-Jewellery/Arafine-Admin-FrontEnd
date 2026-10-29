@@ -15,8 +15,8 @@ export default function Promotions() {
     type: "percentage" | "fixed_amount" | "buy_x_get_y" | "free_shipping";
     scope: "all" | "category" | "product" | "cart";
     value: string;
-    minCartValuePaise: string;
-    maxDiscountPaise: string;
+    minCartValue: string;
+    maxDiscount: string;
     startsAt: string;
     endsAt: string;
     maxUses: string;
@@ -28,8 +28,8 @@ export default function Promotions() {
     type: "percentage",
     scope: "all",
     value: "",
-    minCartValuePaise: "",
-    maxDiscountPaise: "",
+    minCartValue: "",
+    maxDiscount: "",
     startsAt: "",
     endsAt: "",
     maxUses: "",
@@ -64,11 +64,11 @@ export default function Promotions() {
         type: promotion.type,
         scope: promotion.scope,
         value: promotion.value.toString(),
-        minCartValuePaise: promotion.minCartValuePaise
-          ? (promotion.minCartValuePaise / 100).toString()
+        minCartValue: promotion.minCartValue
+          ? promotion.minCartValue.toString()
           : "",
-        maxDiscountPaise: promotion.maxDiscountPaise
-          ? (promotion.maxDiscountPaise / 100).toString()
+        maxDiscount: promotion.maxDiscount
+          ? promotion.maxDiscount.toString()
           : "",
         startsAt: promotion.startsAt.slice(0, 16),
         endsAt: promotion.endsAt.slice(0, 16),
@@ -87,8 +87,8 @@ export default function Promotions() {
         type: "percentage",
         scope: "all",
         value: "",
-        minCartValuePaise: "",
-        maxDiscountPaise: "",
+        minCartValue: "",
+        maxDiscount: "",
         startsAt: now.toISOString().slice(0, 16),
         endsAt: endDate.toISOString().slice(0, 16),
         maxUses: "",
@@ -123,11 +123,11 @@ export default function Promotions() {
       type: formData.type,
       scope: formData.scope,
       value: parseFloat(formData.value),
-      minCartValuePaise: formData.minCartValuePaise
-        ? Math.round(parseFloat(formData.minCartValuePaise) * 100)
+      minCartValue: formData.minCartValue
+        ? parseFloat(formData.minCartValue)
         : null,
-      maxDiscountPaise: formData.maxDiscountPaise
-        ? Math.round(parseFloat(formData.maxDiscountPaise) * 100)
+      maxDiscount: formData.maxDiscount
+        ? parseFloat(formData.maxDiscount)
         : null,
       startsAt: formData.startsAt,
       endsAt: formData.endsAt,
@@ -363,8 +363,8 @@ export default function Promotions() {
                     <label>Min Cart Value (₹)</label>
                     <input
                       type="number"
-                      name="minCartValuePaise"
-                      value={formData.minCartValuePaise}
+                      name="minCartValue"
+                      value={formData.minCartValue}
                       onChange={handleChange}
                     />
                   </div>
@@ -372,8 +372,8 @@ export default function Promotions() {
                     <label>Max Discount (₹)</label>
                     <input
                       type="number"
-                      name="maxDiscountPaise"
-                      value={formData.maxDiscountPaise}
+                      name="maxDiscount"
+                      value={formData.maxDiscount}
                       onChange={handleChange}
                     />
                   </div>

@@ -8,18 +8,17 @@ import "../styles/receipt.css";
  * the admin see identical receipts for the same order.
  *
  * Expects a fully-populated `Order` (from `src/types`). The component
- * converts paise → rupees for display and splits `createdAt` into a
- * Date and Time row (matching the POS receipt).
+ * formats rupee values for display.
  */
 export function Receipt({ order }: { order: Order }) {
   const date = new Date(order.createdAt);
 
-  const subTotal = order.subtotalPaise / 100;
-  const discount = (order.discountPaise ?? 0) / 100;
-  const extraDiscount = (order.extraDiscountPaise ?? 0) / 100;
-  const total = order.totalPaise / 100;
-  const paid = (order.paidAmountPaise ?? 0) / 100;
-  const change = (order.changeAmountPaise ?? 0) / 100;
+  const subTotal = order.subtotal;
+  const discount = order.discount ?? 0;
+  const extraDiscount = order.extraDiscount ?? 0;
+  const total = order.total;
+  const paid = order.paidAmount ?? 0;
+  const change = order.changeAmount ?? 0;
 
   return (
     <div className="receipt">
@@ -65,9 +64,9 @@ export function Receipt({ order }: { order: Order }) {
             <div className="receipt-item-name">{item.productName}</div>
             <div className="receipt-item-details">
               <span>
-                {item.quantity} x {formatPrice(item.unitPricePaise)}
+                {item.quantity} x {formatPrice(item.unitPrice)}
               </span>
-              <span>{formatPrice(item.totalPricePaise)}</span>
+              <span>{formatPrice(item.totalPrice)}</span>
             </div>
           </div>
         ))}
@@ -75,11 +74,11 @@ export function Receipt({ order }: { order: Order }) {
 
       <div className="receipt-summary">
         <p>
-          <span>Sub Total:</span> <span>{formatPrice(subTotal * 100)}</span>
+          <span>Sub Total:</span> <span>{formatPrice(subTotal)}</span>
         </p>
         {discount > 0 && (
           <p>
-            <span>Discount:</span> <span>-{formatPrice(discount * 100)}</span>
+            <span>Discount:</span> <span>-{formatPrice(discount)}</span>
           </p>
         )}
         {order.couponCode && (
@@ -90,18 +89,18 @@ export function Receipt({ order }: { order: Order }) {
         {extraDiscount > 0 && (
           <p>
             <span>Extra Discount:</span>{" "}
-            <span>-{formatPrice(extraDiscount * 100)}</span>
+            <span>-{formatPrice(extraDiscount)}</span>
           </p>
         )}
         <p className="total">
-          <span>Total:</span> <span>{formatPrice(total * 100)}</span>
+          <span>Total:</span> <span>{formatPrice(total)}</span>
         </p>
         <p>
-          <span>Paid:</span> <span>{formatPrice(paid * 100)}</span>
+          <span>Paid:</span> <span>{formatPrice(paid)}</span>
         </p>
         {change > 0 && (
           <p>
-            <span>Change:</span> <span>{formatPrice(change * 100)}</span>
+            <span>Change:</span> <span>{formatPrice(change)}</span>
           </p>
         )}
       </div>
@@ -115,13 +114,13 @@ export function Receipt({ order }: { order: Order }) {
 }
 
 /**
- * Format paise as an Indian-locale rupee string. Kept here (rather than
+ * Format rupees as an Indian-locale rupee string. Kept here (rather than
  * imported) so the Receipt component is self-contained — both POS and
  * OrdersNew can use the same formatting without coordinating on a
  * shared utility.
  */
-function formatPrice(paise: number): string {
-  return `₹${(paise / 100).toLocaleString("en-IN", {
+function formatPrice(rupees: number): string {
+  return `₹${rupees.toLocaleString("en-IN", {
     minimumFractionDigits: 2,
   })}`;
 }

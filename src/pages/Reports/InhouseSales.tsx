@@ -33,11 +33,11 @@ export default function InhouseSales() {
     productId: string;
     name: string;
     sku: string;
-    totalSalePaise: number;
+    totalSale: number;
     unitsSold: number;
     imageUrl: string | null;
   }[]>([]);
-  const [totals, setTotals] = useState({ totalSalePaise: 0, unitsSold: 0 });
+  const [totals, setTotals] = useState({ totalSale: 0, unitsSold: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -103,7 +103,7 @@ export default function InhouseSales() {
       setRows(response.data || []);
       setTotalPages(response.pagination?.totalPages || 1);
       setTotalItems(response.pagination?.total || 0);
-      setTotals(response.totals ?? { totalSalePaise: 0, unitsSold: 0 });
+      setTotals(response.totals ?? { totalSale: 0, unitsSold: 0 });
     }
     catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load in-house sales");
@@ -124,7 +124,7 @@ export default function InhouseSales() {
       row.name,
       row.sku,
       row.unitsSold,
-      formatPrice(row.totalSalePaise),
+      formatPrice(row.totalSale),
     ]);
     downloadCsv(`inhouse-sales-${new Date().toISOString().slice(0, 10)}`, buildCsv(headers, data));
   };
@@ -173,10 +173,10 @@ export default function InhouseSales() {
       render: (row: (typeof rows)[number]) => row.unitsSold,
     },
     {
-      key: "totalSalePaise",
+      key: "totalSale",
       header: "Total Sale",
       align: "right" as const,
-      render: (row: (typeof rows)[number]) => formatPrice(row.totalSalePaise),
+      render: (row: (typeof rows)[number]) => formatPrice(row.totalSale),
     },
   ];
 
@@ -265,7 +265,7 @@ export default function InhouseSales() {
         <div className="reports-stat-card wide">
           <div className="reports-stat-icon blue">💰</div>
           <div className="reports-stat-content">
-            <h2>{formatPrice(totals.totalSalePaise, { compact: true })}</h2>
+            <h2>{formatPrice(totals.totalSale, { compact: true })}</h2>
             <p>Total In-House Sales</p>
           </div>
         </div>
