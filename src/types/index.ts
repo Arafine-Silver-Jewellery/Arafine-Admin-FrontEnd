@@ -525,7 +525,7 @@ export interface Promotion {
 }
 
 export type BannerType = "Carousel" | "2 X 2 Banner" | "Custom Banner";
-export type BannerResourceType = "Custom" | "Category";
+export type BannerResourceType = "Custom" | "Category" | "Product";
 
 export interface Banner {
   id: string;
@@ -534,10 +534,14 @@ export interface Banner {
   bannerType: BannerType;
   position: string;
   resourceType: BannerResourceType;
-  /** URL when resourceType is "Custom", category name when "Category" */
+  /** URL when resourceType is "Custom", category/product name otherwise */
   resource: string;
   /** Set when resourceType is "Category" */
-  categoryId?: string;
+  categoryId?: string | null;
+  /** Set when resourceType is "Product" */
+  productId?: string | null;
+  /** Storefront path or URL the banner opens; null when the target is gone */
+  link: string | null;
   published: boolean;
   createdAt: string;
   updatedAt: string;

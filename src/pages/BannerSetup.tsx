@@ -19,11 +19,17 @@ const bannerTypeFilterOptions = [
 
 const positionOptions = ["Shop The Look", "Festive Edit", "Bridal Collection", "Gold Drops", "Top Strip", "Footer Strip"];
 
+interface ProductOption {
+  id: string;
+  name: string;
+}
+
 interface FormState {
   bannerType: BannerType | "";
   resourceType: BannerResourceType | "";
   resource: string;
   categoryId: string;
+  productId: string;
   position: string;
   imageFile: File | null;
   imagePreview: string;
@@ -36,6 +42,7 @@ const emptyForm: FormState = {
   resourceType: "",
   resource: "",
   categoryId: "",
+  productId: "",
   position: "",
   imageFile: null,
   imagePreview: "",
@@ -63,6 +70,9 @@ export default function BannerSetup() {
   const [filterType, setFilterType] = useState("");
 
   const [categories, setCategories] = useState<CategoryOption[]>([]);
+
+  const [productQuery, setProductQuery] = useState("");
+  const [productOptions, setProductOptions] = useState<ProductOption[]>([]);
 
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -110,6 +120,30 @@ export default function BannerSetup() {
     };
   }, []);
 
+  // Debounced product search for the "Product" link type
+  useEffect(() => {
+    if (!showModal || form.resourceType !== "Product") return;
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        const res = await api.getProducts({ search: productQuery || undefined, limit: 20 });
+        if (cancelled) return;
+        const found: ProductOption[] = (res?.data ?? []).map((p: any) => ({ id: String(p.id), name: String(p.name) }));
+        // Keep the currently selected product visible even if it isn't in the results
+        setProductOptions((prev) => {
+          const keep = prev.find((p) => p.id === form.productId && !found.some((f) => f.id === p.id));
+          return keep ? [keep, ...found] : found;
+        });
+      } catch {
+        // Leave options as-is
+      }
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [productQuery, showModal, form.resourceType]);
+
   // Load banners on search/filter change
   useEffect(() => {
     loadBanners();
@@ -148,6 +182,8 @@ export default function BannerSetup() {
     setFormError("");
     setUploading(false);
     setSubmitting(false);
+    setProductQuery("");
+    setProductOptions([]);
   }, [showModal]);
 
   async function togglePublished(id: string) {
@@ -178,12 +214,14 @@ export default function BannerSetup() {
       resourceType: banner.resourceType,
       resource: banner.resource,
       categoryId: banner.categoryId ?? "",
+      productId: banner.productId ?? "",
       position: banner.position,
       imageFile: null,
       imagePreview: banner.imageUrl,
       imageKey: banner.imageKey ?? "",
       published: banner.published,
     });
+    setProductOptions(banner.productId ? [{ id: banner.productId, name: banner.resource }] : []);
     setFormError("");
     setShowModal(true);
   }
@@ -250,6 +288,8 @@ export default function BannerSetup() {
       if (!/^https?:\/\//i.test(form.resource.trim())) return "Custom resource must start with http:// or https://";
     } else if (form.resourceType === "Category") {
       if (!form.categoryId) return "Please choose a category.";
+    } else if (form.resourceType === "Product") {
+      if (!form.productId) return "Please choose a product.";
     }
     if (!form.imagePreview) return "Please upload a banner image.";
     if (!editingId && !form.imageKey) return "Image upload is still in progress.";
@@ -276,9 +316,12 @@ export default function BannerSetup() {
       };
       if (form.resourceType === "Custom") {
         payload.resource = form.resource.trim();
-      } else {
+      } else if (form.resourceType === "Category") {
         payload.categoryId = form.categoryId;
         payload.resource = categories.find((c) => c.id === form.categoryId)?.name ?? "";
+      } else {
+        payload.productId = form.productId;
+        payload.resource = productOptions.find((p) => p.id === form.productId)?.name ?? "";
       }
 
       if (editingId) {
@@ -339,11 +382,21 @@ export default function BannerSetup() {
       case "Custom":
         return "info";
       case "Category":
+      case "Product":
         return "success";
       default:
         return "neutral";
     }
   }
+
+  const linkPreviewLabel =
+    form.resourceType === "Custom"
+      ? form.resource.trim()
+      : form.resourceType === "Category"
+        ? categories.find((c) => c.id === form.categoryId)?.name && `Category: ${categories.find((c) => c.id === form.categoryId)?.name}`
+        : form.resourceType === "Product"
+          ? productOptions.find((p) => p.id === form.productId)?.name && `Product: ${productOptions.find((p) => p.id === form.productId)?.name}`
+          : "";
 
   const columns = [
     {
@@ -419,7 +472,10 @@ export default function BannerSetup() {
             <span className="ak-text-muted">{banner.resource}</span>
           )
         ) : (
-          <span style={{ fontWeight: 500 }}>{banner.resource}</span>
+          <span style={{ fontWeight: 500 }}>
+            {banner.resource}
+            {!banner.link && <span className="ak-text-muted"> (target removed)</span>}
+          </span>
         ),
     },
     {
@@ -594,14 +650,41 @@ export default function BannerSetup() {
                   className="ak-select"
                   value={form.resourceType}
                   onChange={(e) =>
-                    setForm({ ...form, resourceType: e.target.value as BannerResourceType, resource: "", categoryId: "" })
+                    setForm({ ...form, resourceType: e.target.value as BannerResourceType, resource: "", categoryId: "", productId: "" })
                   }
                 >
                   <option value="">Select resource type</option>
-                  <option value="Custom">Custom</option>
+                  <option value="Custom">Custom URL</option>
                   <option value="Category">Category</option>
+                  <option value="Product">Product</option>
                 </select>
               </div>
+
+              {form.resourceType === "Product" && (
+                <div className="ak-form-group">
+                  <label className="ak-label">Product *</label>
+                  <input
+                    type="text"
+                    className="ak-input"
+                    placeholder="Search products by name…"
+                    value={productQuery}
+                    onChange={(e) => setProductQuery(e.target.value)}
+                    style={{ marginBottom: 8 }}
+                  />
+                  <select
+                    className="ak-select"
+                    value={form.productId}
+                    onChange={(e) => setForm({ ...form, productId: e.target.value })}
+                  >
+                    <option value="">Select a product</option>
+                    {productOptions.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {form.resourceType === "Category" && (
                 <div className="ak-form-group">
@@ -700,6 +783,18 @@ export default function BannerSetup() {
                   style={{ display: "none" }}
                 />
               </div>
+
+              {form.imagePreview && linkPreviewLabel && (
+                <div className="ak-form-group">
+                  <label className="ak-label">Preview</label>
+                  <div style={{ border: "1px solid var(--border-color)", borderRadius: 6, overflow: "hidden" }}>
+                    <img src={form.imagePreview} alt="" style={{ display: "block", width: "100%", maxHeight: 140, objectFit: "cover" }} />
+                    <div className="ak-text-sm" style={{ padding: "8px 12px" }}>
+                      Clicking opens: <strong>{linkPreviewLabel}</strong>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="ak-form-group" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <div>
