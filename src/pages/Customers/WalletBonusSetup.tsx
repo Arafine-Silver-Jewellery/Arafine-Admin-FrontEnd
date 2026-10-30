@@ -1,51 +1,73 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useToast } from "../../components/Toast";
+import { walletApi } from "../../api/wallet";
 import "../../styles/customers.css";
 
-interface WalletBonus {
-  sl: number;
-  bonusTitle: string;
-  bonusInfo: string;
-  bonusAmount: number;
-  startedOn: string;
-  expiresOn: string;
-  status: boolean;
-}
-
-const mockBonuses: WalletBonus[] = [];
-
 export default function WalletBonusSetup() {
-  const [bonusTitle, setBonusTitle] = useState("ExcEID Dhamaka");
-  const [shortDescription, setShortDescription] = useState("ExcEID Dhamaka");
-  const [bonusType, setBonusType] = useState("Percentage(%)");
+  const toast = useToast();
+
   const [bonusAmount, setBonusAmount] = useState("0");
-  const [minimumAddAmount, setMinimumAddAmount] = useState("0");
-  const [maximumBonus, setMaximumBonus] = useState("0");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [bonuses, setBonuses] = useState(mockBonuses);
+  const [minTopUpForBonus, setMinTopUpForBonus] = useState("0");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Handle form submission
-  };
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const bonus = await walletApi.getBonus();
+        if (cancelled) return;
+        setBonusAmount(String(bonus.bonusAmount));
+        setMinTopUpForBonus(String(bonus.minTopUpForBonus));
+      }
+      catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Could not load the bonus settings");
+      }
+      finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
-  const handleReset = () => {
-    setBonusTitle("");
-    setShortDescription("");
-    setBonusType("Percentage(%)");
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    const amount = Number(bonusAmount);
+    const minimum = Number(minTopUpForBonus);
+
+    if (!Number.isInteger(amount) || amount < 0) {
+      setError("The bonus must be a whole number of rupees (0 or more).");
+      return;
+    }
+    if (!Number.isInteger(minimum) || minimum < 0) {
+      setError("The minimum top-up must be a whole number of rupees (0 or more).");
+      return;
+    }
+    if (amount > 0 && minimum === 0) {
+      setError("Set the minimum top-up the bonus applies from.");
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+    try {
+      await walletApi.saveBonus({ bonusAmount: amount, minTopUpForBonus: minimum });
+      toast.success("Wallet bonus saved");
+    }
+    catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save the bonus");
+    }
+    finally {
+      setSaving(false);
+    }
+  }
+
+  function handleReset() {
     setBonusAmount("0");
-    setMinimumAddAmount("0");
-    setMaximumBonus("0");
-    setStartDate("");
-    setEndDate("");
-  };
-
-  const toggleStatus = (sl: number) => {
-    setBonuses(bonuses.map(b =>
-      b.sl === sl ? { ...b, status: !b.status } : b
-    ));
-  };
+    setMinTopUpForBonus("0");
+    setError("");
+  }
 
   return (
     <div className="customers-container">
@@ -53,167 +75,42 @@ export default function WalletBonusSetup() {
         <form onSubmit={handleSubmit}>
           <div className="form-grid">
             <div className="form-group">
-              <label>Bonus Title*</label>
-              <input
-                type="text"
-                value={bonusTitle}
-                onChange={(e) => setBonusTitle(e.target.value)}
-                placeholder="Enter bonus title"
-              />
-            </div>
-            <div className="form-group">
-              <label>Short Description</label>
-              <input
-                type="text"
-                value={shortDescription}
-                onChange={(e) => setShortDescription(e.target.value)}
-                placeholder="Enter short description"
-              />
-            </div>
-            <div className="form-group">
-              <label>Bonus Type</label>
-              <select value={bonusType} onChange={(e) => setBonusType(e.target.value)}>
-                <option>Percentage(%)</option>
-                <option>Fixed Amount</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label>Bonus Amount (%)</label>
+              <label>Bonus Amount (₹)*</label>
               <input
                 type="number"
+                min="0"
+                step="1"
                 value={bonusAmount}
+                disabled={loading}
                 onChange={(e) => setBonusAmount(e.target.value)}
-                placeholder="0"
               />
+              <span className="form-hint">Credited on top of a qualifying top-up. 0 disables the bonus.</span>
             </div>
             <div className="form-group">
-              <label>Minimum Add Amount (₹)*</label>
+              <label>Minimum Top-Up (₹)*</label>
               <input
                 type="number"
-                value={minimumAddAmount}
-                onChange={(e) => setMinimumAddAmount(e.target.value)}
-                placeholder="0"
+                min="0"
+                step="1"
+                value={minTopUpForBonus}
+                disabled={loading}
+                onChange={(e) => setMinTopUpForBonus(e.target.value)}
               />
-            </div>
-            <div className="form-group">
-              <label>Maximum Bonus (₹)</label>
-              <input
-                type="number"
-                value={maximumBonus}
-                onChange={(e) => setMaximumBonus(e.target.value)}
-                placeholder="0"
-              />
-            </div>
-            <div className="form-group">
-              <label>Start Date*</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                placeholder="dd-mm-yyyy"
-              />
-            </div>
-            <div className="form-group">
-              <label>End Date*</label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                placeholder="dd-mm-yyyy"
-              />
+              <span className="form-hint">Top-ups from this amount earn the bonus.</span>
             </div>
           </div>
+
+          {error && <p className="form-error">{error}</p>}
+
           <div className="form-actions">
-            <button type="button" className="btn-reset" onClick={handleReset}>Reset</button>
-            <button type="submit" className="btn-submit">Submit</button>
+            <button type="button" className="btn-filter-secondary" onClick={handleReset} disabled={saving}>
+              Reset
+            </button>
+            <button type="submit" className="btn-filter" disabled={saving || loading}>
+              {saving ? "Saving…" : "Save bonus"}
+            </button>
           </div>
         </form>
-      </div>
-
-      <div className="table-card">
-        <div className="table-header">
-          <h3>
-            Wallet Bonus Table <span className="count">{bonuses.length}</span>
-          </h3>
-          <div className="search-box">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" />
-              <path d="M21 21l-4.35-4.35" />
-            </svg>
-            <input
-              type="text"
-              placeholder="Search by bonus title"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="table-container">
-          <table className="customers-table">
-            <thead>
-              <tr>
-                <th>SL</th>
-                <th>Bonus Title</th>
-                <th>Bonus Info</th>
-                <th>Bonus Amount</th>
-                <th>Started On</th>
-                <th>Expires On</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {bonuses.length === 0 ? (
-                <tr>
-                  <td colSpan={8}>
-                    <div className="empty-state">
-                      <div className="empty-icon">📁</div>
-                      <p>No bonus data found</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                bonuses.map((bonus) => (
-                  <tr key={bonus.sl}>
-                    <td>{bonus.sl}</td>
-                    <td>{bonus.bonusTitle}</td>
-                    <td>{bonus.bonusInfo}</td>
-                    <td>₹{bonus.bonusAmount.toFixed(2)}</td>
-                    <td>{bonus.startedOn}</td>
-                    <td>{bonus.expiresOn}</td>
-                    <td>
-                      <label className="toggle-switch">
-                        <input
-                          type="checkbox"
-                          checked={bonus.status}
-                          onChange={() => toggleStatus(bonus.sl)}
-                        />
-                        <span className="toggle-slider"></span>
-                      </label>
-                    </td>
-                    <td>
-                      <div className="action-buttons">
-                        <button className="btn-action btn-edit" title="Edit">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                          </svg>
-                        </button>
-                        <button className="btn-action btn-delete" title="Delete">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points="3,6 5,6 21,6" />
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
       </div>
     </div>
   );

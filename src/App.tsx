@@ -127,8 +127,8 @@ function App() {
             <Route path="customers" element={<RequirePermission permission="customers"><CustomerList /></RequirePermission>} />
             <Route path="customers/list" element={<RequirePermission permission="customers"><CustomerList /></RequirePermission>} />
             <Route path="customers/reviews" element={<RequirePermission permission="customers"><CustomerReviews /></RequirePermission>} />
-            <Route path="customers/wallet" element={<RequirePermission permission="customers"><Wallet /></RequirePermission>} />
-            <Route path="customers/wallet-bonus" element={<RequirePermission permission="customers"><WalletBonusSetup /></RequirePermission>} />
+            <Route path="customers/wallet" element={<RequirePermission permission="wallet"><Wallet /></RequirePermission>} />
+            <Route path="customers/wallet-bonus" element={<RequirePermission permission="wallet"><WalletBonusSetup /></RequirePermission>} />
             <Route path="customers/loyalty-points" element={<RequirePermission permission="customers"><LoyaltyPoints /></RequirePermission>} />
 
             {/* Subscriptions (own permission key) */}
