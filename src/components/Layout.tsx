@@ -44,6 +44,11 @@ const customersSubmenus = [
   { path: "/customers/loyalty-points", label: "Loyalty Points" },
 ];
 
+const subscriptionsSubmenus = [
+  { path: "/customers/subscriptions", label: "Customer Subscriptions" },
+  { path: "/customers/subscription-plans", label: "Subscription Plans" },
+];
+
 // Page title mapping based on route
 const pageTitleMap: Record<string, { title: string; icon: string }> = {
   "/": { title: "Dashboard", icon: "dashboard" },
@@ -96,6 +101,8 @@ const pageTitleMap: Record<string, { title: string; icon: string }> = {
   "/customers/wallet": { title: "Wallet", icon: "wallet" },
   "/customers/wallet-bonus": { title: "Wallet Bonus Setup", icon: "wallet" },
   "/customers/loyalty-points": { title: "Loyalty Points", icon: "loyalty" },
+  "/customers/subscriptions": { title: "Customer Subscriptions", icon: "loyalty" },
+  "/customers/subscription-plans": { title: "Subscription Plans", icon: "loyalty" },
   "/inbox": { title: "Inbox", icon: "inbox" },
   "/messages": { title: "Messages", icon: "messages" },
   "/support-ticket": { title: "Support Ticket", icon: "support" },
@@ -122,6 +129,7 @@ export default function Layout() {
   const [notificationsExpanded, setNotificationsExpanded] = useState(location.pathname.startsWith("/notifications"));
   const [reportsExpanded, setReportsExpanded] = useState(location.pathname.startsWith("/reports"));
   const [customersExpanded, setCustomersExpanded] = useState(location.pathname.startsWith("/customers"));
+  const [subscriptionsExpanded, setSubscriptionsExpanded] = useState(location.pathname.startsWith("/customers/subscription"));
   const [searchQuery, setSearchQuery] = useState("");
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   // Mobile/tablet off-canvas sidebar (purely presentational state)
@@ -143,6 +151,7 @@ export default function Layout() {
   const isNotificationsActive = location.pathname.startsWith("/notifications");
   const isReportsActive = location.pathname.startsWith("/reports");
   const isCustomersActive = location.pathname.startsWith("/customers");
+  const isSubscriptionsActive = location.pathname.startsWith("/customers/subscription");
 
   /*
    * Menu search.
@@ -558,6 +567,36 @@ export default function Layout() {
             {customersExpanded && (
               <div className="submenu">
                 {customersSubmenus.map((item) => (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    className={({ isActive }) => `submenu-item ${isActive ? "active" : ""}`}
+                  >
+                    <span>{item.label}</span>
+                  </NavLink>
+                ))}
+              </div>
+            )}
+          </div>
+          )}
+
+          {hasPermission("subscriptions") && (
+          <div className={`nav-item-with-submenu ${isSubscriptionsActive ? "expanded" : ""}`}>
+            <button
+              className={`nav-toggle ${isSubscriptionsActive ? "active" : ""}`}
+              onClick={() => setSubscriptionsExpanded(!subscriptionsExpanded)}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+              <span>Subscriptions</span>
+              <svg className={`chevron ${subscriptionsExpanded ? "expanded" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="6,9 12,15 18,9" />
+              </svg>
+            </button>
+            {subscriptionsExpanded && (
+              <div className="submenu">
+                {subscriptionsSubmenus.map((item) => (
                   <NavLink
                     key={item.path}
                     to={item.path}

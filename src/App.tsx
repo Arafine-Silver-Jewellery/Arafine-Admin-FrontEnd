@@ -9,6 +9,7 @@ import ProductForm from "./pages/ProductForm";
 import Users from "./pages/Users";
 import Promotions from "./pages/Promotions";
 import Campaigns from "./pages/Campaigns";
+import Subscriptions from "./pages/Subscriptions";
 import StorageProviders from "./pages/StorageProviders";
 import Employees from "./pages/Employees";
 import POS from "./pages/POS";
@@ -126,6 +127,10 @@ function App() {
             <Route path="customers/wallet" element={<RequirePermission permission="customers"><Wallet /></RequirePermission>} />
             <Route path="customers/wallet-bonus" element={<RequirePermission permission="customers"><WalletBonusSetup /></RequirePermission>} />
             <Route path="customers/loyalty-points" element={<RequirePermission permission="customers"><LoyaltyPoints /></RequirePermission>} />
+
+            {/* Subscriptions (own permission key) */}
+            <Route path="customers/subscriptions" element={<RequirePermission permission="subscriptions"><Subscriptions tab="subscribers" /></RequirePermission>} />
+            <Route path="customers/subscription-plans" element={<RequirePermission permission="subscriptions"><Subscriptions tab="plans" /></RequirePermission>} />
             
             {/* Legacy routes */}
             <Route path="products/new" element={<RequirePermission permission="products-module"><ProductForm /></RequirePermission>} />

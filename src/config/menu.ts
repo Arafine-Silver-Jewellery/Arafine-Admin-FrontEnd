@@ -308,6 +308,20 @@ export const MENU_ITEMS: MenuItem[] = [
     keywords: ["customer", "points", "reward"],
   },
   {
+    path: "/customers/subscriptions",
+    label: "Customer Subscriptions",
+    group: "User Management",
+    permission: "subscriptions",
+    keywords: ["subscription", "member", "plan", "subscriber", "renewal"],
+  },
+  {
+    path: "/customers/subscription-plans",
+    label: "Subscription Plans",
+    group: "User Management",
+    permission: "subscriptions",
+    keywords: ["subscription", "plan", "tier", "premium", "vip", "pricing"],
+  },
+  {
     path: "/employees",
     label: "Employees",
     group: "User Management",

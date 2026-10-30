@@ -824,3 +824,66 @@ export interface DealOfTheDayStats {
   activeDeals: number;
   totalProducts: number;
 }
+
+// ---------------------------------------------------------------------------
+// Subscriptions (plans + customer subscriptions) types
+// ---------------------------------------------------------------------------
+
+export type PlanTier = "basic" | "premium" | "vip";
+export type BillingCycle = "monthly" | "yearly";
+export type SubscriptionStatus = "active" | "grace" | "cancelled" | "expired";
+
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  description: string | null;
+  tier: PlanTier;
+  billingCycle: BillingCycle;
+  /** Charge per cycle, in rupees */
+  price: number;
+  /** Checkout discount on subtotal, percent 0-100 */
+  discountPercent: number;
+  /** Loyalty points multiplier for subscribers */
+  pointsMultiplier: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminPlanListResponse {
+  data: SubscriptionPlan[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+  stats: { total: number; active: number; inactive: number };
+}
+
+export interface CustomerSubscription {
+  id: string;
+  userId: string;
+  user: { id: string; name: string; mobileNumber: string } | null;
+  plan: { id: string; name: string; tier: PlanTier; billingCycle: BillingCycle } | null;
+  pricePaid: number;
+  paymentMethod: string;
+  paymentRef: string | null;
+  startsAt: string;
+  currentPeriodEnd: string;
+  status: SubscriptionStatus;
+  cancelAtPeriodEnd: boolean;
+  createdAt: string;
+}
+
+export interface AdminSubscriptionsResponse {
+  data: CustomerSubscription[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+  stats: { total: number; byStatus: Record<SubscriptionStatus, number> };
+}
+
+export interface CreatePlanInput {
+  name: string;
+  description?: string | null;
+  tier: PlanTier;
+  billingCycle: BillingCycle;
+  price: number;
+  discountPercent: number;
+  pointsMultiplier: number;
+  isActive: boolean;
+}
