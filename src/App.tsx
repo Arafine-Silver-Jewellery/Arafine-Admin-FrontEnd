@@ -147,7 +147,7 @@ function App() {
                 and lands on "Access Denied". `hasPermission` treats an array
                 as "any of these". */}
             <Route path="storage" element={<RequirePermission permission={["storage", "storage-settings"]}><StorageProviders /></RequirePermission>} />
-            <Route path="settings" element={<Settings />} />
+            <Route path="settings" element={<RequirePermission permission="settings"><Settings /></RequirePermission>} />
             
             {/* Employee Management - requires employees permission */}
             <Route path="employees" element={<RequirePermission permission="employees"><Employees /></RequirePermission>} />

@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "../config/env";
+import type { ActiveSession } from "../types";
 
 export interface Employee {
   id: string;
@@ -76,6 +77,19 @@ export const authApi = {
   logout: () =>
     authRequest<void>("/auth/logout", {
       method: "POST",
+    }),
+
+  logoutAll: () =>
+    authRequest<void>("/auth/logout-all", {
+      method: "POST",
+    }),
+
+  listSessions: () =>
+    authRequest<{ sessions: ActiveSession[] }>("/auth/sessions"),
+
+  revokeSession: (id: string) =>
+    authRequest<void>(`/auth/sessions/${id}`, {
+      method: "DELETE",
     }),
 
   getMe: () => authRequest<MeResponse>("/auth/me"),

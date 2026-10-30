@@ -1,81 +1,20 @@
 import { useCallback, useEffect, useState } from "react";
 import { useToast } from "../../components/Toast";
+import { authApi } from "../../api/auth";
+import { settingsApi } from "../../api/settings";
+import type {
+  ActiveSession,
+  BusinessSettings,
+  NotificationSettings,
+  OrderSettings,
+  PaymentSettings,
+  SecuritySettings,
+  ShippingSettings,
+  SystemSettings,
+} from "../../types";
 import "../../styles/settings.css";
 
 type SettingsTab = "business" | "orders" | "payments" | "shipping" | "security" | "system" | "notifications";
-
-interface BusinessSettings {
-  storeName: string;
-  storeEmail: string;
-  storePhone: string;
-  storeAddress: string;
-  storeLogo: string;
-  facebookUrl: string;
-  instagramUrl: string;
-  twitterUrl: string;
-  youtubeUrl: string;
-}
-
-interface OrderSettings {
-  orderIdPrefix: string;
-  minOrderAmount: number;
-  autoCancelHours: number;
-  enableGuestCheckout: boolean;
-  enableOrderNotes: boolean;
-  maxItemsPerOrder: number;
-}
-
-interface PaymentSettings {
-  enableCOD: boolean;
-  enableOnlinePayment: boolean;
-  enableWallet: boolean;
-  razorpayKeyId: string;
-  razorpayKeySecret: string;
-  gstPercentage: number;
-  gstNumber: string;
-  enableTax: boolean;
-}
-
-interface ShippingSettings {
-  freeShippingThreshold: number;
-  defaultDeliveryCharge: number;
-  expressDeliveryCharge: number;
-  estimatedDeliveryDays: number;
-  enableExpressDelivery: boolean;
-  deliveryRadius: number;
-}
-
-interface SecuritySettings {
-  sessionTimeoutMinutes: number;
-  maxLoginAttempts: number;
-  requireStrongPassword: boolean;
-  enable2FA: boolean;
-  passwordExpiryDays: number;
-}
-
-interface SystemSettings {
-  currency: string;
-  currencySymbol: string;
-  dateFormat: string;
-  timeFormat: string;
-  timezone: string;
-  maintenanceMode: boolean;
-  maintenanceMessage: string;
-}
-
-interface NotificationSettings {
-  emailOrderPlaced: boolean;
-  emailOrderShipped: boolean;
-  emailOrderDelivered: boolean;
-  emailOrderCancelled: boolean;
-  smsOrderPlaced: boolean;
-  smsOrderShipped: boolean;
-  smsOrderDelivered: boolean;
-  pushEnabled: boolean;
-  adminEmailAlerts: boolean;
-  lowStockAlerts: boolean;
-  lowStockThreshold: number;
-}
 
 const DEFAULT_BUSINESS: BusinessSettings = {
   storeName: "Arafine",
@@ -164,36 +103,47 @@ export default function Settings() {
   const [security, setSecurity] = useState<SecuritySettings>(DEFAULT_SECURITY);
   const [system, setSystem] = useState<SystemSettings>(DEFAULT_SYSTEM);
   const [notifications, setNotifications] = useState<NotificationSettings>(DEFAULT_NOTIFICATIONS);
+  const [sessions, setSessions] = useState<ActiveSession[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
 
-  // Load settings from localStorage (simulating API)
+  // Load the stored settings (falling back to the defaults when the store
+  // settings have never been saved).
   useEffect(() => {
-    const savedSettings = localStorage.getItem("adminSettings");
-    if (savedSettings) {
-      try {
-        const parsed = JSON.parse(savedSettings);
-        if (parsed.business) setBusiness({ ...DEFAULT_BUSINESS, ...parsed.business });
-        if (parsed.orders) setOrders({ ...DEFAULT_ORDERS, ...parsed.orders });
-        if (parsed.payments) setPayments({ ...DEFAULT_PAYMENTS, ...parsed.payments });
-        if (parsed.shipping) setShipping({ ...DEFAULT_SHIPPING, ...parsed.shipping });
-        if (parsed.security) setSecurity({ ...DEFAULT_SECURITY, ...parsed.security });
-        if (parsed.system) setSystem({ ...DEFAULT_SYSTEM, ...parsed.system });
-        if (parsed.notifications) setNotifications({ ...DEFAULT_NOTIFICATIONS, ...parsed.notifications });
-      } catch {
-        // Use defaults if parse fails
-      }
-    }
+    let cancelled = false;
+    settingsApi
+      .get()
+      .then((stored) => {
+        if (cancelled) return;
+        setBusiness({ ...DEFAULT_BUSINESS, ...stored.business });
+        setOrders({ ...DEFAULT_ORDERS, ...stored.orders });
+        setPayments({ ...DEFAULT_PAYMENTS, ...stored.payments });
+        setShipping({ ...DEFAULT_SHIPPING, ...stored.shipping });
+        setSecurity({ ...DEFAULT_SECURITY, ...stored.security });
+        setSystem({ ...DEFAULT_SYSTEM, ...stored.system });
+        setNotifications({ ...DEFAULT_NOTIFICATIONS, ...stored.notifications });
+      })
+      .catch(() => {
+        // Keep the defaults — the form stays usable even if the API is down.
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
-      // Simulate API call - save to localStorage
       const settings = { business, orders, payments, shipping, security, system, notifications };
-      localStorage.setItem("adminSettings", JSON.stringify(settings));
-      
-      // Simulate network delay
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      
+      const saved = await settingsApi.save(settings);
+
+      setBusiness({ ...DEFAULT_BUSINESS, ...saved.business });
+      setOrders({ ...DEFAULT_ORDERS, ...saved.orders });
+      setPayments({ ...DEFAULT_PAYMENTS, ...saved.payments });
+      setShipping({ ...DEFAULT_SHIPPING, ...saved.shipping });
+      setSecurity({ ...DEFAULT_SECURITY, ...saved.security });
+      setSystem({ ...DEFAULT_SYSTEM, ...saved.system });
+      setNotifications({ ...DEFAULT_NOTIFICATIONS, ...saved.notifications });
+
       toast.success("Settings saved successfully");
       setHasChanges(false);
     } catch {
@@ -237,6 +187,44 @@ export default function Settings() {
     setNotifications((prev) => ({ ...prev, ...updates }));
     setHasChanges(true);
   };
+
+  // Active sessions for the signed-in admin (Security tab).
+  const loadSessions = useCallback(async () => {
+    setSessionsLoading(true);
+    try {
+      const response = await authApi.listSessions();
+      setSessions(response.sessions ?? []);
+    } catch {
+      setSessions([]);
+    } finally {
+      setSessionsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab !== "security") return;
+    void loadSessions();
+  }, [activeTab, loadSessions]);
+
+  async function revokeSession(id: string) {
+    try {
+      await authApi.revokeSession(id);
+      toast.success("Device signed out");
+      await loadSessions();
+    } catch {
+      toast.error("Could not sign out that device");
+    }
+  }
+
+  async function signOutEverywhere() {
+    try {
+      await authApi.logoutAll();
+      toast.success("Signed out of all devices");
+      window.location.assign("/login");
+    } catch {
+      toast.error("Could not sign out everywhere");
+    }
+  }
 
   const tabs: { id: SettingsTab; label: string; icon: React.ReactNode }[] = [
     {
@@ -1048,6 +1036,36 @@ export default function Settings() {
                   </div>
                 </div>
               </div>
+
+              <div className="settings-divider" />
+
+              <h3>Active Sessions</h3>
+              <p className="settings-section-desc">Devices currently signed in to this admin account</p>
+              {sessionsLoading && <p className="settings-section-desc">Loading sessions…</p>}
+              {!sessionsLoading && sessions.length === 0 && (
+                <p className="settings-section-desc">No other active sessions.</p>
+              )}
+              {sessions.map(session => (
+                <div className="settings-toggle-item" key={session.id}>
+                  <div>
+                    <span className="settings-toggle-label">
+                      {session.device}
+                      {session.current && " (this device)"}
+                    </span>
+                    <span className="settings-toggle-desc">
+                      {session.ip || "unknown IP"} · last active {new Date(session.lastActivityAt).toLocaleString()}
+                    </span>
+                  </div>
+                  {!session.current && (
+                    <button type="button" className="btn-secondary" onClick={() => void revokeSession(session.id)}>
+                      Sign out
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button type="button" className="btn-danger" onClick={() => void signOutEverywhere()}>
+                Sign out of all devices
+              </button>
             </div>
           )}
 
@@ -1103,7 +1121,7 @@ export default function Settings() {
                     <select
                       id="timeFormat"
                       value={system.timeFormat}
-                      onChange={(e) => updateSystem({ timeFormat: e.target.value })}
+                      onChange={(e) => updateSystem({ timeFormat: e.target.value as SystemSettings["timeFormat"] })}
                     >
                       <option value="12h">12-hour (2:30 PM)</option>
                       <option value="24h">24-hour (14:30)</option>

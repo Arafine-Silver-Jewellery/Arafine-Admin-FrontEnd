@@ -978,6 +978,103 @@ export interface CreateFaqInput {
 }
 
 // ---------------------------------------------------------------------------
+// Store settings (admin) types
+// ---------------------------------------------------------------------------
+
+export interface BusinessSettings {
+  storeName: string;
+  storeEmail: string;
+  storePhone: string;
+  storeAddress: string;
+  storeLogo: string;
+  facebookUrl: string;
+  instagramUrl: string;
+  twitterUrl: string;
+  youtubeUrl: string;
+}
+
+export interface OrderSettings {
+  orderIdPrefix: string;
+  minOrderAmount: number;
+  autoCancelHours: number;
+  enableGuestCheckout: boolean;
+  enableOrderNotes: boolean;
+  maxItemsPerOrder: number;
+}
+
+export interface PaymentSettings {
+  enableCOD: boolean;
+  enableOnlinePayment: boolean;
+  enableWallet: boolean;
+  razorpayKeyId: string;
+  razorpayKeySecret: string;
+  gstPercentage: number;
+  gstNumber: string;
+  enableTax: boolean;
+}
+
+export interface ShippingSettings {
+  freeShippingThreshold: number;
+  defaultDeliveryCharge: number;
+  expressDeliveryCharge: number;
+  estimatedDeliveryDays: number;
+  enableExpressDelivery: boolean;
+  deliveryRadius: number;
+}
+
+export interface SecuritySettings {
+  sessionTimeoutMinutes: number;
+  maxLoginAttempts: number;
+  requireStrongPassword: boolean;
+  enable2FA: boolean;
+  passwordExpiryDays: number;
+}
+
+export interface SystemSettings {
+  currency: string;
+  currencySymbol: string;
+  dateFormat: string;
+  timeFormat: "12h" | "24h";
+  timezone: string;
+  maintenanceMode: boolean;
+  maintenanceMessage: string;
+}
+
+export interface NotificationSettings {
+  emailOrderPlaced: boolean;
+  emailOrderShipped: boolean;
+  emailOrderDelivered: boolean;
+  emailOrderCancelled: boolean;
+  smsOrderPlaced: boolean;
+  smsOrderShipped: boolean;
+  smsOrderDelivered: boolean;
+  pushEnabled: boolean;
+  adminEmailAlerts: boolean;
+  lowStockAlerts: boolean;
+  lowStockThreshold: number;
+}
+
+export interface AppSettings {
+  business: BusinessSettings;
+  orders: OrderSettings;
+  payments: PaymentSettings;
+  shipping: ShippingSettings;
+  security: SecuritySettings;
+  system: SystemSettings;
+  notifications: NotificationSettings;
+}
+
+/** Active session as returned by the auth sessions endpoint. */
+export interface ActiveSession {
+  id: string;
+  current: boolean;
+  device: string;
+  ip: string;
+  createdAt: string;
+  lastActivityAt: string;
+}
+
+// ---------------------------------------------------------------------------
 // Stock movements (inventory ledger) types
 // ---------------------------------------------------------------------------
 
