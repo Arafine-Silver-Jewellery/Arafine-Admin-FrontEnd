@@ -23,6 +23,7 @@ import { Coupon, FlashDeals, DealOfTheDay, FeaturedDeal, ClearanceSale, Offers }
 import { SendNotification, PushNotificationsSetup } from "./pages/Notifications";
 import { Inbox, Messages, SupportTicket } from "./pages/HelpSupport";
 import { EarningReports, InhouseSales, VendorSales, TransactionReport, ProductReport, OrderReport, StockReport } from "./pages/Reports";
+import Faqs from "./pages/Faqs";
 import { CustomerList, CustomerReviews, Wallet, WalletBonusSetup, LoyaltyPoints } from "./pages/Customers";
 import { Settings } from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -111,6 +112,7 @@ function App() {
             <Route path="inbox" element={<RequirePermission permission="inbox"><Inbox /></RequirePermission>} />
             <Route path="messages" element={<RequirePermission permission="messages"><Messages /></RequirePermission>} />
             <Route path="support-ticket" element={<RequirePermission permission="support-ticket"><SupportTicket /></RequirePermission>} />
+            <Route path="faqs" element={<RequirePermission permission="faq-management"><Faqs /></RequirePermission>} />
             
             {/* Reports */}
             <Route path="reports/earning" element={<RequirePermission permission="reports"><EarningReports /></RequirePermission>} />

@@ -889,6 +889,95 @@ export interface CreatePlanInput {
 }
 
 // ---------------------------------------------------------------------------
+// Support ticket types
+// ---------------------------------------------------------------------------
+
+export type TicketCategory =
+  | "order_issue"
+  | "product_inquiry"
+  | "return_refund"
+  | "payment"
+  | "delivery"
+  | "account"
+  | "other";
+
+export type TicketPriority = "low" | "normal" | "high" | "urgent";
+
+export type TicketStatus = "open" | "in_progress" | "waiting_customer" | "resolved" | "closed";
+
+export interface TicketMessage {
+  id: string;
+  ticketId: string;
+  authorType: "customer" | "admin";
+  authorId: string | null;
+  authorName: string;
+  body: string;
+  isInternalNote: boolean;
+  createdAt: string;
+}
+
+export interface SupportTicket {
+  id: string;
+  ticketNumber: string;
+  userId: string | null;
+  customerName: string;
+  customerEmail: string | null;
+  customerMobile: string | null;
+  subject: string;
+  description: string;
+  category: TicketCategory;
+  priority: TicketPriority;
+  status: TicketStatus;
+  assignedToId: string | null;
+  assignedToName: string | null;
+  orderId: string | null;
+  lastMessageAt: string | null;
+  resolvedAt: string | null;
+  closedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  /** Present on the detail endpoint. */
+  messages?: TicketMessage[];
+}
+
+export interface TicketListResponse {
+  data: SupportTicket[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+  stats: { total: number; byStatus: Record<TicketStatus, number>; unassigned: number };
+}
+
+// ---------------------------------------------------------------------------
+// FAQ types
+// ---------------------------------------------------------------------------
+
+export type FaqCategory = "orders" | "products" | "payments" | "delivery" | "returns" | "account" | "general";
+
+export interface Faq {
+  id: string;
+  category: FaqCategory;
+  question: string;
+  answer: string;
+  sortOrder: number;
+  isPublished: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FaqListResponse {
+  data: Faq[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+  stats: { total: number; published: number; drafts: number };
+}
+
+export interface CreateFaqInput {
+  question: string;
+  answer: string;
+  category: FaqCategory;
+  sortOrder: number;
+  isPublished: boolean;
+}
+
+// ---------------------------------------------------------------------------
 // Stock movements (inventory ledger) types
 // ---------------------------------------------------------------------------
 

@@ -1,268 +1,474 @@
-import { useState } from "react";
-import "../../styles/help-support.css";
+import { useCallback, useEffect, useState } from "react";
+import { useToast } from "../../components/Toast";
+import { supportApi } from "../../api/support";
+import { api } from "../../api/client";
+import type { SupportTicket, TicketPriority, TicketStatus } from "../../types";
+import { DataTable, StatusDropdown } from "../../components";
+import { formatDateTime } from "../../utils/format";
+import "../../styles/ui-kit.css";
 
-interface Ticket {
-  id: string;
-  name: string;
-  email: string;
-  priority: "Urgent" | "High" | "Medium" | "Low";
-  status: "Open" | "Closed" | "Pending";
-  type: string;
-  date: string;
-  message: string;
-  enabled: boolean;
-}
-
-const mockTickets: Ticket[] = [
-  {
-    id: "1",
-    name: "Sushma D",
-    email: "sushmadhana6u99@gmail.com",
-    priority: "Urgent",
-    status: "Open",
-    type: "Info Inquiry",
-    date: "11 Aug 2026 03:20 PM",
-    message: "I have ordered an item on 2nd August, I still did not get any update on my order. I want to know where my order is and when I am going to receive it.",
-    enabled: true,
-  },
-  {
-    id: "2",
-    name: "VEDAM BHARATH SUMAN",
-    email: "jeanaki.rsm@gmail.com",
-    priority: "High",
-    status: "Closed",
-    type: "Info Inquiry",
-    date: "29 May 2026 04:16 PM",
-    message: "Please confirm if the gold coin I purchased comes with a BIS hallmark certificate.",
-    enabled: false,
-  },
-  {
-    id: "3",
-    name: "Priya Sharma",
-    email: "priya.sharma@gmail.com",
-    priority: "High",
-    status: "Pending",
-    type: "Refund",
-    date: "02 Sep 2026 11:05 AM",
-    message: "I returned the diamond ring last week but the refund has not been processed yet. Please check and update.",
-    enabled: true,
-  },
-  {
-    id: "4",
-    name: "Rahul Kumar",
-    email: "rahul.kumar@yahoo.com",
-    priority: "Medium",
-    status: "Open",
-    type: "Order Issue",
-    date: "05 Sep 2026 09:42 AM",
-    message: "I received the wrong size for the silver bracelet. Need an exchange to size M urgently.",
-    enabled: true,
-  },
-  {
-    id: "5",
-    name: "Sneha Reddy",
-    email: "sneha.reddy@outlook.com",
-    priority: "Low",
-    status: "Open",
-    type: "Product Query",
-    date: "06 Sep 2026 02:18 PM",
-    message: "Is the rose gold pendant available in 18KT? The product page only shows 22KT.",
-    enabled: false,
-  },
-  {
-    id: "6",
-    name: "Karthik Srirangam",
-    email: "karthik.s@gmail.com",
-    priority: "Urgent",
-    status: "Pending",
-    type: "Delivery Issue",
-    date: "07 Sep 2026 08:30 AM",
-    message: "My order was supposed to be delivered yesterday but the tracking still shows 'In Transit'. Please escalate.",
-    enabled: true,
-  },
-  {
-    id: "7",
-    name: "Ananya Iyer",
-    email: "ananya.iyer@gmail.com",
-    priority: "Medium",
-    status: "Closed",
-    type: "Feedback",
-    date: "08 Sep 2026 06:55 PM",
-    message: "Loved the packaging and the quality of the earrings. Just wanted to drop a thank you note!",
-    enabled: true,
-  },
-  {
-    id: "8",
-    name: "Vikram Mehta",
-    email: "vikram.mehta@hotmail.com",
-    priority: "High",
-    status: "Open",
-    type: "Payment Issue",
-    date: "09 Sep 2026 10:12 AM",
-    message: "My card was charged twice for order #100092. Please refund the duplicate transaction immediately.",
-    enabled: true,
-  },
-  {
-    id: "9",
-    name: "Meera Nair",
-    email: "meera.nair@gmail.com",
-    priority: "Low",
-    status: "Closed",
-    type: "Account",
-    date: "20 Aug 2026 04:40 PM",
-    message: "How do I update my shipping address for future orders?",
-    enabled: false,
-  },
-  {
-    id: "10",
-    name: "Arjun Patel",
-    email: "arjun.patel@gmail.com",
-    priority: "Medium",
-    status: "Pending",
-    type: "Info Inquiry",
-    date: "10 Sep 2026 01:25 PM",
-    message: "Do you offer a gift-wrapping option for the necklace? If yes, what is the additional charge?",
-    enabled: true,
-  },
-  {
-    id: "11",
-    name: "Divya Krishnan",
-    email: "divya.k@gmail.com",
-    priority: "Urgent",
-    status: "Open",
-    type: "Order Issue",
-    date: "10 Sep 2026 05:48 PM",
-    message: "The chain of the mangalsutra broke on the first day itself. Need a replacement under warranty.",
-    enabled: true,
-  },
-  {
-    id: "12",
-    name: "Rohit Sharma",
-    email: "rohit.sharma@gmail.com",
-    priority: "Low",
-    status: "Closed",
-    type: "Feedback",
-    date: "15 Aug 2026 11:11 AM",
-    message: "Suggestion: please add a 'compare products' feature on the website.",
-    enabled: true,
-  },
+const statusFilterOptions = [
+  { value: "", label: "All Statuses", color: "neutral" as const },
+  { value: "open", label: "Open", color: "info" as const },
+  { value: "in_progress", label: "In Progress", color: "brand" as const },
+  { value: "waiting_customer", label: "Waiting Customer", color: "warning" as const },
+  { value: "resolved", label: "Resolved", color: "success" as const },
+  { value: "closed", label: "Closed", color: "neutral" as const },
 ];
 
-export default function SupportTicket() {
-  const [tickets, setTickets] = useState(mockTickets);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [priorityFilter, setPriorityFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
+const priorityFilterOptions = [
+  { value: "", label: "All Priorities", color: "neutral" as const },
+  { value: "urgent", label: "Urgent", color: "danger" as const },
+  { value: "high", label: "High", color: "warning" as const },
+  { value: "normal", label: "Normal", color: "info" as const },
+  { value: "low", label: "Low", color: "neutral" as const },
+];
 
-  function toggleEnabled(id: string) {
-    setTickets(prev =>
-      prev.map(t => t.id === id ? { ...t, enabled: !t.enabled } : t)
-    );
+const statusBadge: Record<TicketStatus, string> = {
+  open: "info",
+  in_progress: "brand",
+  waiting_customer: "warning",
+  resolved: "success",
+  closed: "neutral",
+};
+
+const statusLabel: Record<TicketStatus, string> = {
+  open: "Open",
+  in_progress: "In Progress",
+  waiting_customer: "Waiting Customer",
+  resolved: "Resolved",
+  closed: "Closed",
+};
+
+const priorityBadge: Record<TicketPriority, string> = {
+  urgent: "danger",
+  high: "warning",
+  normal: "info",
+  low: "neutral",
+};
+
+const categoryLabels: Record<string, string> = {
+  order_issue: "Order Issue",
+  product_inquiry: "Product Inquiry",
+  return_refund: "Return / Refund",
+  payment: "Payment",
+  delivery: "Delivery",
+  account: "Account",
+  other: "Other",
+};
+
+interface EmployeeOption { id: string; name: string; }
+
+export default function SupportTicket() {
+  const toast = useToast();
+
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
+  const [stats, setStats] = useState<{ total: number; byStatus: Record<string, number>; unassigned: number } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [filterPriority, setFilterPriority] = useState("");
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+
+  // Detail drawer
+  const [selected, setSelected] = useState<SupportTicket | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [reply, setReply] = useState("");
+  const [internalNote, setInternalNote] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [employees, setEmployees] = useState<EmployeeOption[]>([]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    loadTickets();
+  }, [debouncedSearch, filterStatus, filterPriority, currentPage]);
+
+  // Staff list for the assignment dropdown
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await api.getEmployees();
+        if (cancelled) return;
+        setEmployees((res.data ?? [])
+          .map((e: { id?: unknown; firstName?: unknown; lastName?: unknown }) => ({
+            id: String(e.id ?? ""),
+            name: [e.firstName, e.lastName].filter(Boolean).join(" "),
+          }))
+          .filter((e: EmployeeOption) => e.id && e.name));
+      } catch { /* leave empty */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const loadTickets = useCallback(async () => {
+    setLoading(true);
+    setLoadError("");
+    try {
+      const response = await supportApi.getTickets({
+        search: debouncedSearch || undefined,
+        status: (filterStatus || undefined) as TicketStatus | undefined,
+        priority: (filterPriority || undefined) as TicketPriority | undefined,
+        page: currentPage,
+        limit: itemsPerPage,
+      });
+      setTickets(response.data ?? []);
+      setStats(response.stats ?? null);
+      setTotalItems(response.pagination?.total || 0);
+      setTotalPages(response.pagination?.totalPages || 0);
+    }
+    catch (err) {
+      setTickets([]);
+      setLoadError(err instanceof Error ? err.message : "Failed to load tickets");
+    }
+    finally {
+      setLoading(false);
+    }
+  }, [debouncedSearch, filterStatus, filterPriority, currentPage, itemsPerPage]);
+
+  async function openTicket(ticket: SupportTicket) {
+    setSelected(ticket);
+    setDetailLoading(true);
+    setReply("");
+    setInternalNote(false);
+    try {
+      const detail = await supportApi.getTicket(ticket.id);
+      setSelected(detail);
+    }
+    catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to load ticket");
+    }
+    finally {
+      setDetailLoading(false);
+    }
   }
 
-  const filteredTickets = tickets.filter(t => {
-    const matchesSearch = t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.message.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesPriority = priorityFilter === "all" || t.priority.toLowerCase() === priorityFilter.toLowerCase();
-    const matchesStatus = statusFilter === "all" || t.status.toLowerCase() === statusFilter.toLowerCase();
-    return matchesSearch && matchesPriority && matchesStatus;
-  });
+  async function patchSelected(patch: { status?: TicketStatus; priority?: TicketPriority; assignedToId?: string | null }) {
+    if (!selected) return;
+    try {
+      const updated = await supportApi.updateTicket(selected.id, patch);
+      setSelected((prev) => (prev ? { ...prev, ...updated } : prev));
+      toast.success("Ticket updated");
+      await loadTickets();
+    }
+    catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update ticket");
+    }
+  }
+
+  async function sendReply() {
+    if (!selected || !reply.trim()) return;
+    setSending(true);
+    try {
+      const updated = await supportApi.replyTicket(selected.id, reply.trim(), internalNote);
+      setSelected(updated);
+      setReply("");
+      setInternalNote(false);
+      toast.success(internalNote ? "Internal note added" : "Reply sent");
+      await loadTickets();
+    }
+    catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to send reply");
+    }
+    finally {
+      setSending(false);
+    }
+  }
+
+  const columns = [
+    {
+      key: "ticket",
+      header: "Ticket",
+      render: (t: SupportTicket) => (
+        <div>
+          <div style={{ fontWeight: 600 }}>{t.subject}</div>
+          <div className="ak-text-muted ak-text-sm">
+            {t.ticketNumber} · {t.customerName}
+            {t.customerMobile ? ` · ${t.customerMobile}` : ""}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "category",
+      header: "Category",
+      width: "140px",
+      render: (t: SupportTicket) => (
+        <span className="ak-text-sm">{categoryLabels[t.category] ?? t.category}</span>
+      ),
+    },
+    {
+      key: "priority",
+      header: "Priority",
+      width: "110px",
+      render: (t: SupportTicket) => (
+        <span className={`ak-status ak-status--${priorityBadge[t.priority]}`}>
+          <span className="ak-status__dot" />
+          {t.priority.charAt(0).toUpperCase() + t.priority.slice(1)}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      width: "160px",
+      render: (t: SupportTicket) => (
+        <span className={`ak-status ak-status--${statusBadge[t.status]}`}>
+          <span className="ak-status__dot" />
+          {statusLabel[t.status]}
+        </span>
+      ),
+    },
+    {
+      key: "assigned",
+      header: "Assigned",
+      width: "140px",
+      render: (t: SupportTicket) => (
+        <span className="ak-text-sm">{t.assignedToName ?? "—"}</span>
+      ),
+    },
+    {
+      key: "created",
+      header: "Received",
+      width: "150px",
+      render: (t: SupportTicket) => (
+        <span className="ak-text-sm">{formatDateTime(t.createdAt)}</span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Action",
+      width: "90px",
+      render: (t: SupportTicket) => (
+        <button
+          type="button"
+          className="ak-btn ak-btn--ghost ak-btn--sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            void openTicket(t);
+          }}
+        >
+          Open
+        </button>
+      ),
+    },
+  ];
 
   return (
-    <div className="help-support-container">
-      <div className="ticket-filters">
-        <div className="search-box wide">
-          <input
-            type="text"
-            placeholder="Search ticket by subject or status"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8" />
-            <path d="M21 21l-4.35-4.35" />
-          </svg>
+    <div className="ak-page">
+      <div className="ak-page-header">
+        <div className="ak-page-header__left">
+          <h1 className="ak-page-header__title">
+            Support Tickets
+            {totalItems > 0 && <span className="ak-page-header__count">{totalItems}</span>}
+          </h1>
+          <p className="ak-page-header__subtitle">
+            {stats
+              ? `${stats.byStatus.open ?? 0} open · ${stats.byStatus.waiting_customer ?? 0} waiting on customer · ${stats.unassigned} unassigned`
+              : "Customer support requests"}
+          </p>
         </div>
-        <select
-          value={priorityFilter}
-          onChange={(e) => setPriorityFilter(e.target.value)}
-        >
-          <option value="all">All Priority</option>
-          <option value="urgent">Urgent</option>
-          <option value="high">High</option>
-          <option value="medium">Medium</option>
-          <option value="low">Low</option>
-        </select>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="all">All Status</option>
-          <option value="open">Open</option>
-          <option value="closed">Closed</option>
-          <option value="pending">Pending</option>
-        </select>
       </div>
 
-      <div className="ticket-list">
-        {filteredTickets.length === 0 ? (
-          <div className="support-card empty-state">
-            <div className="empty-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-              </svg>
+      <div className="ak-page-body">
+        <div className="ak-toolbar">
+          <div className="ak-toolbar__search">
+            <div className="ak-searchbar">
+              <div className="ak-searchbar__form">
+                <svg className="ak-searchbar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <input
+                  type="text"
+                  className="ak-searchbar__input"
+                  placeholder="Search by subject, number, name or mobile…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
             </div>
-            <p>No tickets match the current filters</p>
+          </div>
+          <div className="ak-toolbar__filters">
+            <StatusDropdown options={statusFilterOptions} value={filterStatus} onChange={setFilterStatus} placeholder="All Statuses" size="sm" />
+            <StatusDropdown options={priorityFilterOptions} value={filterPriority} onChange={setFilterPriority} placeholder="All Priorities" size="sm" />
+          </div>
+        </div>
+
+        {loadError ? (
+          <div className="ak-card" style={{ padding: "48px", textAlign: "center" }}>
+            <p style={{ color: "var(--color-danger)", marginBottom: 16 }}>Could not load tickets: {loadError}</p>
+            <button type="button" className="ak-btn ak-btn--primary" onClick={loadTickets}>Retry</button>
           </div>
         ) : (
-          filteredTickets.map((ticket) => (
-          <div key={ticket.id} className="ticket-card">
-            <div className="ticket-header">
-              <div className="ticket-user">
-                <div className="ticket-avatar">
-                  {ticket.name.charAt(0)}
+          <DataTable
+            columns={columns}
+            data={tickets}
+            loading={loading}
+            loadingText="Loading tickets…"
+            emptyIcon="bell"
+            emptyTitle="No tickets yet"
+            emptyDescription="Customer support requests will land here."
+            keyExtractor={(t: SupportTicket) => t.id}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onRowClick={(t: SupportTicket) => void openTicket(t)}
+          />
+        )}
+      </div>
+
+      {/* Ticket detail */}
+      {selected && (
+        <div className="ak-modal-overlay" onClick={() => setSelected(null)}>
+          <div className="ak-modal" style={{ maxWidth: "720px" }} onClick={(e) => e.stopPropagation()}>
+            <div className="ak-modal__header">
+              <h2 className="ak-modal__title">
+                {selected.subject}
+                <span className="ak-text-muted ak-text-sm" style={{ marginLeft: 8, fontWeight: 400 }}>
+                  {selected.ticketNumber}
+                </span>
+              </h2>
+              <button type="button" className="ak-modal__close" onClick={() => setSelected(null)}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="ak-modal__body">
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+                <div className="ak-form-group" style={{ marginBottom: 0 }}>
+                  <label className="ak-label">Status</label>
+                  <select
+                    className="ak-select"
+                    value={selected.status}
+                    onChange={(e) => void patchSelected({ status: e.target.value as TicketStatus })}
+                  >
+                    {(Object.keys(statusLabel) as TicketStatus[]).map(status => (
+                      <option key={status} value={status}>{statusLabel[status]}</option>
+                    ))}
+                  </select>
                 </div>
-                <div className="ticket-user-info">
-                  <h4>{ticket.name}</h4>
-                  <span className="ticket-email">{ticket.email}</span>
-                  <div className="ticket-badges">
-                    <span className={`priority-badge ${ticket.priority.toLowerCase()}`}>
-                      {ticket.priority}
-                    </span>
-                    <span className={`status-badge ${ticket.status.toLowerCase()}`}>
-                      {ticket.status}
-                    </span>
-                    <span className="type-badge">{ticket.type}</span>
-                  </div>
-                  <span className="ticket-date">{ticket.date}</span>
+                <div className="ak-form-group" style={{ marginBottom: 0 }}>
+                  <label className="ak-label">Priority</label>
+                  <select
+                    className="ak-select"
+                    value={selected.priority}
+                    onChange={(e) => void patchSelected({ priority: e.target.value as TicketPriority })}
+                  >
+                    {(Object.keys(priorityBadge) as TicketPriority[]).map(priority => (
+                      <option key={priority} value={priority}>{priority}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="ak-form-group" style={{ marginBottom: 0, gridColumn: "1 / -1" }}>
+                  <label className="ak-label">Assigned to</label>
+                  <select
+                    className="ak-select"
+                    value={selected.assignedToId ?? ""}
+                    onChange={(e) => void patchSelected({ assignedToId: e.target.value || null })}
+                  >
+                    <option value="">Unassigned</option>
+                    {employees.map((e) => (
+                      <option key={e.id} value={e.id}>{e.name}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
-              <label className="toggle-switch">
-                <input
-                  type="checkbox"
-                  checked={ticket.enabled}
-                  onChange={() => toggleEnabled(ticket.id)}
+
+              <div className="ak-text-muted ak-text-sm" style={{ marginBottom: 12 }}>
+                {selected.customerName}
+                {selected.customerEmail ? ` · ${selected.customerEmail}` : ""}
+                {selected.customerMobile ? ` · ${selected.customerMobile}` : ""}
+                {" · "}
+                {categoryLabels[selected.category] ?? selected.category}
+                {selected.orderId ? ` · order ${selected.orderId.slice(0, 8)}` : ""}
+              </div>
+
+              <div style={{ borderTop: "1px solid var(--border-color)", paddingTop: 12, maxHeight: 320, overflowY: "auto" }}>
+                {detailLoading && <p className="ak-text-muted">Loading conversation…</p>}
+                {!detailLoading && (selected.messages ?? []).length === 0 && (
+                  <p className="ak-text-muted">No messages yet.</p>
+                )}
+                {(selected.messages ?? []).map((message) => (
+                  <div
+                    key={message.id}
+                    style={{
+                      marginBottom: 12,
+                      padding: 10,
+                      borderRadius: 6,
+                      background: message.isInternalNote
+                        ? "var(--surface-2)"
+                        : message.authorType === "admin"
+                          ? "var(--color-info-light)"
+                          : "var(--surface-2)",
+                      borderLeft: `3px solid ${message.authorType === "admin" ? "var(--color-info)" : "var(--border-color)"}`,
+                    }}
+                  >
+                    <div className="ak-text-sm" style={{ fontWeight: 600 }}>
+                      {message.authorName}
+                      <span className="ak-text-muted" style={{ fontWeight: 400, marginLeft: 8 }}>
+                        {formatDateTime(message.createdAt)}
+                        {message.isInternalNote ? " · internal note" : ""}
+                      </span>
+                    </div>
+                    <div style={{ whiteSpace: "pre-wrap" }}>{message.body}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="ak-form-group" style={{ marginTop: 12 }}>
+                <label className="ak-label">Reply</label>
+                <textarea
+                  className="ak-input"
+                  rows={3}
+                  placeholder={internalNote ? "Internal note — the customer never sees this" : "Write a reply to the customer…"}
+                  value={reply}
+                  onChange={(e) => setReply(e.target.value)}
                 />
-                <span className="toggle-slider"></span>
-              </label>
+                <label style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 8 }}>
+                  <input
+                    type="checkbox"
+                    checked={internalNote}
+                    onChange={(e) => setInternalNote(e.target.checked)}
+                  />
+                  <span className="ak-text-sm">Internal note</span>
+                </label>
+              </div>
             </div>
-            <div className="ticket-message">
-              <p>{ticket.message}</p>
-            </div>
-            <div className="ticket-actions">
-              <button className="btn-view-ticket">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                </svg>
-                View
+
+            <div className="ak-modal__footer">
+              <button type="button" className="ak-btn ak-btn--ghost" onClick={() => setSelected(null)}>Close</button>
+              <button
+                type="button"
+                className="ak-btn ak-btn--primary"
+                disabled={sending || !reply.trim()}
+                onClick={() => void sendReply()}
+              >
+                {sending ? "Sending…" : internalNote ? "Add note" : "Send reply"}
               </button>
             </div>
           </div>
-          ))
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

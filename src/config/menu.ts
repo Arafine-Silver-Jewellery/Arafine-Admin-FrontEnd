@@ -277,6 +277,13 @@ export const MENU_ITEMS: MenuItem[] = [
     permission: "support-ticket",
     keywords: ["ticket", "help", "complaint"],
   },
+  {
+    path: "/faqs",
+    label: "FAQs",
+    group: "Help & Support",
+    permission: "faq-management",
+    keywords: ["faq", "question", "answer", "help"],
+  },
 
   // ── User Management ──
   {
