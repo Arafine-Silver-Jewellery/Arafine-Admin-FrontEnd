@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import ProductForm from "./pages/ProductForm";
 import Users from "./pages/Users";
 import Promotions from "./pages/Promotions";
+import Campaigns from "./pages/Campaigns";
 import StorageProviders from "./pages/StorageProviders";
 import Employees from "./pages/Employees";
 import POS from "./pages/POS";
@@ -100,6 +101,7 @@ function App() {
             <Route path="offers-deals/clearance-sale" element={<RequirePermission permission="offers-deals"><ClearanceSale /></RequirePermission>} />
             
             {/* Notifications */}
+            <Route path="campaigns" element={<RequirePermission permission="promotions"><Campaigns /></RequirePermission>} />
             <Route path="notifications" element={<RequirePermission permission="notifications"><SendNotification /></RequirePermission>} />
             <Route path="notifications/send" element={<RequirePermission permission="notifications"><SendNotification /></RequirePermission>} />
             <Route path="notifications/push-setup" element={<RequirePermission permission="notifications"><PushNotificationsSetup /></RequirePermission>} />

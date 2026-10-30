@@ -4,7 +4,7 @@ import { offersApi } from "../../api/offers";
 import { api } from "../../api/client";
 import type { Offer, OfferType, OfferDiscountType, OfferScope, OfferStats, OfferStatus } from "../../types";
 import { DataTable, StatusDropdown } from "../../components";
-import "../styles/ui-kit.css";
+import "../../styles/ui-kit.css";
 
 const offerTypeOptions = [
   { value: "", label: "All Types", color: "neutral" as const },

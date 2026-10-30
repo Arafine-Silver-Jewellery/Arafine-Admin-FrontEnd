@@ -602,6 +602,76 @@ export interface CreateOfferInput {
 
 export type UpdateOfferInput = Partial<CreateOfferInput>;
 
+// ---------------------------------------------------------------------------
+// Campaign (promotions) types
+// ---------------------------------------------------------------------------
+
+export type CampaignChannel = "email" | "push" | "in_app";
+export type CampaignAudience = "all" | "new" | "returning" | "vip";
+export type CampaignStatus = "draft" | "scheduled" | "running" | "completed";
+
+export interface Campaign {
+  id: string;
+  name: string;
+  description: string | null;
+  channel: CampaignChannel;
+  audience: CampaignAudience;
+  subject: string | null;
+  body: string | null;
+  bannerId: string | null;
+  offerId: string | null;
+  banner: { id: string; name: string } | null;
+  offer: { id: string; name: string } | null;
+  startsAt: string;
+  endsAt: string;
+  isPublished: boolean;
+  sentCount: number;
+  openCount: number;
+  clickCount: number;
+  conversionCount: number;
+  status: CampaignStatus;
+  openRate: number;
+  clickRate: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CampaignStats {
+  total: number;
+  byStatus: Record<CampaignStatus, number>;
+  byChannel: Partial<Record<CampaignChannel, number>>;
+  totals: {
+    sent: number;
+    opened: number;
+    clicked: number;
+    conversions: number;
+    openRate: number;
+    clickRate: number;
+  };
+}
+
+export interface CampaignListResponse {
+  data: Campaign[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+  stats: CampaignStats;
+}
+
+export interface CreateCampaignInput {
+  name: string;
+  description?: string | null;
+  channel: CampaignChannel;
+  audience?: CampaignAudience;
+  subject?: string | null;
+  body?: string | null;
+  bannerId?: string | null;
+  offerId?: string | null;
+  startsAt: string;
+  endsAt: string;
+  isPublished?: boolean;
+}
+
+export type UpdateCampaignInput = Partial<CreateCampaignInput>;
+
 
 // ---------------------------------------------------------------------------
 // Coupon (Promotion) types

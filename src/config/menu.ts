@@ -155,6 +155,13 @@ export const MENU_ITEMS: MenuItem[] = [
     keywords: ["offer", "bogo", "bundle", "clearance", "deal", "discount", "promo"],
   },
   {
+    path: "/campaigns",
+    label: "Campaigns",
+    group: "Promotion Management",
+    permission: "promotions",
+    keywords: ["campaign", "email", "push", "in-app", "blast", "marketing", "promo", "announcement"],
+  },
+  {
     path: "/offers-deals/flash-deals",
     label: "Flash Deals",
     group: "Promotion Management",
