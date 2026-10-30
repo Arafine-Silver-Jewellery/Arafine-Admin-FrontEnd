@@ -14,7 +14,9 @@ import type {
   FlashDeal,
   FlashDealProductInfo,
   InhouseSalesReport,
+  OrderMetricsReport,
   ProductSalesReport,
+  StockMovementsReport,
   VendorEarningsReport,
   VendorSalesReport,
   WishlistCountsReport,
@@ -219,6 +221,31 @@ export const api = {
     if (params.status) q.set("status", params.status);
     q.set("range", params.range ?? "30d");
     return request<VendorEarningsReport>(`/dashboard/vendor-earnings?${q}`);
+  },
+  getStockMovementsReport: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    productId?: string;
+    type?: "reserve" | "release" | "out" | "in" | "adjustment";
+    dateFrom?: string;
+    dateTo?: string;
+  } = {}) => {
+    const q = new URLSearchParams();
+    if (params.page) q.set("page", String(params.page));
+    if (params.limit) q.set("limit", String(params.limit));
+    if (params.search) q.set("search", params.search);
+    if (params.productId) q.set("productId", params.productId);
+    if (params.type) q.set("type", params.type);
+    if (params.dateFrom) q.set("dateFrom", params.dateFrom);
+    if (params.dateTo) q.set("dateTo", params.dateTo);
+    return request<StockMovementsReport>(`/dashboard/stock-movements?${q}`);
+  },
+  getOrderMetricsReport: (params: { dateFrom?: string; dateTo?: string } = {}) => {
+    const q = new URLSearchParams();
+    if (params.dateFrom) q.set("dateFrom", params.dateFrom);
+    if (params.dateTo) q.set("dateTo", params.dateTo);
+    return request<OrderMetricsReport>(`/dashboard/order-metrics?${q}`);
   },
 
   // Products

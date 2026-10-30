@@ -887,3 +887,64 @@ export interface CreatePlanInput {
   pointsMultiplier: number;
   isActive: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// Stock movements (inventory ledger) types
+// ---------------------------------------------------------------------------
+
+export type StockMovementType = "reserve" | "release" | "out" | "in" | "adjustment";
+
+export interface StockMovementRow {
+  id: string;
+  productId: string;
+  productName: string;
+  productSku: string;
+  type: StockMovementType;
+  quantity: number;
+  stockBefore: number;
+  stockAfter: number;
+  reservedBefore: number;
+  reservedAfter: number;
+  referenceType: string | null;
+  referenceId: string | null;
+  note: string | null;
+  createdAt: string;
+}
+
+export interface StockMovementsReport {
+  data: StockMovementRow[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+  totals: {
+    count: number;
+    stockIn: number;
+    stockOut: number;
+    reserved: number;
+    released: number;
+    netChange: number;
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Order analytics (metrics) types
+// ---------------------------------------------------------------------------
+
+export interface OrderMetricsReport {
+  totals: {
+    orders: number;
+    revenue: number;
+    averageOrderValue: number;
+    cancelled: number;
+    cancellationRate: number;
+    delivered: number;
+    returned: number;
+    pending: number;
+    /** Average hours between order creation and delivery. */
+    averageDeliveryHours: number;
+  };
+  byStatus: { status: string; count: number }[];
+  byChannel: { channel: string; count: number }[];
+  byPaymentMethod: { method: string; count: number; amount: number }[];
+  byState: { state: string; count: number }[];
+  byHour: { hour: number; count: number }[];
+  daily: { date: string; orders: number; revenue: number }[];
+}

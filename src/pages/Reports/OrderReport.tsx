@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../../api/client";
 import { DataTable } from "../../components";
-import { ChartCard, OrdersTrendChart, type DashboardRange } from "../../components/dashboard";
-import type { Order } from "../../types";
+import { ChartCard, OrdersTrendChart, RevenueTrendChart, type DashboardRange } from "../../components/dashboard";
+import type { Order, OrderMetricsReport } from "../../types";
 import { formatDateTime, formatPrice } from "../../utils/format";
 import { buildCsv, downloadCsv } from "./reportCsv";
 // `ChartCard` and the recharts components live in the dashboard stylesheet;
@@ -156,6 +156,7 @@ export default function OrderReport() {
   const [totalItems, setTotalItems] = useState(0);
   const [orders, setOrders] = useState<Order[]>([]);
   const [trend, setTrend] = useState<{ date: string; value: number }[]>([]);
+  const [metrics, setMetrics] = useState<OrderMetricsReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [trendLoading, setTrendLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -218,6 +219,24 @@ export default function OrderReport() {
     };
   }, [chartRange]);
 
+  // Range-wide order metrics (site-wide totals, not just the page in view).
+  // Falls back to the page-scoped numbers when the endpoint is unavailable.
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .getOrderMetricsReport({ dateFrom: range.dateFrom, dateTo: range.dateTo })
+      .then((data) => {
+        if (!cancelled) setMetrics(data);
+      })
+      .catch(() => {
+        // Supplementary — the table below still works without it.
+        if (!cancelled) setMetrics(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [range.dateFrom, range.dateTo]);
+
   // KPI cards are derived from the rows currently loaded. The backend's order
   // list endpoint paginates and doesn't return a status breakdown, so these
   // count the page in view rather than claiming to be site-wide totals.
@@ -233,6 +252,23 @@ export default function OrderReport() {
     ).length;
     return { totalSales, delivered, pending, cancelled, returned };
   }, [orders]);
+
+  const metricStats = {
+    orders: metrics?.totals.orders ?? totalItems,
+    revenue: metrics?.totals.revenue ?? kpis.totalSales,
+    averageOrderValue: metrics?.totals.averageOrderValue ?? 0,
+    delivered: metrics?.totals.delivered ?? kpis.delivered,
+    pending: metrics?.totals.pending ?? kpis.pending,
+    cancelled: metrics?.totals.cancelled ?? kpis.cancelled,
+    cancellationRate: metrics?.totals.cancellationRate ?? 0,
+    returned: metrics?.totals.returned ?? kpis.returned,
+    averageDeliveryHours: metrics?.totals.averageDeliveryHours ?? 0,
+  };
+
+  const revenueTrend = useMemo(
+    () => (metrics?.daily ?? []).map(point => ({ date: point.date, value: point.revenue })),
+    [metrics],
+  );
 
   const handleExport = () => {
     const headers = [
@@ -447,8 +483,8 @@ export default function OrderReport() {
             </svg>
           </div>
           <div className="product-report-stat-content">
-            <h2>{totalItems.toLocaleString()}</h2>
-            <p>Total Orders</p>
+            <h2>{metricStats.orders.toLocaleString()}</h2>
+            <p>Orders in period</p>
           </div>
         </div>
 
@@ -461,10 +497,10 @@ export default function OrderReport() {
             </svg>
           </div>
           <div className="product-report-stat-content">
-            <h2 style={{ fontSize: kpis.totalSales > 10000000 ? "22px" : "28px" }}>
-              {formatPrice(kpis.totalSales, { compact: true })}
+            <h2 style={{ fontSize: metricStats.revenue > 10000000 ? "22px" : "28px" }}>
+              {formatPrice(metricStats.revenue, { compact: true })}
             </h2>
-            <p>Sales (this page)</p>
+            <p>Revenue in period</p>
           </div>
         </div>
 
@@ -477,7 +513,7 @@ export default function OrderReport() {
             </svg>
           </div>
           <div className="product-report-stat-content">
-            <h2>{kpis.delivered}</h2>
+            <h2>{metricStats.delivered}</h2>
             <p>Delivered</p>
           </div>
         </div>
@@ -491,14 +527,14 @@ export default function OrderReport() {
             </svg>
           </div>
           <div className="product-report-stat-content">
-            <h2>{kpis.pending}</h2>
+            <h2>{metricStats.pending}</h2>
             <p>Pending/Confirmed</p>
           </div>
         </div>
       </div>
 
-      {/* Secondary Stats Row - Cancelled & Returned */}
-      <div className="product-report-stats-grid" style={{ gridTemplateColumns: "repeat(2, 1fr)", marginBottom: "24px" }}>
+      {/* Secondary Stats Row - Cancelled, Returned, AOV, fulfilment */}
+      <div className="product-report-stats-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", marginBottom: "24px" }}>
         {/* Cancelled Card */}
         <div className="product-report-stat-card">
           <div className="product-report-stat-icon" style={{ background: "#ffebee", color: "#f44336" }}>
@@ -509,8 +545,8 @@ export default function OrderReport() {
             </svg>
           </div>
           <div className="product-report-stat-content">
-            <h2>{kpis.cancelled}</h2>
-            <p>Cancelled</p>
+            <h2>{metricStats.cancelled}</h2>
+            <p>Cancelled{metricStats.cancellationRate > 0 ? ` (${metricStats.cancellationRate}%)` : ""}</p>
           </div>
         </div>
 
@@ -523,8 +559,38 @@ export default function OrderReport() {
             </svg>
           </div>
           <div className="product-report-stat-content">
-            <h2>{kpis.returned}</h2>
+            <h2>{metricStats.returned}</h2>
             <p>Returned/Refunded</p>
+          </div>
+        </div>
+
+        {/* Average Order Value Card */}
+        <div className="product-report-stat-card">
+          <div className="product-report-stat-icon teal">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="12" y1="1" x2="12" y2="23" />
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+          </div>
+          <div className="product-report-stat-content">
+            <h2 style={{ fontSize: metricStats.averageOrderValue > 1000000 ? "22px" : "28px" }}>
+              {formatPrice(metricStats.averageOrderValue, { compact: true })}
+            </h2>
+            <p>Average Order Value</p>
+          </div>
+        </div>
+
+        {/* Fulfilment time Card */}
+        <div className="product-report-stat-card">
+          <div className="product-report-stat-icon orange">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+          </div>
+          <div className="product-report-stat-content">
+            <h2>{metricStats.averageDeliveryHours}</h2>
+            <p>Avg hours to deliver</p>
           </div>
         </div>
       </div>
@@ -539,6 +605,82 @@ export default function OrderReport() {
             empty={!trendLoading && trend.length === 0}
           >
             <OrdersTrendChart data={trend} />
+          </ChartCard>
+        </div>
+      </div>
+
+      {/* Revenue + status breakdown */}
+      <div className="product-report-cards-row" style={{ marginBottom: "24px" }}>
+        <div style={{ gridColumn: "1 / -1" }}>
+          <ChartCard
+            title="Revenue in period"
+            subtitle="Paid revenue per day"
+            empty={!metrics && revenueTrend.length === 0}
+          >
+            <RevenueTrendChart data={revenueTrend} />
+          </ChartCard>
+        </div>
+        <div style={{ gridColumn: "1 / -1" }}>
+          <ChartCard
+            title="Orders by status"
+            subtitle="Status split for the selected period"
+            empty={!metrics || metrics.byStatus.length === 0}
+            minHeight={180}
+          >
+            <div className="chart-bars">
+              {metrics?.byStatus.map((entry) => {
+                const max = Math.max(...metrics.byStatus.map(s => s.count), 1);
+                return (
+                  <div className="chart-bar-group" key={entry.status}>
+                    <div className="chart-bar" style={{ height: `${Math.max(4, (entry.count / max) * 100)}%` }} />
+                    <span>{titleCase(entry.status)}</span>
+                    <strong>{entry.count}</strong>
+                  </div>
+                );
+              })}
+            </div>
+          </ChartCard>
+        </div>
+        <div style={{ gridColumn: "1 / -1" }}>
+          <ChartCard
+            title="Peak order hours"
+            subtitle="Orders placed per hour of the day"
+            empty={!metrics || metrics.byHour.length === 0}
+            minHeight={180}
+          >
+            <div className="chart-bars">
+              {metrics?.byHour.map((entry) => {
+                const max = Math.max(...metrics.byHour.map(h => h.count), 1);
+                return (
+                  <div className="chart-bar-group" key={entry.hour}>
+                    <div className="chart-bar" style={{ height: `${Math.max(4, (entry.count / max) * 100)}%` }} />
+                    <span>{String(entry.hour).padStart(2, "0")}:00</span>
+                    <strong>{entry.count}</strong>
+                  </div>
+                );
+              })}
+            </div>
+          </ChartCard>
+        </div>
+        <div style={{ gridColumn: "1 / -1" }}>
+          <ChartCard
+            title="Orders by state"
+            subtitle="Top shipping states for the selected period"
+            empty={!metrics || metrics.byState.length === 0}
+            minHeight={180}
+          >
+            <div className="chart-bars">
+              {metrics?.byState.map((entry) => {
+                const max = Math.max(...metrics.byState.map(s => s.count), 1);
+                return (
+                  <div className="chart-bar-group" key={entry.state}>
+                    <div className="chart-bar" style={{ height: `${Math.max(4, (entry.count / max) * 100)}%` }} />
+                    <span>{entry.state}</span>
+                    <strong>{entry.count}</strong>
+                  </div>
+                );
+              })}
+            </div>
           </ChartCard>
         </div>
       </div>

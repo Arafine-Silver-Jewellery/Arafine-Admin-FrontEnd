@@ -22,7 +22,7 @@ import BannerSetup from "./pages/BannerSetup";
 import { Coupon, FlashDeals, DealOfTheDay, FeaturedDeal, ClearanceSale, Offers } from "./pages/OffersDeals";
 import { SendNotification, PushNotificationsSetup } from "./pages/Notifications";
 import { Inbox, Messages, SupportTicket } from "./pages/HelpSupport";
-import { EarningReports, InhouseSales, VendorSales, TransactionReport, ProductReport, OrderReport } from "./pages/Reports";
+import { EarningReports, InhouseSales, VendorSales, TransactionReport, ProductReport, OrderReport, StockReport } from "./pages/Reports";
 import { CustomerList, CustomerReviews, Wallet, WalletBonusSetup, LoyaltyPoints } from "./pages/Customers";
 import { Settings } from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -119,6 +119,7 @@ function App() {
             <Route path="reports/transactions" element={<RequirePermission permission="reports"><TransactionReport /></RequirePermission>} />
             <Route path="reports/product" element={<RequirePermission permission="product-report"><ProductReport /></RequirePermission>} />
             <Route path="reports/order" element={<RequirePermission permission="order-report"><OrderReport /></RequirePermission>} />
+            <Route path="reports/stock" element={<RequirePermission permission="product-report"><StockReport /></RequirePermission>} />
             
             {/* Customers */}
             <Route path="customers" element={<RequirePermission permission="customers"><CustomerList /></RequirePermission>} />

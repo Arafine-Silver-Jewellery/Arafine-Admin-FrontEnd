@@ -247,6 +247,13 @@ export const MENU_ITEMS: MenuItem[] = [
     permission: "order-report",
     keywords: ["order", "report"],
   },
+  {
+    path: "/reports/stock",
+    label: "Stock Report",
+    group: "Sales & Transaction Report",
+    permission: "product-report",
+    keywords: ["stock", "inventory", "movement", "warehouse", "report"],
+  },
 
   // ── Help & Support ──
   {

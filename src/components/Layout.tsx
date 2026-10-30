@@ -96,6 +96,7 @@ const pageTitleMap: Record<string, { title: string; icon: string }> = {
   "/reports/transactions": { title: "Transaction Report", icon: "report" },
   "/reports/product": { title: "Product Report", icon: "report" },
   "/reports/order": { title: "Order Report", icon: "report" },
+  "/reports/stock": { title: "Stock Report", icon: "report" },
   "/customers/list": { title: "Customer List", icon: "customer" },
   "/customers/reviews": { title: "Customer Reviews", icon: "customer" },
   "/customers/wallet": { title: "Wallet", icon: "wallet" },
@@ -485,6 +486,7 @@ export default function Layout() {
           )}
 
           {hasPermission("product-report") && (
+          <>
           <NavLink to="/reports/product" className={({ isActive }) => isActive ? "active" : ""}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
@@ -492,6 +494,16 @@ export default function Layout() {
             </svg>
             Product Report
           </NavLink>
+
+          <NavLink to="/reports/stock" className={({ isActive }) => isActive ? "active" : ""}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+              <line x1="12" y1="22.08" x2="12" y2="12" />
+            </svg>
+            Stock Report
+          </NavLink>
+          </>
           )}
 
           {hasPermission("order-report") && (
