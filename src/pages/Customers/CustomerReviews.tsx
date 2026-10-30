@@ -1,27 +1,225 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useToast } from "../../components/Toast";
+import { reviewsApi } from "../../api/reviews";
+import { DataTable, StatusDropdown } from "../../components";
+import { formatDateTime } from "../../utils/format";
 import "../../styles/customers.css";
+import "../../styles/ui-kit.css";
+
+interface AdminReviewRow {
+  id: string;
+  rating: number;
+  title: string | null;
+  comment: string | null;
+  imageUrls: string[];
+  helpfulCount: number;
+  isVisible: boolean;
+  adminReply: string | null;
+  adminReplyAt: string | null;
+  userId: string;
+  productId: string;
+  productName: string | null;
+  createdAt: string;
+}
+
+const statusOptions = [
+  { value: "", label: "All Statuses", color: "neutral" as const },
+  { value: "pending", label: "Pending", color: "info" as const },
+  { value: "approved", label: "Approved", color: "success" as const },
+  { value: "rejected", label: "Rejected", color: "danger" as const },
+];
 
 export default function CustomerReviews() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [reviews, setReviews] = useState<any[]>([]);
-  const [loading] = useState(false);
+  const toast = useToast();
 
-  const toggleStatus = (reviewId: string) => {
-    setReviews(reviews.map(r =>
-      r.reviewId === reviewId ? { ...r, isActive: !r.isActive } : r
-    ));
-  };
+  const [reviews, setReviews] = useState<AdminReviewRow[]>([]);
+  const [stats, setStats] = useState<{ total: number; pending: number; approved: number; rejected: number } | null>(null);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const filteredReviews = reviews.filter(r =>
-    r.product?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    r.reviewId?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const [replyTarget, setReplyTarget] = useState<AdminReviewRow | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [replyError, setReplyError] = useState("");
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setPage(1);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await reviewsApi.getReviews({
+        page,
+        limit: 20,
+        search: debouncedSearch || undefined,
+        status: (filterStatus || undefined) as "pending" | "approved" | "rejected" | undefined,
+      });
+      setReviews(res.data ?? []);
+      setStats(res.stats ?? null);
+      setTotalItems(res.pagination?.total || 0);
+      setTotalPages(res.pagination?.totalPages || 1);
+    }
+    catch (err) {
+      setReviews([]);
+      setError(err instanceof Error ? err.message : "Could not load the reviews");
+    }
+    finally {
+      setLoading(false);
+    }
+  }, [page, debouncedSearch, filterStatus]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function moderate(review: AdminReviewRow, approve: boolean) {
+    try {
+      await reviewsApi.moderate(review.id, approve);
+      toast.success(approve ? "Review published" : "Review hidden");
+      await load();
+    }
+    catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update the review");
+    }
+  }
+
+  async function sendReply() {
+    if (!replyTarget || !replyText.trim()) return;
+    setSaving(true);
+    setReplyError("");
+    try {
+      await reviewsApi.reply(replyTarget.id, replyText.trim());
+      toast.success("Reply sent");
+      setReplyTarget(null);
+      setReplyText("");
+      await load();
+    }
+    catch (err) {
+      setReplyError(err instanceof Error ? err.message : "Could not send the reply");
+    }
+    finally {
+      setSaving(false);
+    }
+  }
+
+  const columns = [
+    {
+      key: "review",
+      header: "Review",
+      render: (review: AdminReviewRow) => (
+        <div>
+          <div style={{ fontWeight: 600 }}>{review.title || "(no title)"}</div>
+          <div className="ak-text-muted ak-text-sm">
+            {review.productName ?? "Unknown product"} · {review.rating}★ · {formatDateTime(review.createdAt)}
+          </div>
+          {review.comment && <div className="ak-text-sm" style={{ marginTop: 4 }}>{review.comment}</div>}
+          {review.imageUrls.length > 0 && (
+            <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+              {review.imageUrls.map(url => (
+                <img
+                  key={url}
+                  src={url}
+                  alt="Review image"
+                  style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 4 }}
+                />
+              ))}
+            </div>
+          )}
+          {review.adminReply && (
+            <div className="ak-text-sm" style={{ marginTop: 6, color: "var(--color-info)" }}>
+              Reply: {review.adminReply}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "helpful",
+      header: "Helpful",
+      width: "90px",
+      align: "right" as const,
+      render: (review: AdminReviewRow) => review.helpfulCount,
+    },
+    {
+      key: "visibility",
+      header: "Status",
+      width: "110px",
+      render: (review: AdminReviewRow) => (
+        <span className={`ak-status ak-status--${review.isVisible ? "success" : "danger"}`}>
+          <span className="ak-status__dot" />
+          {review.isVisible ? "Published" : "Hidden"}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Action",
+      width: "190px",
+      render: (review: AdminReviewRow) => (
+        <div className="ak-row-actions">
+          <button
+            type="button"
+            className="ak-btn ak-btn--ghost ak-btn--sm"
+            onClick={() => {
+              setReplyTarget(review);
+              setReplyText(review.adminReply ?? "");
+              setReplyError("");
+            }}
+          >
+            Reply
+          </button>
+          <button
+            type="button"
+            className="ak-btn ak-btn--ghost ak-btn--sm"
+            onClick={() => void moderate(review, !review.isVisible)}
+          >
+            {review.isVisible ? "Hide" : "Publish"}
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="customers-container">
+      <div className="summary-section">
+        <h3>Summary</h3>
+        <div className="summary-cards">
+          <div className="summary-card">
+            <div className="summary-icon balance">📝</div>
+            <span className="summary-label">Total reviews</span>
+            <span className="summary-value balance">{stats?.total ?? 0}</span>
+          </div>
+          <div className="summary-card">
+            <div className="summary-icon credit">⏳</div>
+            <span className="summary-label">Pending</span>
+            <span className="summary-value credit">{stats?.pending ?? 0}</span>
+          </div>
+          <div className="summary-card">
+            <div className="summary-icon debit">🚫</div>
+            <span className="summary-label">Hidden</span>
+            <span className="summary-value debit">{stats?.rejected ?? 0}</span>
+          </div>
+        </div>
+      </div>
+
       <div className="table-card">
         <div className="table-header">
-          <h3>Customer Reviews List</h3>
+          <h3>
+            Customer Reviews <span className="count">{totalItems}</span>
+          </h3>
           <div className="table-actions">
             <div className="search-box">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -30,117 +228,87 @@ export default function CustomerReviews() {
               </svg>
               <input
                 type="text"
-                placeholder="Search by Id, Product"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by title, comment or product"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <button className="btn-filter-outline">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
-              </svg>
-              Filter
-            </button>
-            <button className="btn-export">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7,10 12,15 17,10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-              Export
-            </button>
+            <StatusDropdown
+              options={statusOptions}
+              value={filterStatus}
+              onChange={setFilterStatus}
+              placeholder="All Statuses"
+              size="sm"
+            />
           </div>
         </div>
 
-        <div className="table-container">
-          <table className="customers-table">
-            <thead>
-              <tr>
-                <th>SL</th>
-                <th>Review ID</th>
-                <th>Product</th>
-                <th>Customer</th>
-                <th>Rating</th>
-                <th>Review</th>
-                <th>Reply</th>
-                <th>Date</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={10} style={{ textAlign: "center", padding: "32px" }}>Loading...</td>
-                </tr>
-              ) : filteredReviews.length === 0 ? (
-                <tr>
-                  <td colSpan={10} style={{ textAlign: "center", padding: "32px" }}>No reviews found</td>
-                </tr>
-              ) : (
-                filteredReviews.map((review, index) => (
-                  <tr key={review.reviewId}>
-                    <td>{index + 1}</td>
-                    <td>{review.reviewId || "—"}</td>
-                    <td>
-                      <span className="product-link">{review.product || "—"}</span>
-                    </td>
-                    <td>{review.customer || "—"}</td>
-                    <td>
-                      <span className="rating-badge">
-                        {review.rating ?? 0} ⭐
-                      </span>
-                    </td>
-                    <td>
-                      <div className="review-content">
-                        <p>{review.review || "—"}</p>
-                        {review.reviewImage && (
-                          <div className="review-image">
-                            <img src={review.reviewImage} alt="Review" />
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td>{review.reply || "—"}</td>
-                    <td>{review.date || "—"}</td>
-                    <td>
-                      <label className="toggle-switch">
-                        <input
-                          type="checkbox"
-                          checked={review.isActive ?? true}
-                          onChange={() => toggleStatus(review.reviewId)}
-                        />
-                        <span className="toggle-slider"></span>
-                      </label>
-                    </td>
-                    <td>
-                      <div className="action-buttons">
-                        <button className="btn-action btn-icon-view" title="View">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#4f46e5" strokeWidth="2"/>
-                            <circle cx="12" cy="12" r="3" stroke="#4f46e5" strokeWidth="2"/>
-                          </svg>
-                        </button>
-                        <button className="btn-action btn-icon-reply" title="Reply">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="#22c55e" strokeWidth="2"/>
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="pagination">
-          <button disabled>&lt;</button>
-          <button className="active">1</button>
-          <button>&gt;</button>
-        </div>
+        {error ? (
+          <div className="empty-state">
+            <p>{error}</p>
+            <button type="button" className="btn-filter-outline" onClick={load}>Retry</button>
+          </div>
+        ) : (
+          <DataTable
+            columns={columns}
+            data={reviews}
+            loading={loading}
+            loadingText="Loading reviews…"
+            emptyIcon="users"
+            emptyTitle="No reviews yet"
+            emptyDescription="Customer reviews show up here for moderation."
+            keyExtractor={(review: AdminReviewRow) => review.id}
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={20}
+            onPageChange={setPage}
+          />
+        )}
       </div>
+
+      {replyTarget && (
+        <div className="ak-modal-overlay" onClick={() => !saving && setReplyTarget(null)}>
+          <div className="ak-modal" style={{ maxWidth: "520px" }} onClick={(e) => e.stopPropagation()}>
+            <div className="ak-modal__header">
+              <h2 className="ak-modal__title">Reply to review</h2>
+              <button type="button" className="ak-modal__close" onClick={() => setReplyTarget(null)}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+            <div className="ak-modal__body">
+              <p className="ak-text-muted ak-text-sm" style={{ marginBottom: 12 }}>
+                {replyTarget.productName} · {replyTarget.rating}★
+              </p>
+              <div className="ak-form-group">
+                <label className="ak-label">Your reply *</label>
+                <textarea
+                  className="ak-input"
+                  rows={4}
+                  placeholder="Shown to the customer under the review"
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                />
+              </div>
+              {replyError && <div className="ak-alert ak-alert--danger" style={{ marginTop: 12 }}>{replyError}</div>}
+            </div>
+            <div className="ak-modal__footer">
+              <button type="button" className="ak-btn ak-btn--ghost" onClick={() => setReplyTarget(null)} disabled={saving}>Cancel</button>
+              <button
+                type="button"
+                className="ak-btn ak-btn--primary"
+                disabled={saving || !replyText.trim()}
+                onClick={() => void sendReply()}
+              >
+                {saving ? "Sending…" : "Send reply"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
