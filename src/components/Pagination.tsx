@@ -7,6 +7,8 @@ interface PaginationProps {
   itemsPerPage?: number;
   onPageChange: (page: number) => void;
   showInfo?: boolean;
+  /** What the rows are called — "results" by default, "products" on a report screen. */
+  itemLabel?: string;
 }
 
 export default function Pagination({
@@ -16,6 +18,7 @@ export default function Pagination({
   itemsPerPage = 20,
   onPageChange,
   showInfo = true,
+  itemLabel = "results",
 }: PaginationProps) {
   if (totalPages <= 1) return null;
 
@@ -67,7 +70,7 @@ export default function Pagination({
       {showInfo && totalItems !== undefined && (
         <div className="ak-pagination__info">
           <span className="ak-pagination__info-text">
-            Showing <strong>{startItem}</strong> - <strong>{endItem}</strong> of <strong>{totalItems}</strong> results
+            Showing <strong>{startItem}</strong> - <strong>{endItem}</strong> of <strong>{totalItems.toLocaleString()}</strong> {itemLabel}
           </span>
         </div>
       )}

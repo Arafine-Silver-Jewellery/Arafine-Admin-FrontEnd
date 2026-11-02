@@ -44,6 +44,8 @@ interface DataTableProps<T> {
   totalItems?: number;
   itemsPerPage?: number;
   onPageChange?: (page: number) => void;
+  /** What the rows are called in the pagination summary — "results" by default. */
+  itemLabel?: string;
   className?: string;
 }
 
@@ -65,6 +67,7 @@ export default function DataTable<T>({
   totalItems,
   itemsPerPage = 20,
   onPageChange,
+  itemLabel,
   className = "",
 }: DataTableProps<T>) {
   const hasPagination = currentPage !== undefined && totalPages !== undefined && onPageChange !== undefined;
@@ -151,6 +154,7 @@ export default function DataTable<T>({
             totalItems={totalItems}
             itemsPerPage={itemsPerPage}
             onPageChange={onPageChange}
+            itemLabel={itemLabel}
           />
         </div>
       )}

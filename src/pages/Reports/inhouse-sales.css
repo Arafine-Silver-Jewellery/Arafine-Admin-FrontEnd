@@ -1,0 +1,487 @@
+/* Inhouse Sales - Dedicated Styles */
+
+/* The screen is a report, so it sits on the same soft canvas the other
+   report screens use and the page title is set in the display serif. */
+.inhouse-sales {
+  padding: 24px;
+  background: #f8fafc;
+  min-height: 100%;
+}
+
+/* ============================================================
+   BREADCRUMB + TITLE
+   ============================================================ */
+
+.ih-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 10px;
+}
+
+.ih-breadcrumb-sep {
+  color: #cbd5e1;
+}
+
+.ih-breadcrumb-current {
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.ih-title {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 24px 0;
+  letter-spacing: -0.01em;
+}
+
+/* ============================================================
+   ERROR
+   ============================================================ */
+
+.ih-error-card {
+  background: white;
+  border-left: 4px solid #ef4444;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.ih-error-card p {
+  margin: 0;
+  color: #ef4444;
+  font-size: 14px;
+}
+
+/* ============================================================
+   STAT CARDS
+   The icon sits beside the figures rather than above them, so the
+   row reads as three labelled metrics at a glance.
+   ============================================================ */
+
+.ih-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+/* Three across until the cards get too narrow to read. */
+@media (max-width: 860px) {
+  .ih-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ih-stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.ih-stat-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ih-stat-icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.ih-stat-icon--blue {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.ih-stat-icon--green {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.ih-stat-icon--teal {
+  background: #ccfbf1;
+  color: #0d9488;
+}
+
+.ih-stat-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ih-stat-value {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  color: #1f2937;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  word-break: break-word;
+}
+
+.ih-stat-label {
+  font-size: 13px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* ============================================================
+   FILTER CARD
+   The three category selects and Clear sit on the left; search and
+   export are pushed to the right so the row reads as one toolbar.
+   ============================================================ */
+
+.ih-filter-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px 24px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  margin-bottom: 24px;
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.ih-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 0 1 190px;
+  min-width: 170px;
+}
+
+.ih-filter-group label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.ih-filter-group select {
+  padding: 10px 34px 10px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #334155;
+  background: white;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  appearance: none;
+  cursor: pointer;
+  width: 100%;
+}
+
+.ih-filter-group select:hover {
+  border-color: #cbd5e1;
+}
+
+.ih-filter-group select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.ih-clear-btn {
+  padding: 10px 22px;
+  height: 42px;
+  background: white;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.ih-clear-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.ih-filter-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.ih-search-box {
+  position: relative;
+}
+
+.ih-search-box svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.ih-search-box input {
+  width: 240px;
+  padding: 10px 12px 10px 38px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #334155;
+  background: white;
+}
+
+.ih-search-box input::placeholder {
+  color: #94a3b8;
+}
+
+.ih-search-box input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.ih-export-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  height: 42px;
+  background: #22c55e;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.ih-export-btn:hover:not(:disabled) {
+  background: #16a34a;
+}
+
+.ih-export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ih-export-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+@media (max-width: 1024px) {
+  .ih-filter-actions {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .ih-search-box {
+    flex: 1;
+  }
+
+  .ih-search-box input {
+    width: 100%;
+    max-width: 420px;
+  }
+}
+
+/* ============================================================
+   TABLE CARD
+   ============================================================ */
+
+.ih-table-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.ih-table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.ih-table-header h2 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ih-table-count {
+  background: #e0f2fe;
+  color: #0369a1;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+/* The table sits flush inside the card rather than carrying its own
+   double border and padding. */
+.inhouse-sales .ak-table-wrapper {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  /* The wrapper clips to its own box by default, which would stop the sticky
+     pagination below from ever reaching the bottom of the viewport. Nothing
+     here needs clipping — the wrapper has no border, radius or shadow — so
+     it is opened up. */
+  overflow: visible;
+}
+
+/* The product list is long enough that its pagination would otherwise sit
+   several screens down, out of sight of the rows it controls. Pinning the
+   footer to the bottom of the viewport keeps the page control next to the
+   list for as long as the list is on screen. */
+.inhouse-sales .ak-table__footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  background: #ffffff;
+  box-shadow: 0 -1px 0 #e2e8f0;
+}
+
+.inhouse-sales .ak-table {
+  font-size: 14px;
+}
+
+.inhouse-sales .ak-table thead th {
+  background: #f4f5f7;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #6b7280;
+  padding: 12px 16px;
+}
+
+.inhouse-sales .ak-table tbody td {
+  padding: 16px;
+  color: #334155;
+  vertical-align: middle;
+  border-bottom-color: #f1f5f9;
+}
+
+.inhouse-sales .ak-table tbody td {
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+/* The rank is a position, not a figure — it reads as a soft gold token. */
+.ih-rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #fdf6e7;
+  color: #b78d3f;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ============================================================
+   PRODUCT CELL
+   ============================================================ */
+
+.ih-product {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ih-product-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: #e8f1fd;
+  color: #b78d3f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.ih-product-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.ih-product-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ih-product-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ih-product-name {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 14px;
+}
+
+.ih-product-sku {
+  font-size: 12px;
+  color: #94a3b8;
+  letter-spacing: 0.02em;
+}
+
+/* ============================================================
+   SALES SHARE
+   The bar shows each product's share of the leading product on
+   the page, so the best seller reads as a full bar.
+   ============================================================ */
+
+.ih-share {
+  width: 100%;
+  min-width: 140px;
+  height: 7px;
+  border-radius: 999px;
+  background: #f3ead8;
+  overflow: hidden;
+}
+
+.ih-share-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-champagne);
+}
