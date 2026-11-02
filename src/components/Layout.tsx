@@ -420,14 +420,14 @@ export default function Layout() {
           </div>
           )}
 
-          {(hasPermission("reports") || hasPermission("product-report") || hasPermission("order-report")) && (
+          {(hasPermission("sales-transaction-report") || hasPermission("orders")) && (
           <>
           <div className="sidebar-divider" />
           <span className="sidebar-label">Sales & Transaction Report</span>
           </>
           )}
 
-          {hasPermission("reports") && (
+          {hasPermission("sales-transaction-report") && (
           <div className={`nav-item-with-submenu ${isReportsActive && location.pathname.includes("/reports/earning") || location.pathname.includes("/reports/inhouse") || location.pathname.includes("/reports/vendor-sales") || location.pathname.includes("/reports/transactions") ? "expanded" : ""}`}>
             <button 
               className={`nav-toggle ${location.pathname.includes("/reports/earning") || location.pathname.includes("/reports/inhouse") || location.pathname.includes("/reports/vendor-sales") || location.pathname.includes("/reports/transactions") ? "active" : ""}`}
@@ -462,7 +462,7 @@ export default function Layout() {
           </div>
           )}
 
-          {hasPermission("product-report") && (
+          {hasPermission("sales-transaction-report") && (
           <NavLink to="/reports/product" className={({ isActive }) => isActive ? "active" : ""}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
@@ -472,7 +472,7 @@ export default function Layout() {
           </NavLink>
           )}
 
-          {hasPermission("order-report") && (
+          {hasPermission("orders") && (
           <NavLink to="/reports/order" className={({ isActive }) => isActive ? "active" : ""}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />

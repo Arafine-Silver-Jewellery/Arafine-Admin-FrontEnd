@@ -108,13 +108,14 @@ function App() {
             <Route path="messages" element={<RequirePermission permission="messages"><Messages /></RequirePermission>} />
             <Route path="support-ticket" element={<RequirePermission permission="support-ticket"><SupportTicket /></RequirePermission>} />
             
-            {/* Reports */}
-            <Route path="reports/earning" element={<RequirePermission permission="reports"><EarningReports /></RequirePermission>} />
-            <Route path="reports/inhouse-sales" element={<RequirePermission permission="reports"><InhouseSales /></RequirePermission>} />
-            <Route path="reports/vendor-sales" element={<RequirePermission permission="reports"><VendorSales /></RequirePermission>} />
-            <Route path="reports/transactions" element={<RequirePermission permission="reports"><TransactionReport /></RequirePermission>} />
-            <Route path="reports/product" element={<RequirePermission permission="product-report"><ProductReport /></RequirePermission>} />
-            <Route path="reports/order" element={<RequirePermission permission="order-report"><OrderReport /></RequirePermission>} />
+            {/* Reports — one permission for the whole Sales & Transaction Report group */}
+            <Route path="reports/earning" element={<RequirePermission permission="sales-transaction-report"><EarningReports /></RequirePermission>} />
+            <Route path="reports/inhouse-sales" element={<RequirePermission permission="sales-transaction-report"><InhouseSales /></RequirePermission>} />
+            <Route path="reports/vendor-sales" element={<RequirePermission permission="sales-transaction-report"><VendorSales /></RequirePermission>} />
+            <Route path="reports/transactions" element={<RequirePermission permission="sales-transaction-report"><TransactionReport /></RequirePermission>} />
+            <Route path="reports/product" element={<RequirePermission permission="sales-transaction-report"><ProductReport /></RequirePermission>} />
+            {/* Order Report reads the orders module, so it needs that module's permission. */}
+            <Route path="reports/order" element={<RequirePermission permission="orders"><OrderReport /></RequirePermission>} />
             
             {/* Customers */}
             <Route path="customers" element={<RequirePermission permission="customers"><CustomerList /></RequirePermission>} />

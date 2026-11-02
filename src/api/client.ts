@@ -97,8 +97,8 @@ export const api = {
   },
 
   // Sales & Transaction Reports.
-  // These live on the dashboard module — the backend serves both the
-  // Dashboard screen and the report screens from there.
+  // These are served by the backend's reports module — one endpoint per
+  // report screen, under /api/v1/admin/reports.
   getProductSalesReport: (params: {
     page?: number;
     limit?: number;
@@ -112,7 +112,7 @@ export const api = {
     if (params.search) q.set("search", params.search);
     if (params.categoryId) q.set("categoryId", params.categoryId);
     q.set("range", params.range ?? "30d");
-    return request<ProductSalesReport>(`/dashboard/product-sales?${q}`);
+    return request<ProductSalesReport>(`/reports/product-sales?${q}`);
   },
   getWishlistCountsReport: (params: {
     page?: number;
@@ -127,7 +127,7 @@ export const api = {
     if (params.search) q.set("search", params.search);
     q.set("sort", params.sort ?? "count");
     q.set("order", params.order ?? "desc");
-    return request<WishlistCountsReport>(`/dashboard/wishlist-counts?${q}`);
+    return request<WishlistCountsReport>(`/reports/wishlist-counts?${q}`);
   },
 
   getWishlistUsersReport: (productId: string, params: {
@@ -148,7 +148,7 @@ export const api = {
       }[];
       pagination: { page: number; limit: number; total: number; totalPages: number };
       product: { id: string; name: string; sku: string };
-    }>(`/dashboard/wishlist-users/${productId}?${q}`);
+    }>(`/reports/wishlist-users/${productId}?${q}`);
   },
   getExpensesReport: (params: {
     page?: number;
@@ -167,7 +167,7 @@ export const api = {
     if (params.status) q.set("status", params.status);
     if (params.dateFrom) q.set("dateFrom", params.dateFrom);
     if (params.dateTo) q.set("dateTo", params.dateTo);
-    return request<ExpensesReport>(`/dashboard/expenses?${q}`);
+    return request<ExpensesReport>(`/reports/transactions/expenses?${q}`);
   },
   getInhouseSalesReport: (params: {
     page?: number;
@@ -183,7 +183,7 @@ export const api = {
     if (params.search) q.set("search", params.search);
     if (params.categoryId) q.set("categoryId", params.categoryId);
     q.set("range", params.range ?? "30d");
-    return request<InhouseSalesReport>(`/dashboard/inhouse-sales?${q}`);
+    return request<InhouseSalesReport>(`/reports/inhouse-sales?${q}`);
   },
   getVendorSalesReport: (params: {
     page?: number;
@@ -198,7 +198,7 @@ export const api = {
     if (params.search) q.set("search", params.search);
     if (params.status) q.set("status", params.status);
     q.set("range", params.range ?? "30d");
-    return request<VendorSalesReport>(`/dashboard/vendors?${q}`);
+    return request<VendorSalesReport>(`/reports/vendor-sales?${q}`);
   },
   getEarningsReport: (params: {
     dateFrom?: string;
@@ -209,7 +209,7 @@ export const api = {
     if (params.dateFrom) q.set("dateFrom", params.dateFrom);
     if (params.dateTo) q.set("dateTo", params.dateTo);
     q.set("groupBy", params.groupBy ?? "month");
-    return request<EarningsReport>(`/dashboard/earnings?${q}`);
+    return request<EarningsReport>(`/reports/earnings?${q}`);
   },
   getVendorEarningsReport: (params: {
     page?: number;
@@ -224,7 +224,59 @@ export const api = {
     if (params.search) q.set("search", params.search);
     if (params.status) q.set("status", params.status);
     q.set("range", params.range ?? "30d");
-    return request<VendorEarningsReport>(`/dashboard/vendor-earnings?${q}`);
+    return request<VendorEarningsReport>(`/reports/earnings/vendors?${q}`);
+  },
+
+  // The trend the report screens' charts draw. Same aggregate as the
+  // dashboard's, exposed by the reports module so a report screen only
+  // needs the `reports` permission.
+  getReportTrend: (params: { metric?: "revenue" | "orders" | "products" | "users" | "channel"; range?: "7d" | "30d" | "90d" | "all" } = {}) => {
+    const q = new URLSearchParams();
+    q.set("metric", params.metric ?? "revenue");
+    q.set("range", params.range ?? "30d");
+    return request<any>(`/reports/trend?${q}`);
+  },
+
+  // Transaction Report — Orders tab.
+  getReportTransactions: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    paymentState?: string;
+    paymentMethod?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  } = {}) => {
+    const q = new URLSearchParams();
+    if (params.page) q.set("page", String(params.page));
+    if (params.limit) q.set("limit", String(params.limit));
+    if (params.search) q.set("search", params.search);
+    if (params.paymentState) q.set("paymentState", params.paymentState);
+    if (params.paymentMethod) q.set("paymentMethod", params.paymentMethod);
+    if (params.dateFrom) q.set("dateFrom", params.dateFrom);
+    if (params.dateTo) q.set("dateTo", params.dateTo);
+    return request<ApiResponse<any[]>>(`/reports/transactions/orders?${q}`);
+  },
+
+  // Transaction Report — Refunds tab. The backend filters both refunded
+  // payment statuses in one query, so the screen never has to pull every
+  // refunded order to show one page.
+  getReportRefunds: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    refundStatus?: "all" | "refunded" | "partially_refunded";
+    dateFrom?: string;
+    dateTo?: string;
+  } = {}) => {
+    const q = new URLSearchParams();
+    if (params.page) q.set("page", String(params.page));
+    if (params.limit) q.set("limit", String(params.limit));
+    if (params.search) q.set("search", params.search);
+    q.set("refundStatus", params.refundStatus ?? "all");
+    if (params.dateFrom) q.set("dateFrom", params.dateFrom);
+    if (params.dateTo) q.set("dateTo", params.dateTo);
+    return request<ApiResponse<any[]>>(`/reports/transactions/refunds?${q}`);
   },
 
   // Products

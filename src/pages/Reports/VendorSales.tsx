@@ -110,7 +110,7 @@ export default function VendorSales() {
     let cancelled = false;
     setTrendLoading(true);
     api
-      .getDashboardTrend({ metric: "orders", range })
+      .getReportTrend({ metric: "orders", range })
       .then((data) => {
         if (!cancelled) setTrend(data?.points ?? []);
       })

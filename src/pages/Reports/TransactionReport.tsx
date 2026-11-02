@@ -242,7 +242,7 @@ export default function TransactionReport() {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.getOrders({
+      const response = await api.getReportTransactions({
         page,
         limit: PAGE_SIZE,
         search: searchQuery.trim() || undefined,
@@ -293,62 +293,21 @@ export default function TransactionReport() {
   }, [page, searchQuery, expenseCategory, expenseStatus, range.dateFrom, range.dateTo]);
 
   // --- Refund tab --------------------------------------------------------
+  // Both refunded payment statuses are filtered by the server in one
+  // query, so the page is correctly paginated instead of being sliced out
+  // of a full download of every refunded order.
   const loadRefunds = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const baseParams = {
-        page: 1,
+      const response = await api.getReportRefunds({
+        page,
         limit: PAGE_SIZE,
         search: searchQuery.trim() || undefined,
+        refundStatus:
+          refundStatus === "all" ? "all" : refundStatus === "processed" ? "refunded" : "partially_refunded",
         dateFrom: range.dateFrom,
         dateTo: range.dateTo,
-      };
-
-      if (refundStatus === "all") {
-        const fetchAllByStatus = async (status: "refunded" | "partially_refunded") => {
-          const first = await api.getOrders({
-            ...baseParams,
-            limit: 200,
-            paymentStatus: status,
-          });
-          const total = first.pagination?.total || 0;
-          const rows = [...(first.data || [])];
-          const totalPages = Math.max(1, Math.ceil(total / 200));
-          for (let p = 2; p <= totalPages; p++) {
-            const next = await api.getOrders({
-              ...baseParams,
-              limit: 200,
-              page: p,
-              paymentStatus: status,
-            });
-            rows.push(...(next.data || []));
-          }
-          return { rows, total };
-        };
-
-        const [refunded, partial] = await Promise.all([
-          fetchAllByStatus("refunded"),
-          fetchAllByStatus("partially_refunded"),
-        ]);
-        const merged = [...refunded.rows, ...partial.rows].sort(
-          (a, b) =>
-            new Date(b.refundedAt ?? b.createdAt).getTime() -
-            new Date(a.refundedAt ?? a.createdAt).getTime(),
-        );
-        const total = refunded.total + partial.total;
-        const start = (page - 1) * PAGE_SIZE;
-        setOrders(merged.slice(start, start + PAGE_SIZE));
-        setTotalItems(total);
-        setTotalPages(Math.max(1, Math.ceil(total / PAGE_SIZE)));
-        return;
-      }
-
-      const response = await api.getOrders({
-        ...baseParams,
-        page,
-        paymentStatus:
-          refundStatus === "pending" ? "partially_refunded" : "refunded",
       });
       setOrders(response.data || []);
       setTotalPages(response.pagination?.totalPages || 1);

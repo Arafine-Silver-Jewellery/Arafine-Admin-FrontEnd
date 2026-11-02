@@ -191,46 +191,49 @@ export const MENU_ITEMS: MenuItem[] = [
   },
 
   // ── Sales & Transaction Report ──
+  // One permission for the whole group — it matches the key the backend's
+  // reports module requires.
   {
     path: "/reports/earning",
     label: "Earning Reports",
     group: "Sales & Transaction Report",
-    permission: "reports",
+    permission: "sales-transaction-report",
     keywords: ["earning", "revenue", "income", "report"],
   },
   {
     path: "/reports/inhouse-sales",
     label: "Inhouse Sales",
     group: "Sales & Transaction Report",
-    permission: "reports",
+    permission: "sales-transaction-report",
     keywords: ["sales", "report", "own products"],
   },
   {
     path: "/reports/vendor-sales",
     label: "Vendor Sales",
     group: "Sales & Transaction Report",
-    permission: "reports",
+    permission: "sales-transaction-report",
     keywords: ["sales", "report", "seller"],
   },
   {
     path: "/reports/transactions",
     label: "Transaction Report",
     group: "Sales & Transaction Report",
-    permission: "reports",
+    permission: "sales-transaction-report",
     keywords: ["transaction", "payment", "report"],
   },
   {
     path: "/reports/product",
     label: "Product Report",
     group: "Sales & Transaction Report",
-    permission: "product-report",
-    keywords: ["product", "report"],
+    permission: "sales-transaction-report",
+    keywords: ["product", "report", "wishlist"],
   },
   {
+    // Reads the orders module, so it needs that module's permission.
     path: "/reports/order",
     label: "Order Report",
     group: "Sales & Transaction Report",
-    permission: "order-report",
+    permission: "orders",
     keywords: ["order", "report"],
   },
 
