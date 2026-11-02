@@ -402,6 +402,8 @@ export interface VendorSalesReport {
     activeVendors: number;
     totalOrders: number;
     totalSales: number;
+    /** Non-deleted products owned by the matching vendors. */
+    totalProducts: number;
   };
 }
 
