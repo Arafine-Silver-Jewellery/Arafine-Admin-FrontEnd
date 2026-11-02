@@ -1,0 +1,589 @@
+/* Order Report - Dedicated Styles */
+
+/* Shares the report screen language with Product Report:
+   soft canvas, display-serif headings, tinted icon tiles, one filter bar and
+   one table card. */
+.order-report {
+  padding: 24px;
+  background: #f8fafc;
+  min-height: 100%;
+}
+
+/* ============================================================
+   BREADCRUMB + TITLE
+   ============================================================ */
+
+.or-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 10px;
+}
+
+.or-breadcrumb-sep {
+  color: #cbd5e1;
+}
+
+.or-breadcrumb-current {
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.or-title {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 24px 0;
+  letter-spacing: -0.01em;
+}
+
+/* ============================================================
+   TABS
+   ============================================================ */
+
+.or-tabs {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 24px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.or-tab {
+  padding: 0 0 12px;
+  margin-bottom: -2px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.or-tab:hover:not(.or-tab--active) {
+  color: #2563eb;
+}
+
+.or-tab--active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+  font-weight: 600;
+}
+
+.or-tab:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ============================================================
+   ERROR
+   ============================================================ */
+
+.or-error-card {
+  background: white;
+  border-left: 4px solid #ef4444;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.or-error-card p {
+  margin: 0;
+  color: #ef4444;
+  font-size: 14px;
+}
+
+/* ============================================================
+   STAT CARDS
+   ============================================================ */
+
+.or-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 1280px) {
+  .or-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 860px) {
+  .or-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.or-stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  min-width: 0;
+}
+
+.or-stat-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.or-stat-icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.or-stat-icon--blue {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.or-stat-icon--green {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.or-stat-icon--teal {
+  background: #ccfbf1;
+  color: #0d9488;
+}
+
+.or-stat-icon--amber {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.or-stat-icon--red {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.or-stat-icon--purple {
+  background: #f3e8ff;
+  color: #9333ea;
+}
+
+.or-stat-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.or-stat-value {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  color: #1f2937;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.or-stat-label {
+  font-size: 13px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.or-stat-value--green {
+  color: #16a34a;
+}
+
+.or-stat-value--red {
+  color: #dc2626;
+}
+
+/* ============================================================
+   FILTER BAR
+   ============================================================ */
+
+.or-filter-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px 24px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  margin-bottom: 24px;
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.or-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 0 1 170px;
+  min-width: 140px;
+}
+
+.or-filter-group label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.or-filter-group select {
+  padding: 10px 34px 10px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #334155;
+  background: white;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  appearance: none;
+  cursor: pointer;
+  width: 100%;
+}
+
+.or-filter-group select:hover {
+  border-color: #cbd5e1;
+}
+
+.or-filter-group select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.or-clear-btn {
+  padding: 10px 22px;
+  height: 42px;
+  background: white;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.or-clear-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.or-filter-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.or-search-box {
+  position: relative;
+}
+
+.or-search-box svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.or-search-box input {
+  width: 220px;
+  padding: 10px 12px 10px 38px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #334155;
+  background: white;
+}
+
+.or-search-box input::placeholder {
+  color: #94a3b8;
+}
+
+.or-search-box input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.or-export-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  height: 42px;
+  background: #22c55e;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.or-export-btn:hover:not(:disabled) {
+  background: #16a34a;
+}
+
+.or-export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.or-export-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+@media (max-width: 1024px) {
+  .or-filter-actions {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .or-search-box {
+    flex: 1;
+  }
+
+  .or-search-box input {
+    width: 100%;
+    max-width: 420px;
+  }
+}
+
+/* ============================================================
+   TABLE CARD
+   ============================================================ */
+
+.or-table-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.or-table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.or-table-header h2 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.or-table-count {
+  background: #e0f2fe;
+  color: #0369a1;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.order-report .ak-table-wrapper {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.order-report .ak-table {
+  font-size: 14px;
+}
+
+.order-report .ak-table thead th {
+  background: #f4f5f7;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #6b7280;
+  padding: 12px 16px;
+}
+
+.order-report .ak-table tbody td {
+  padding: 12px 16px;
+  color: #334155;
+  vertical-align: middle;
+  border-bottom-color: #f1f5f9;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.order-report .ak-table__footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  background: #ffffff;
+  box-shadow: 0 -1px 0 #e2e8f0;
+}
+
+/* ============================================================
+   CELLS
+   ============================================================ */
+
+.or-row-no {
+  color: #6b7280;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.or-secondary {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.or-money {
+  color: #475569;
+  font-weight: 500;
+}
+
+.or-amount {
+  font-weight: 600;
+  color: #16a34a;
+}
+
+.or-order-id {
+  font-weight: 600;
+  color: #2563eb;
+  cursor: pointer;
+}
+
+.or-order-id:hover {
+  text-decoration: underline;
+}
+
+/* Customer info cell */
+.or-customer {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 200px;
+}
+
+.or-customer-name {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.or-customer-phone {
+  font-size: 12px;
+  color: #94a3b8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   STATUS PILL
+   ============================================================ */
+
+.or-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.or-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.or-status--success {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.or-status--info {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.or-status--brand {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.or-status--warning {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.or-status--danger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.or-status--neutral {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+/* ============================================================
+   VIEW BUTTON
+   ============================================================ */
+
+.or-view-btn {
+  padding: 6px 14px;
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.or-view-btn:hover {
+  background: #dbeafe;
+  border-color: #bfdbfe;
+}
