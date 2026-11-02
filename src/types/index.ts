@@ -659,6 +659,73 @@ export interface FlashDealStats {
 }
 
 // ---------------------------------------------------------------------------
+// Featured Deal types
+// ---------------------------------------------------------------------------
+
+export interface FeaturedDeal {
+  id: string;
+  title: string;
+  startsAt: string;
+  endsAt: string;
+  isPublished: boolean;
+  productIds: string[];
+  status: FlashDealStatus;
+  activeProductsCount: number;
+  products?: FlashDealProductInfo[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateFeaturedDealInput {
+  title: string;
+  startsAt: string;
+  endsAt: string;
+  isPublished?: boolean;
+  productIds?: string[];
+}
+
+export interface FeaturedDealStats {
+  totalDeals: number;
+  activeDeals: number;
+  expiredDeals: number;
+  upcomingDeals: number;
+  totalProducts: number;
+}
+
+// ---------------------------------------------------------------------------
+// Clearance Sale types
+// ---------------------------------------------------------------------------
+
+export interface ClearanceSaleProduct {
+  id: string;
+  productId: string;
+  productName: string;
+  productSku: string;
+  productImageUrl: string | null;
+  originalPrice: number;
+  discountPercent: number;
+  discountPrice: number;
+  stock: number;
+  isActive: boolean;
+}
+
+export interface ClearanceSaleStats {
+  totalProducts: number;
+  activeProducts: number;
+  potentialSavings: number;
+  flatDiscountPercent: number;
+}
+
+export interface ClearanceSaleSettings {
+  id: string;
+  isActive: boolean;
+  startsAt: string | null;
+  endsAt: string | null;
+  discountPercent: number;
+  showOnHomepage: boolean;
+}
+
+// ---------------------------------------------------------------------------
 // Deal of the Day types
 // ---------------------------------------------------------------------------
 

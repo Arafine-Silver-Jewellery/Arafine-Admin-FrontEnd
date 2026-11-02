@@ -1,9 +1,13 @@
 import { API_BASE_URL } from "../config/env";
 import type {
   Address,
+  ClearanceSaleProduct,
+  ClearanceSaleSettings,
+  ClearanceSaleStats,
   Coupon,
   CreateCouponInput,
   CreateDealOfTheDayInput,
+  CreateFeaturedDealInput,
   CreateFlashDealInput,
   CustomerAddressInput,
   DealOfTheDay,
@@ -11,6 +15,8 @@ import type {
   DealOfTheDayStats,
   EarningsReport,
   ExpensesReport,
+  FeaturedDeal,
+  FeaturedDealStats,
   FlashDeal,
   FlashDealProductInfo,
   InhouseSalesReport,
@@ -808,6 +814,127 @@ export const api = {
       pagination: { page: number; limit: number; total: number; totalPages: number };
     }>(`/offers-deals/deal-of-the-day/products/search?${query}`);
   },
+
+  // Featured Deals (Offers & Deals module)
+  getFeaturedDeals: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: "active" | "expired" | "upcoming";
+    isPublished?: boolean;
+  }) => {
+    const query = new URLSearchParams();
+    if (params.page) query.set("page", params.page.toString());
+    if (params.limit) query.set("limit", params.limit.toString());
+    if (params.search) query.set("search", params.search);
+    if (params.status) query.set("status", params.status);
+    if (params.isPublished !== undefined) query.set("isPublished", params.isPublished.toString());
+    return request<{
+      data: FeaturedDeal[];
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+      stats: FeaturedDealStats;
+    }>(`/offers-deals/featured-deals?${query}`);
+  },
+  getFeaturedDeal: (id: string, includeProducts: boolean = false) => {
+    const query = includeProducts ? "?includeProducts=true" : "";
+    return request<FeaturedDeal>(`/offers-deals/featured-deals/${id}${query}`);
+  },
+  createFeaturedDeal: (data: CreateFeaturedDealInput) =>
+    request<FeaturedDeal>("/offers-deals/featured-deals", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  updateFeaturedDeal: (id: string, data: Partial<CreateFeaturedDealInput>) =>
+    request<FeaturedDeal>(`/offers-deals/featured-deals/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  deleteFeaturedDeal: (id: string) =>
+    request<{ message: string }>(`/offers-deals/featured-deals/${id}`, { method: "DELETE" }),
+  toggleFeaturedDealPublish: (id: string) =>
+    request<FeaturedDeal>(`/offers-deals/featured-deals/${id}/toggle-publish`, { method: "PATCH" }),
+  addFeaturedDealProducts: (id: string, productIds: string[]) =>
+    request<FeaturedDeal>(`/offers-deals/featured-deals/${id}/products`, {
+      method: "POST",
+      body: JSON.stringify({ productIds }),
+    }),
+  removeFeaturedDealProducts: (id: string, productIds: string[]) =>
+    request<FeaturedDeal>(`/offers-deals/featured-deals/${id}/products`, {
+      method: "DELETE",
+      body: JSON.stringify({ productIds }),
+    }),
+  searchFeaturedDealProducts: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  } = {}) => {
+    const query = new URLSearchParams();
+    if (params.page) query.set("page", params.page.toString());
+    if (params.limit) query.set("limit", params.limit.toString());
+    if (params.search) query.set("search", params.search);
+    return request<{
+      data: FlashDealProductInfo[];
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+    }>(`/offers-deals/featured-deals/products/search?${query}`);
+  },
+
+  // Clearance Sale (Offers & Deals module)
+  getClearanceProducts: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    isActive?: boolean;
+  } = {}) => {
+    const query = new URLSearchParams();
+    if (params.page) query.set("page", params.page.toString());
+    if (params.limit) query.set("limit", params.limit.toString());
+    if (params.search) query.set("search", params.search);
+    if (params.isActive !== undefined) query.set("isActive", params.isActive.toString());
+    return request<{
+      data: ClearanceSaleProduct[];
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+      stats: ClearanceSaleStats;
+    }>(`/offers-deals/clearance-sale?${query}`);
+  },
+  getClearanceSettings: () =>
+    request<ClearanceSaleSettings>("/offers-deals/clearance-sale/settings"),
+  updateClearanceSettings: (data: {
+    isActive?: boolean;
+    startsAt?: string | null;
+    endsAt?: string | null;
+    discountPercent?: number;
+    showOnHomepage?: boolean;
+  }) =>
+    request<ClearanceSaleSettings>("/offers-deals/clearance-sale/settings", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  searchClearanceProducts: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  } = {}) => {
+    const query = new URLSearchParams();
+    if (params.page) query.set("page", params.page.toString());
+    if (params.limit) query.set("limit", params.limit.toString());
+    if (params.search) query.set("search", params.search);
+    return request<{
+      data: FlashDealProductInfo[];
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+    }>(`/offers-deals/clearance-sale/products/search?${query}`);
+  },
+  addClearanceProduct: (data: { productId: string; discountPercent: number }) =>
+    request<ClearanceSaleProduct>("/offers-deals/clearance-sale", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  updateClearanceProduct: (id: string, data: { discountPercent?: number; isActive?: boolean }) =>
+    request<ClearanceSaleProduct>(`/offers-deals/clearance-sale/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  deleteClearanceProduct: (id: string) =>
+    request<{ message: string }>(`/offers-deals/clearance-sale/${id}`, { method: "DELETE" }),
 
   // Storage Providers
   getStorageProviders: () => request<{ data: any[] }>("/storage-providers"),
