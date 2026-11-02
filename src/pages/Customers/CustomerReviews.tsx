@@ -1,21 +1,97 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { api } from "../../api/client";
 import "../../styles/customers.css";
+
+interface Review {
+  id: string;
+  productId: string;
+  productName: string;
+  productImage: string | null;
+  userId: string;
+  customerName: string;
+  customerPhone: string | null;
+  rating: number;
+  title: string | null;
+  comment: string | null;
+  imageUrls: string[];
+  isVerifiedPurchase: boolean;
+  isVisible: boolean;
+  helpfulCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function CustomerReviews() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [reviews, setReviews] = useState<any[]>([]);
-  const [loading] = useState(false);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const pageSize = 20;
 
-  const toggleStatus = (reviewId: string) => {
-    setReviews(reviews.map(r =>
-      r.reviewId === reviewId ? { ...r, isActive: !r.isActive } : r
-    ));
+  const fetchReviews = async () => {
+    setLoading(true);
+    try {
+      const response = await api.getReviews({
+        page,
+        pageSize,
+        search: searchQuery || undefined,
+      });
+      setReviews(response.data);
+      setTotalPages(response.pagination.totalPages);
+      setTotal(response.pagination.total);
+    } catch (error) {
+      console.error("Failed to fetch reviews:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const filteredReviews = reviews.filter(r =>
-    r.product?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    r.reviewId?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  useEffect(() => {
+    fetchReviews();
+  }, [page]);
+
+  useEffect(() => {
+    const debounce = setTimeout(() => {
+      setPage(1);
+      fetchReviews();
+    }, 300);
+    return () => clearTimeout(debounce);
+  }, [searchQuery]);
+
+  const toggleVisibility = async (reviewId: string, currentVisibility: boolean) => {
+    try {
+      await api.updateReviewVisibility(reviewId, !currentVisibility);
+      setReviews(reviews.map(r =>
+        r.id === reviewId ? { ...r, isVisible: !currentVisibility } : r
+      ));
+    } catch (error) {
+      console.error("Failed to update review visibility:", error);
+    }
+  };
+
+  const handleDelete = async (reviewId: string) => {
+    if (!confirm("Are you sure you want to delete this review?")) return;
+    try {
+      await api.deleteReview(reviewId);
+      setReviews(reviews.filter(r => r.id !== reviewId));
+    } catch (error) {
+      console.error("Failed to delete review:", error);
+    }
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString("en-IN", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const renderStars = (rating: number) => {
+    return "★".repeat(rating) + "☆".repeat(5 - rating);
+  };
 
   return (
     <div className="customers-container">
@@ -30,7 +106,7 @@ export default function CustomerReviews() {
               </svg>
               <input
                 type="text"
-                placeholder="Search by Id, Product"
+                placeholder="Search by Product Name"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -57,12 +133,10 @@ export default function CustomerReviews() {
             <thead>
               <tr>
                 <th>SL</th>
-                <th>Review ID</th>
                 <th>Product</th>
                 <th>Customer</th>
                 <th>Rating</th>
                 <th>Review</th>
-                <th>Reply</th>
                 <th>Date</th>
                 <th>Status</th>
                 <th>Action</th>
@@ -71,59 +145,74 @@ export default function CustomerReviews() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={10} style={{ textAlign: "center", padding: "32px" }}>Loading...</td>
+                  <td colSpan={8} style={{ textAlign: "center", padding: "32px" }}>Loading...</td>
                 </tr>
-              ) : filteredReviews.length === 0 ? (
+              ) : reviews.length === 0 ? (
                 <tr>
-                  <td colSpan={10} style={{ textAlign: "center", padding: "32px" }}>No reviews found</td>
+                  <td colSpan={8} style={{ textAlign: "center", padding: "32px" }}>No reviews found</td>
                 </tr>
               ) : (
-                filteredReviews.map((review, index) => (
-                  <tr key={review.reviewId}>
-                    <td>{index + 1}</td>
-                    <td>{review.reviewId || "—"}</td>
+                reviews.map((review, index) => (
+                  <tr key={review.id}>
+                    <td>{(page - 1) * pageSize + index + 1}</td>
                     <td>
-                      <span className="product-link">{review.product || "—"}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        {review.productImage && (
+                          <img
+                            src={review.productImage}
+                            alt={review.productName}
+                            style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 4 }}
+                          />
+                        )}
+                        <span className="product-link">{review.productName}</span>
+                      </div>
                     </td>
-                    <td>{review.customer || "—"}</td>
                     <td>
-                      <span className="rating-badge">
-                        {review.rating ?? 0} ⭐
-                      </span>
-                    </td>
-                    <td>
-                      <div className="review-content">
-                        <p>{review.review || "—"}</p>
-                        {review.reviewImage && (
-                          <div className="review-image">
-                            <img src={review.reviewImage} alt="Review" />
-                          </div>
+                      <div>
+                        <div>{review.customerName}</div>
+                        {review.customerPhone && (
+                          <small style={{ color: "#666" }}>{review.customerPhone}</small>
                         )}
                       </div>
                     </td>
-                    <td>{review.reply || "—"}</td>
-                    <td>{review.date || "—"}</td>
+                    <td>
+                      <span className="rating-badge" style={{ color: "#f59e0b" }}>
+                        {renderStars(review.rating)}
+                      </span>
+                    </td>
+                    <td style={{ maxWidth: 300 }}>
+                      <div className="review-content">
+                        {review.title && <strong>{review.title}</strong>}
+                        <p style={{ margin: 0, fontSize: "0.85rem", color: "#555" }}>
+                          {review.comment || "—"}
+                        </p>
+                        {review.isVerifiedPurchase && (
+                          <span style={{ fontSize: "0.7rem", color: "#22c55e", fontWeight: 600 }}>
+                            ✓ Verified Purchase
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td>{formatDate(review.createdAt)}</td>
                     <td>
                       <label className="toggle-switch">
                         <input
                           type="checkbox"
-                          checked={review.isActive ?? true}
-                          onChange={() => toggleStatus(review.reviewId)}
+                          checked={review.isVisible}
+                          onChange={() => toggleVisibility(review.id, review.isVisible)}
                         />
                         <span className="toggle-slider"></span>
                       </label>
                     </td>
                     <td>
                       <div className="action-buttons">
-                        <button className="btn-action btn-icon-view" title="View">
+                        <button
+                          className="btn-action btn-icon-delete"
+                          title="Delete"
+                          onClick={() => handleDelete(review.id)}
+                        >
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#4f46e5" strokeWidth="2"/>
-                            <circle cx="12" cy="12" r="3" stroke="#4f46e5" strokeWidth="2"/>
-                          </svg>
-                        </button>
-                        <button className="btn-action btn-icon-reply" title="Reply">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="#22c55e" strokeWidth="2"/>
+                            <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z" stroke="#ef4444" strokeWidth="2"/>
                           </svg>
                         </button>
                       </div>
@@ -136,9 +225,33 @@ export default function CustomerReviews() {
         </div>
 
         <div className="pagination">
-          <button disabled>&lt;</button>
-          <button className="active">1</button>
-          <button>&gt;</button>
+          <span style={{ marginRight: "auto", fontSize: "0.85rem", color: "#666" }}>
+            Showing {reviews.length} of {total} reviews
+          </span>
+          <button
+            disabled={page <= 1}
+            onClick={() => setPage(p => p - 1)}
+          >
+            &lt;
+          </button>
+          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+            const pageNum = i + 1;
+            return (
+              <button
+                key={pageNum}
+                className={page === pageNum ? "active" : ""}
+                onClick={() => setPage(pageNum)}
+              >
+                {pageNum}
+              </button>
+            );
+          })}
+          <button
+            disabled={page >= totalPages}
+            onClick={() => setPage(p => p + 1)}
+          >
+            &gt;
+          </button>
         </div>
       </div>
     </div>

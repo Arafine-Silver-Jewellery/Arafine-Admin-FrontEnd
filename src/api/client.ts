@@ -677,6 +677,52 @@ export const api = {
     return `${API_BASE_URL}/users/export/csv?${query}`;
   },
 
+  // Customer Reviews
+  getReviews: (params: {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    rating?: number;
+    isVisible?: boolean;
+  }) => {
+    const query = new URLSearchParams();
+    if (params.page) query.set("page", params.page.toString());
+    if (params.pageSize) query.set("pageSize", params.pageSize.toString());
+    if (params.search) query.set("search", params.search);
+    if (params.rating) query.set("rating", params.rating.toString());
+    if (params.isVisible !== undefined) query.set("isVisible", params.isVisible.toString());
+    return request<{
+      data: {
+        id: string;
+        productId: string;
+        productName: string;
+        productImage: string | null;
+        userId: string;
+        customerName: string;
+        customerPhone: string | null;
+        rating: number;
+        title: string | null;
+        comment: string | null;
+        imageUrls: string[];
+        isVerifiedPurchase: boolean;
+        isVisible: boolean;
+        helpfulCount: number;
+        createdAt: string;
+        updatedAt: string;
+      }[];
+      pagination: { page: number; pageSize: number; total: number; totalPages: number; hasMore: boolean };
+    }>(`/reviews?${query}`);
+  },
+
+  updateReviewVisibility: (id: string, isVisible: boolean) =>
+    request<{ review: any }>(`/reviews/${id}/visibility`, {
+      method: "PATCH",
+      body: JSON.stringify({ isVisible }),
+    }),
+
+  deleteReview: (id: string) =>
+    request<{ deleted: boolean }>(`/reviews/${id}`, { method: "DELETE" }),
+
   // Promotions (legacy - keeping for backwards compatibility)
   getPromotions: (params: { page?: number; limit?: number; isActive?: boolean }) => {
     const query = new URLSearchParams();
