@@ -21,6 +21,8 @@ import type {
   FlashDealProductInfo,
   InhouseSalesReport,
   ProductSalesReport,
+  TransactionOrderReport,
+  TransactionRefundReport,
   VendorEarningsReport,
   VendorSalesReport,
   WishlistCountsReport,
@@ -255,7 +257,7 @@ export const api = {
     if (params.paymentMethod) q.set("paymentMethod", params.paymentMethod);
     if (params.dateFrom) q.set("dateFrom", params.dateFrom);
     if (params.dateTo) q.set("dateTo", params.dateTo);
-    return request<ApiResponse<any[]>>(`/reports/transactions/orders?${q}`);
+    return request<TransactionOrderReport>(`/reports/transactions/orders?${q}`);
   },
 
   // Transaction Report — Refunds tab. The backend filters both refunded
@@ -276,7 +278,7 @@ export const api = {
     q.set("refundStatus", params.refundStatus ?? "all");
     if (params.dateFrom) q.set("dateFrom", params.dateFrom);
     if (params.dateTo) q.set("dateTo", params.dateTo);
-    return request<ApiResponse<any[]>>(`/reports/transactions/refunds?${q}`);
+    return request<TransactionRefundReport>(`/reports/transactions/refunds?${q}`);
   },
 
   // Products

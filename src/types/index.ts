@@ -337,6 +337,60 @@ export type ExpenseCategory =
 
 export type ExpenseStatus = "pending" | "approved" | "paid" | "rejected";
 
+/**
+ * Transaction Report → Orders and Refunds tabs.
+ *
+ * The money fields arrive as plain numbers — the backend casts them, because
+ * `orders` stores money in Postgres `bigint`, which the driver hands back as
+ * strings.
+ */
+export interface TransactionOrderRow {
+  id: string;
+  orderNumber: string;
+  customerName: string;
+  /** ISO timestamp. */
+  createdAt: string;
+  paymentMethod: string | null;
+  paymentStatus: PaymentStatus;
+  orderChannel: "online" | "pos";
+  total: number;
+  paidAmount: number;
+  refundAmount: number | null;
+  /** ISO timestamp, or null when the order was never refunded. */
+  refundedAt: string | null;
+  returnReason: string | null;
+}
+
+export interface TransactionTotals {
+  /** Orders matching the filters. */
+  count: number;
+  /** Order value of every matching order. */
+  totalAmount: number;
+  /** Money actually collected. */
+  collectedAmount: number;
+  paidCount: number;
+  pendingCount: number;
+}
+
+export interface RefundTotals {
+  count: number;
+  totalAmount: number;
+  processedCount: number;
+  pendingCount: number;
+}
+
+export interface TransactionOrderReport {
+  data: TransactionOrderRow[];
+  pagination: ReportPagination;
+  totals: TransactionTotals;
+}
+
+export interface TransactionRefundReport {
+  data: TransactionOrderRow[];
+  pagination: ReportPagination;
+  totals: RefundTotals;
+}
+
 /** Transaction Report → Expense tab. */
 export interface ExpenseRow {
   id: string;

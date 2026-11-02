@@ -1,11 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../../api/client";
 import { DataTable } from "../../components";
-import type { ExpenseRow, Order } from "../../types";
+import type {
+  ExpenseRow,
+  TransactionOrderRow,
+  TransactionRefundReport,
+  TransactionTotals,
+} from "../../types";
 import { formatDate, formatDateTime, formatPrice } from "../../utils/format";
 import { buildCsv, downloadCsv } from "./reportCsv";
+// `ak-table` lives in the UI kit.
 import "../../styles/ui-kit.css";
-import "../../styles/reports.css";
+import "./transaction-report.css";
 
 type TransactionTab = "order" | "expense" | "refund";
 type DatePreset = "all" | "today" | "7d" | "30d" | "90d" | "year";
@@ -13,12 +19,12 @@ type DatePreset = "all" | "today" | "7d" | "30d" | "90d" | "year";
 const PAGE_SIZE = 20;
 
 const DATE_PRESETS: { value: DatePreset; label: string }[] = [
-  { value: "all", label: "All Time" },
   { value: "today", label: "Today" },
   { value: "7d", label: "Last 7 Days" },
   { value: "30d", label: "Last 30 Days" },
   { value: "90d", label: "Last 90 Days" },
   { value: "year", label: "This Year" },
+  { value: "all", label: "All Time" },
 ];
 
 const PAYMENT_METHODS = [
@@ -30,12 +36,20 @@ const PAYMENT_METHODS = [
   { value: "wallet", label: "Wallet" },
 ];
 
+/**
+ * The payment filter, on the backend's `paymentState` axis.
+ *
+ * `paymentState` is the derived filter, not the stored `paymentStatus` enum —
+ * it has no "pending" of its own: an order that has not been paid for is
+ * `unpaid`, and one that is part-paid is `partial`.
+ */
 const PAYMENT_STATUSES = [
   { value: "all", label: "All Status" },
   { value: "paid", label: "Paid" },
-  { value: "pending", label: "Pending" },
-  { value: "failed", label: "Failed" },
+  { value: "unpaid", label: "Unpaid" },
+  { value: "partial", label: "Partial" },
   { value: "refunded", label: "Refunded" },
+  { value: "failed", label: "Failed" },
 ];
 
 const EXPENSE_CATEGORIES = [
@@ -61,8 +75,8 @@ const EXPENSE_STATUSES = [
 
 const REFUND_STATUSES = [
   { value: "all", label: "All Status" },
-  { value: "processed", label: "Refunded" },
-  { value: "pending", label: "Partially Refunded" },
+  { value: "refunded", label: "Refunded" },
+  { value: "partially_refunded", label: "Partially Refunded" },
 ];
 
 /** Resolves a date preset into the absolute range the backend expects. */
@@ -106,108 +120,75 @@ function titleCase(value: string): string {
     .join(" ");
 }
 
-// SVG Icons as components for cleaner JSX
-const icons = {
-  dollarSign: (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <line x1="12" y1="1" x2="12" y2="23" />
-      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-    </svg>
-  ),
-  receipt: (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1z" />
-      <line x1="8" y1="6" x2="16" y2="6" />
-      <line x1="8" y1="10" x2="16" y2="10" />
-      <line x1="8" y1="14" x2="12" y2="14" />
-    </svg>
-  ),
-  checkCircle: (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-      <polyline points="22 4 12 14.01 9 11.01" />
-    </svg>
-  ),
-  clock: (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="10" />
-      <polyline points="12 6 12 12 16 14" />
-    </svg>
-  ),
-  arrowDownLeft: (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <line x1="17" y1="7" x2="7" y2="17" />
-      <polyline points="17 17 7 17 7 7" />
-    </svg>
-  ),
-  refreshCw: (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <polyline points="1 4 1 10 7 10" />
-      <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
-    </svg>
-  ),
-  clipboard: (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-      <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
-    </svg>
-  ),
-  folder: (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-    </svg>
-  ),
-  creditCard: (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
-      <line x1="1" y1="10" x2="23" y2="10" />
-    </svg>
-  ),
-  smartphone: (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
-      <line x1="12" y1="18" x2="12.01" y2="18" />
-    </svg>
-  ),
-  banknotes: (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="2" y="6" width="20" height="12" rx="2" />
-      <circle cx="12" cy="12" r="3" />
-      <line x1="6" y1="12" x2="6.01" y2="12" />
-      <line x1="18" y1="12" x2="18.01" y2="12" />
-    </svg>
-  ),
-  wallet: (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
-      <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
-      <path d="M18 12a2 2 0 0 0 0 4h4v-4z" />
-    </svg>
-  ),
-  fileText: (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-      <polyline points="14 2 14 8 20 8" />
-      <line x1="16" y1="13" x2="8" y2="13" />
-      <line x1="16" y1="17" x2="8" y2="17" />
-    </svg>
-  ),
-};
+/** The payment-status pill colour for an order. */
+function orderStatusClass(status: string): string {
+  switch (status) {
+    case "paid":
+      return "tr-status--paid";
+    case "pending":
+      return "tr-status--pending";
+    case "failed":
+      return "tr-status--failed";
+    case "partially_refunded":
+      return "tr-status--partial";
+    default:
+      return "tr-status--refunded";
+  }
+}
+
+/** The payment-status pill colour for an expense. */
+function expenseStatusClass(status: string): string {
+  switch (status) {
+    case "paid":
+      return "tr-status--paid";
+    case "approved":
+      return "tr-status--approved";
+    case "rejected":
+      return "tr-status--rejected";
+    default:
+      return "tr-status--pending";
+  }
+}
 
 function PaymentMethodIcon({ method }: { method?: string | null }) {
-  const methodLower = (method ?? "").toLowerCase();
-  switch (methodLower) {
-    case "upi":
-      return <span className="type-icon" style={{ background: "#e3f2fd", color: "#1976d2" }}>{icons.smartphone}</span>;
-    case "card":
-      return <span className="type-icon" style={{ background: "#f3e5f5", color: "#7b1fa2" }}>{icons.creditCard}</span>;
-    case "cash":
-      return <span className="type-icon" style={{ background: "#e8f5e9", color: "#388e3c" }}>{icons.banknotes}</span>;
-    case "wallet":
-      return <span className="type-icon" style={{ background: "#fff3e0", color: "#f57c00" }}>{icons.wallet}</span>;
-    default:
-      return <span className="type-icon" style={{ background: "#f5f5f5", color: "#757575" }}>{icons.fileText}</span>;
-  }
+  const key = (method ?? "").toLowerCase();
+  const tone = key === "upi" || key === "card" || key === "cash" || key === "wallet" ? key : "other";
+
+  return (
+    <span className={`tr-method-icon tr-method-icon--${tone}`}>
+      {tone === "upi" && (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+          <line x1="12" y1="18" x2="12.01" y2="18" />
+        </svg>
+      )}
+      {tone === "card" && (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+          <line x1="1" y1="10" x2="23" y2="10" />
+        </svg>
+      )}
+      {tone === "cash" && (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="2" y="6" width="20" height="12" rx="2" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      )}
+      {tone === "wallet" && (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
+          <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
+          <path d="M18 12a2 2 0 0 0 0 4h4v-4z" />
+        </svg>
+      )}
+      {tone === "other" && (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+        </svg>
+      )}
+    </span>
+  );
 }
 
 export default function TransactionReport() {
@@ -224,8 +205,21 @@ export default function TransactionReport() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
 
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<TransactionOrderRow[]>([]);
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
+  const [orderTotals, setOrderTotals] = useState<TransactionTotals>({
+    count: 0,
+    totalAmount: 0,
+    collectedAmount: 0,
+    paidCount: 0,
+    pendingCount: 0,
+  });
+  const [refundTotals, setRefundTotals] = useState({
+    count: 0,
+    totalAmount: 0,
+    processedCount: 0,
+    pendingCount: 0,
+  });
   const [expenseTotals, setExpenseTotals] = useState({
     count: 0,
     totalAmount: 0,
@@ -254,6 +248,7 @@ export default function TransactionReport() {
       setOrders(response.data || []);
       setTotalPages(response.pagination?.totalPages || 1);
       setTotalItems(response.pagination?.total || 0);
+      setOrderTotals(response.totals);
     }
     catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load transactions");
@@ -280,9 +275,7 @@ export default function TransactionReport() {
       setExpenses(response.data || []);
       setTotalPages(response.pagination?.totalPages || 1);
       setTotalItems(response.pagination?.total || 0);
-      setExpenseTotals(
-        response.totals ?? { count: 0, totalAmount: 0, paidAmount: 0 },
-      );
+      setExpenseTotals(response.totals);
     }
     catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load expenses");
@@ -293,25 +286,25 @@ export default function TransactionReport() {
   }, [page, searchQuery, expenseCategory, expenseStatus, range.dateFrom, range.dateTo]);
 
   // --- Refund tab --------------------------------------------------------
-  // Both refunded payment statuses are filtered by the server in one
-  // query, so the page is correctly paginated instead of being sliced out
-  // of a full download of every refunded order.
+  // Both refunded payment statuses are filtered by the server in one query,
+  // so the page is correctly paginated instead of being sliced out of a full
+  // download of every refunded order.
   const loadRefunds = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.getReportRefunds({
+      const response: TransactionRefundReport = await api.getReportRefunds({
         page,
         limit: PAGE_SIZE,
         search: searchQuery.trim() || undefined,
-        refundStatus:
-          refundStatus === "all" ? "all" : refundStatus === "processed" ? "refunded" : "partially_refunded",
+        refundStatus: refundStatus as "all" | "refunded" | "partially_refunded",
         dateFrom: range.dateFrom,
         dateTo: range.dateTo,
       });
       setOrders(response.data || []);
       setTotalPages(response.pagination?.totalPages || 1);
       setTotalItems(response.pagination?.total || 0);
+      setRefundTotals(response.totals);
     }
     catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load refunds");
@@ -320,11 +313,6 @@ export default function TransactionReport() {
       setLoading(false);
     }
   }, [page, searchQuery, refundStatus, range.dateFrom, range.dateTo]);
-
-  // Reset page when tab changes
-  useEffect(() => {
-    setPage(1);
-  }, [activeTab]);
 
   useEffect(() => {
     if (activeTab === "expense") {
@@ -338,86 +326,11 @@ export default function TransactionReport() {
     }
   }, [activeTab, loadOrders, loadExpenses, loadRefunds]);
 
-  // --- Derived values ----------------------------------------------------
-  const orderStats = useMemo(() => {
-    const totalAmount = orders.reduce((sum, o) => sum + (o.total ?? 0), 0);
-    const completed = orders.filter((o) => o.paymentStatus === "paid").length;
-    const pending = orders.filter((o) => o.paymentStatus === "pending").length;
-    return { totalAmount, completed, pending };
-  }, [orders]);
-
-  const refundStats = useMemo(() => {
-    const totalRefund = orders.reduce(
-      (sum, o) => sum + (o.refundAmount ?? 0),
-      0,
-    );
-    const processed = orders.filter((o) => o.paymentStatus === "refunded").length;
-    const pending = orders.filter((o) => o.paymentStatus === "partially_refunded").length;
-    return { totalRefund, processed, pending };
-  }, [orders]);
-
-  // --- Export ------------------------------------------------------------
-  const handleExport = () => {
-    const stamp = new Date().toISOString().slice(0, 10);
-    if (activeTab === "expense") {
-      const headers = ["SL", "Expense ID", "Category", "Description", "Date", "Status", "Amount"];
-      const data = expenses.map((expense, index) => [
-        (page - 1) * PAGE_SIZE + index + 1,
-        expense.id,
-        expense.category,
-        expense.description ?? "",
-        formatDate(expense.expenseDate),
-        expense.status,
-        formatPrice(expense.amount),
-      ]);
-      downloadCsv(`expense-transactions-${stamp}`, buildCsv(headers, data));
-      return;
-    }
-    if (activeTab === "refund") {
-      const headers = [
-        "SL",
-        "Order ID",
-        "Customer Name",
-        "Refund Date",
-        "Reason",
-        "Amount",
-        "Status",
-      ];
-      const data = orders.map((order, index) => [
-        (page - 1) * PAGE_SIZE + index + 1,
-        order.orderNumber,
-        order.shippingAddress?.fullName ?? "",
-        order.refundedAt ? formatDateTime(order.refundedAt) : "—",
-        order.returnReason ?? "",
-        formatPrice(order.refundAmount ?? 0),
-        titleCase(order.paymentStatus),
-      ]);
-      downloadCsv(`refund-transactions-${stamp}`, buildCsv(headers, data));
-      return;
-    }
-    const headers = [
-      "SL",
-      "Order ID",
-      "Customer Name",
-      "Transaction Date",
-      "Payment Method",
-      "Amount",
-      "Status",
-    ];
-    const data = orders.map((order, index) => [
-      (page - 1) * PAGE_SIZE + index + 1,
-      order.orderNumber,
-      order.shippingAddress?.fullName ?? "",
-      formatDateTime(order.createdAt),
-      order.paymentMethod ?? "",
-      formatPrice(order.total),
-      titleCase(order.paymentStatus),
-    ]);
-    downloadCsv(`order-transactions-${stamp}`, buildCsv(headers, data));
-  };
-
-  // --- Reset filters -----------------------------------------------------
-  const handleReset = () => {
+  // Changing a filter resets to the first page. The reset happens in the
+  // change handler rather than in an effect, so the page change and the
+  // filter change land in the same render — an effect would fire the loader
+  // twice, once for the old page and once for the new one.
+  const clearFilters = () => {
     setDatePreset("30d");
     setPaymentMethod("all");
     setPaymentStatus("all");
@@ -428,37 +341,108 @@ export default function TransactionReport() {
     setPage(1);
   };
 
+  const handleExport = () => {
+    const stamp = new Date().toISOString().slice(0, 10);
+
+    if (activeTab === "expense") {
+      const headers = ["Rank", "Expense ID", "Category", "Description", "Date", "Status", "Amount"];
+      const data = expenses.map((expense, index) => [
+        (page - 1) * PAGE_SIZE + index + 1,
+        expense.id.slice(0, 8),
+        titleCase(expense.category),
+        expense.description ?? "",
+        formatDate(expense.expenseDate),
+        titleCase(expense.status),
+        formatPrice(expense.amount),
+      ]);
+      downloadCsv(`expense-transactions-${stamp}`, buildCsv(headers, data));
+      return;
+    }
+
+    if (activeTab === "refund") {
+      const headers = [
+        "Rank",
+        "Order ID",
+        "Customer Name",
+        "Refund Date",
+        "Reason",
+        "Amount",
+        "Status",
+      ];
+      const data = orders.map((order, index) => [
+        (page - 1) * PAGE_SIZE + index + 1,
+        order.orderNumber,
+        order.customerName,
+        order.refundedAt ? formatDateTime(order.refundedAt) : "—",
+        order.returnReason ?? "",
+        formatPrice(order.refundAmount ?? 0),
+        titleCase(order.paymentStatus),
+      ]);
+      downloadCsv(`refund-transactions-${stamp}`, buildCsv(headers, data));
+      return;
+    }
+
+    const headers = [
+      "Rank",
+      "Order ID",
+      "Customer Name",
+      "Transaction Date",
+      "Payment Method",
+      "Amount",
+      "Status",
+    ];
+    const data = orders.map((order, index) => [
+      (page - 1) * PAGE_SIZE + index + 1,
+      order.orderNumber,
+      order.customerName,
+      formatDateTime(order.createdAt),
+      order.paymentMethod ?? "",
+      formatPrice(order.total),
+      titleCase(order.paymentStatus),
+    ]);
+    downloadCsv(`order-transactions-${stamp}`, buildCsv(headers, data));
+  };
+
   // --- Table columns -----------------------------------------------------
   const orderColumns = [
     {
-      key: "sl",
-      header: "SL",
+      key: "no",
+      header: "#",
       width: "56px",
       align: "center" as const,
-      render: (_order: Order, index: number) => (page - 1) * PAGE_SIZE + index + 1,
+      render: (_order: TransactionOrderRow, index: number) => (
+        <span className="tr-row-no">{(page - 1) * PAGE_SIZE + index + 1}</span>
+      ),
     },
     {
       key: "orderNumber",
       header: "Order ID",
-      render: (order: Order) => (
-        <span style={{ fontWeight: 500, color: "#0d6efd" }}>{order.orderNumber}</span>
+      render: (order: TransactionOrderRow) => (
+        <div>
+          <div className="tr-order-no">{order.orderNumber}</div>
+          <div className="tr-secondary">{titleCase(order.orderChannel)}</div>
+        </div>
       ),
     },
     {
       key: "customerName",
-      header: "Customer Name",
-      render: (order: Order) => order.shippingAddress?.fullName ?? "—",
+      header: "Customer",
+      render: (order: TransactionOrderRow) => (
+        <div className="tr-customer">{order.customerName || "—"}</div>
+      ),
     },
     {
       key: "createdAt",
       header: "Transaction Date",
-      render: (order: Order) => formatDateTime(order.createdAt),
+      render: (order: TransactionOrderRow) => (
+        <span className="tr-secondary">{formatDateTime(order.createdAt)}</span>
+      ),
     },
     {
       key: "paymentMethod",
       header: "Payment Method",
-      render: (order: Order) => (
-        <div className="transaction-type">
+      render: (order: TransactionOrderRow) => (
+        <div className="tr-method">
           <PaymentMethodIcon method={order.paymentMethod} />
           {order.paymentMethod ? titleCase(order.paymentMethod) : "—"}
         </div>
@@ -468,26 +452,20 @@ export default function TransactionReport() {
       key: "total",
       header: "Amount",
       align: "right" as const,
-      render: (order: Order) => (
-        <span className="amount-positive">{formatPrice(order.total)}</span>
+      render: (order: TransactionOrderRow) => (
+        <div>
+          <div className="tr-amount">{formatPrice(order.total)}</div>
+          {order.paidAmount !== order.total && (
+            <div className="tr-secondary">{formatPrice(order.paidAmount)} collected</div>
+          )}
+        </div>
       ),
     },
     {
       key: "paymentStatus",
       header: "Status",
-      render: (order: Order) => (
-        <span
-          className={`ak-status ak-status--${
-            order.paymentStatus === "paid"
-              ? "success"
-              : order.paymentStatus === "failed"
-                ? "danger"
-                : order.paymentStatus === "partially_refunded"
-                  ? "warning"
-                  : "neutral"
-          }`}
-        >
-          <span className="ak-status__dot" />
+      render: (order: TransactionOrderRow) => (
+        <span className={`tr-status ${orderStatusClass(order.paymentStatus)}`}>
           {titleCase(order.paymentStatus)}
         </span>
       ),
@@ -496,26 +474,31 @@ export default function TransactionReport() {
 
   const expenseColumns = [
     {
-      key: "sl",
-      header: "SL",
+      key: "no",
+      header: "#",
       width: "56px",
       align: "center" as const,
-      render: (_expense: ExpenseRow, index: number) =>
-        (page - 1) * PAGE_SIZE + index + 1,
+      render: (_expense: ExpenseRow, index: number) => (
+        <span className="tr-row-no">{(page - 1) * PAGE_SIZE + index + 1}</span>
+      ),
     },
     {
       key: "id",
       header: "Expense ID",
       render: (expense: ExpenseRow) => (
-        <span style={{ fontWeight: 500, color: "#0d6efd" }}>{expense.id.slice(0, 8)}</span>
+        <span className="tr-order-no">{expense.id.slice(0, 8)}</span>
       ),
     },
     {
       key: "category",
       header: "Category",
       render: (expense: ExpenseRow) => (
-        <div className="transaction-type">
-          <span className="type-icon" style={{ background: "#fff3e0", color: "#f57c00" }}>{icons.folder}</span>
+        <div className="tr-category">
+          <span className="tr-category-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+            </svg>
+          </span>
           {titleCase(expense.category)}
         </div>
       ),
@@ -523,37 +506,30 @@ export default function TransactionReport() {
     {
       key: "description",
       header: "Description",
-      render: (expense: ExpenseRow) => expense.description || "—",
+      render: (expense: ExpenseRow) => (
+        <div className="tr-customer">{expense.description || "—"}</div>
+      ),
     },
     {
       key: "expenseDate",
       header: "Date",
-      render: (expense: ExpenseRow) => formatDate(expense.expenseDate),
+      render: (expense: ExpenseRow) => (
+        <span className="tr-secondary">{formatDate(expense.expenseDate)}</span>
+      ),
     },
     {
       key: "amount",
       header: "Amount",
       align: "right" as const,
       render: (expense: ExpenseRow) => (
-        <span className="amount-negative">-{formatPrice(expense.amount)}</span>
+        <span className="tr-amount--out">-{formatPrice(expense.amount)}</span>
       ),
     },
     {
       key: "status",
       header: "Status",
       render: (expense: ExpenseRow) => (
-        <span
-          className={`ak-status ak-status--${
-            expense.status === "paid"
-              ? "success"
-              : expense.status === "approved"
-                ? "info"
-                : expense.status === "rejected"
-                  ? "danger"
-                  : "warning"
-          }`}
-        >
-          <span className="ak-status__dot" />
+        <span className={`tr-status ${expenseStatusClass(expense.status)}`}>
           {titleCase(expense.status)}
         </span>
       ),
@@ -562,475 +538,519 @@ export default function TransactionReport() {
 
   const refundColumns = [
     {
-      key: "sl",
-      header: "SL",
+      key: "no",
+      header: "#",
       width: "56px",
       align: "center" as const,
-      render: (_order: Order, index: number) => (page - 1) * PAGE_SIZE + index + 1,
+      render: (_order: TransactionOrderRow, index: number) => (
+        <span className="tr-row-no">{(page - 1) * PAGE_SIZE + index + 1}</span>
+      ),
     },
     {
       key: "orderNumber",
       header: "Order ID",
-      render: (order: Order) => (
-        <span style={{ fontWeight: 500, color: "#0d6efd" }}>{order.orderNumber}</span>
+      render: (order: TransactionOrderRow) => (
+        <span className="tr-order-no">{order.orderNumber}</span>
       ),
     },
     {
       key: "customerName",
-      header: "Customer Name",
-      render: (order: Order) => order.shippingAddress?.fullName ?? "—",
+      header: "Customer",
+      render: (order: TransactionOrderRow) => (
+        <div className="tr-customer">{order.customerName || "—"}</div>
+      ),
     },
     {
       key: "refundedAt",
       header: "Refund Date",
-      render: (order: Order) =>
-        order.refundedAt ? formatDateTime(order.refundedAt) : "—",
+      render: (order: TransactionOrderRow) => (
+        <span className="tr-secondary">
+          {order.refundedAt ? formatDateTime(order.refundedAt) : "—"}
+        </span>
+      ),
     },
     {
       key: "returnReason",
       header: "Reason",
-      render: (order: Order) => order.returnReason || "—",
+      render: (order: TransactionOrderRow) => (
+        <div className="tr-customer">{order.returnReason || "—"}</div>
+      ),
     },
     {
       key: "refundAmount",
       header: "Amount",
       align: "right" as const,
-      render: (order: Order) => (
-        <span className="amount-negative">
-          -{formatPrice(order.refundAmount ?? order.total)}
-        </span>
+      render: (order: TransactionOrderRow) => (
+        <span className="tr-amount--out">-{formatPrice(order.refundAmount ?? 0)}</span>
       ),
     },
     {
       key: "paymentStatus",
       header: "Status",
-      render: (order: Order) => (
-        <span
-          className={`ak-status ak-status--${
-            order.paymentStatus === "refunded"
-              ? "neutral"
-              : order.paymentStatus === "partially_refunded"
-                ? "warning"
-                : "info"
-          }`}
-        >
-          <span className="ak-status__dot" />
+      render: (order: TransactionOrderRow) => (
+        <span className={`tr-status ${orderStatusClass(order.paymentStatus)}`}>
           {titleCase(order.paymentStatus)}
         </span>
       ),
     },
   ];
 
-  const exportDisabled =
-    activeTab === "expense" ? expenses.length === 0 : orders.length === 0;
+  const exportDisabled = activeTab === "expense" ? expenses.length === 0 : orders.length === 0;
+
+  const tableTitle
+    = activeTab === "order"
+      ? "Order Transactions"
+      : activeTab === "expense"
+        ? "Expense Transactions"
+        : "Refund Transactions";
+
+  const itemLabel = activeTab === "expense" ? "expenses" : activeTab === "refund" ? "refunds" : "transactions";
 
   return (
-    <div className="reports-container">
-      {/* Tabs and Inline Filters */}
-      <div className="product-report-header">
-        <div className="report-tabs">
-          <button
-            className={activeTab === "order" ? "active" : ""}
-            onClick={() => setActiveTab("order")}
-          >
-            Order Transactions
-          </button>
-          <button
-            className={activeTab === "expense" ? "active" : ""}
-            onClick={() => setActiveTab("expense")}
-          >
-            Expense Transactions
-          </button>
-          <button
-            className={activeTab === "refund" ? "active" : ""}
-            onClick={() => setActiveTab("refund")}
-          >
-            Refund Transactions
-          </button>
-        </div>
+    <div className="transaction-report">
+      <nav className="tr-breadcrumb">
+        <span>Sales &amp; Transaction Report</span>
+        <span className="tr-breadcrumb-sep">/</span>
+        <span className="tr-breadcrumb-current">Transaction Report</span>
+      </nav>
 
-        {/* Inline Filters */}
-        <div className="product-report-filter-inline">
-          <span className="filter-label">Filter Data</span>
-          {activeTab === "order" && (
-            <>
-              <span className="filter-date-label">DATE</span>
-              <select
-                value={datePreset}
-                onChange={(e) => {
-                  setDatePreset(e.target.value as DatePreset);
-                  setPage(1);
-                }}
-              >
-                {DATE_PRESETS.map((preset) => (
-                  <option key={preset.value} value={preset.value}>
-                    {preset.label}
-                  </option>
-                ))}
-              </select>
-            </>
-          )}
+      <h1 className="tr-title">Transaction Report</h1>
 
-          {activeTab === "expense" && (
-            <>
-              <span className="filter-date-label">DATE</span>
-              <select
-                value={datePreset}
-                onChange={(e) => {
-                  setDatePreset(e.target.value as DatePreset);
-                  setPage(1);
-                }}
-              >
-                {DATE_PRESETS.map((preset) => (
-                  <option key={preset.value} value={preset.value}>
-                    {preset.label}
-                  </option>
-                ))}
-              </select>
-            </>
-          )}
-
-          {activeTab === "refund" && (
-            <>
-              <span className="filter-date-label">DATE</span>
-              <select
-                value={datePreset}
-                onChange={(e) => {
-                  setDatePreset(e.target.value as DatePreset);
-                  setPage(1);
-                }}
-              >
-                {DATE_PRESETS.map((preset) => (
-                  <option key={preset.value} value={preset.value}>
-                    {preset.label}
-                  </option>
-                ))}
-              </select>
-            </>
-          )}
-
-          <button className="btn-reset" onClick={handleReset}>
-            Reset
-          </button>
-        </div>
+      <div className="tr-tabs" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "order"}
+          className={`tr-tab ${activeTab === "order" ? "tr-tab--active" : ""}`}
+          onClick={() => {
+            setActiveTab("order");
+            setPage(1);
+          }}
+        >
+          Order Transactions
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "expense"}
+          className={`tr-tab ${activeTab === "expense" ? "tr-tab--active" : ""}`}
+          onClick={() => {
+            setActiveTab("expense");
+            setPage(1);
+          }}
+        >
+          Expense Transactions
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "refund"}
+          className={`tr-tab ${activeTab === "refund" ? "tr-tab--active" : ""}`}
+          onClick={() => {
+            setActiveTab("refund");
+            setPage(1);
+          }}
+        >
+          Refund Transactions
+        </button>
       </div>
 
       {error && (
-        <div className="report-card" style={{ borderLeft: "4px solid #f44336" }}>
-          <p style={{ margin: 0, color: "#f44336" }}>{error}</p>
+        <div className="tr-error-card">
+          <p>{error}</p>
         </div>
       )}
 
-      {/* Order Transactions Stats */}
+      {/* --- Order tab ---------------------------------------------------- */}
       {activeTab === "order" && (
-        <div className="product-report-stats-grid">
-          <div className="product-report-stat-card">
-            <div className="product-report-stat-icon green">
-              {icons.dollarSign}
+        <div className="tr-stats-grid">
+          <div className="tr-stat-card">
+            <div className="tr-stat-icon tr-stat-icon--green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M9 9h6M9 13h6M12 9v7" />
+              </svg>
             </div>
-            <div className="product-report-stat-content">
-              <h2 style={{ fontSize: orderStats.totalAmount > 10000000 ? "22px" : "28px" }}>
-                {formatPrice(orderStats.totalAmount, { compact: true })}
-              </h2>
-              <p>Total Transaction Amount</p>
-            </div>
-          </div>
-          <div className="product-report-stat-card">
-            <div className="product-report-stat-icon blue">
-              {icons.receipt}
-            </div>
-            <div className="product-report-stat-content">
-              <h2>{totalItems.toLocaleString()}</h2>
-              <p>Total Transactions</p>
+            <div className="tr-stat-body">
+              <div className="tr-stat-value">{formatPrice(orderTotals.totalAmount, { compact: true })}</div>
+              <div className="tr-stat-label">Total Transaction Amount</div>
             </div>
           </div>
-          <div className="product-report-stat-card">
-            <div className="product-report-stat-icon teal">
-              {icons.checkCircle}
+
+          <div className="tr-stat-card">
+            <div className="tr-stat-icon tr-stat-icon--blue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+              </svg>
             </div>
-            <div className="product-report-stat-content">
-              <h2>{orderStats.completed}</h2>
-              <p>Completed</p>
+            <div className="tr-stat-body">
+              <div className="tr-stat-value">{orderTotals.count.toLocaleString()}</div>
+              <div className="tr-stat-label">Total Transactions</div>
             </div>
           </div>
-          <div className="product-report-stat-card">
-            <div className="product-report-stat-icon yellow">
-              {icons.clock}
+
+          <div className="tr-stat-card">
+            <div className="tr-stat-icon tr-stat-icon--teal">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
             </div>
-            <div className="product-report-stat-content">
-              <h2>{orderStats.pending}</h2>
-              <p>Pending</p>
+            <div className="tr-stat-body">
+              <div className="tr-stat-value">{orderTotals.paidCount.toLocaleString()}</div>
+              <div className="tr-stat-label">Completed</div>
+            </div>
+          </div>
+
+          <div className="tr-stat-card">
+            <div className="tr-stat-icon tr-stat-icon--amber">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <circle cx="12" cy="12" r="9" />
+                <polyline points="12 7 12 12 15.5 14" />
+              </svg>
+            </div>
+            <div className="tr-stat-body">
+              <div className="tr-stat-value">{orderTotals.pendingCount.toLocaleString()}</div>
+              <div className="tr-stat-label">Pending</div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Expense Transactions Stats */}
+      {/* --- Expense tab -------------------------------------------------- */}
       {activeTab === "expense" && (
-        <div className="product-report-stats-grid">
-          <div className="product-report-stat-card">
-            <div className="product-report-stat-icon" style={{ background: "#ffebee", color: "#f44336" }}>
-              {icons.arrowDownLeft}
+        <div className="tr-stats-grid">
+          <div className="tr-stat-card">
+            <div className="tr-stat-icon tr-stat-icon--red">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M17 7L7 17" />
+                <path d="M7 7h10v10" />
+              </svg>
             </div>
-            <div className="product-report-stat-content">
-              <h2 style={{ fontSize: expenseTotals.totalAmount > 10000000 ? "22px" : "28px" }}>
+            <div className="tr-stat-body">
+              <div className="tr-stat-value tr-stat-value--red">
                 {formatPrice(expenseTotals.totalAmount, { compact: true })}
-              </h2>
-              <p>Total Expenses</p>
+              </div>
+              <div className="tr-stat-label">Total Expenses</div>
             </div>
           </div>
-          <div className="product-report-stat-card">
-            <div className="product-report-stat-icon blue">
-              {icons.clipboard}
+
+          <div className="tr-stat-card">
+            <div className="tr-stat-icon tr-stat-icon--blue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+              </svg>
             </div>
-            <div className="product-report-stat-content">
-              <h2>{expenseTotals.count.toLocaleString()}</h2>
-              <p>Total Entries</p>
+            <div className="tr-stat-body">
+              <div className="tr-stat-value">{expenseTotals.count.toLocaleString()}</div>
+              <div className="tr-stat-label">Total Entries</div>
             </div>
           </div>
-          <div className="product-report-stat-card">
-            <div className="product-report-stat-icon green">
-              {icons.checkCircle}
+
+          <div className="tr-stat-card">
+            <div className="tr-stat-icon tr-stat-icon--green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
             </div>
-            <div className="product-report-stat-content">
-              <h2 style={{ fontSize: expenseTotals.paidAmount > 10000000 ? "22px" : "28px" }}>
+            <div className="tr-stat-body">
+              <div className="tr-stat-value tr-stat-value--green">
                 {formatPrice(expenseTotals.paidAmount, { compact: true })}
-              </h2>
-              <p>Paid Amount</p>
+              </div>
+              <div className="tr-stat-label">Paid Amount</div>
             </div>
           </div>
-          <div className="product-report-stat-card">
-            <div className="product-report-stat-icon yellow">
-              {icons.clock}
+
+          <div className="tr-stat-card">
+            <div className="tr-stat-icon tr-stat-icon--amber">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <circle cx="12" cy="12" r="9" />
+                <polyline points="12 7 12 12 15.5 14" />
+              </svg>
             </div>
-            <div className="product-report-stat-content">
-              <h2 style={{ fontSize: (expenseTotals.totalAmount - expenseTotals.paidAmount) > 10000000 ? "22px" : "28px" }}>
+            <div className="tr-stat-body">
+              <div className="tr-stat-value">
                 {formatPrice(expenseTotals.totalAmount - expenseTotals.paidAmount, { compact: true })}
-              </h2>
-              <p>Pending Amount</p>
+              </div>
+              <div className="tr-stat-label">Pending Amount</div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Refund Transactions Stats */}
+      {/* --- Refund tab --------------------------------------------------- */}
       {activeTab === "refund" && (
-        <div className="product-report-stats-grid">
-          <div className="product-report-stat-card">
-            <div className="product-report-stat-icon orange">
-              {icons.refreshCw}
+        <div className="tr-stats-grid">
+          <div className="tr-stat-card">
+            <div className="tr-stat-icon tr-stat-icon--red">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M17 7L7 17" />
+                <path d="M7 7h10v10" />
+              </svg>
             </div>
-            <div className="product-report-stat-content">
-              <h2 style={{ fontSize: refundStats.totalRefund > 10000000 ? "22px" : "28px" }}>
-                {formatPrice(refundStats.totalRefund, { compact: true })}
-              </h2>
-              <p>Total Refund Amount</p>
-            </div>
-          </div>
-          <div className="product-report-stat-card">
-            <div className="product-report-stat-icon blue">
-              {icons.clipboard}
-            </div>
-            <div className="product-report-stat-content">
-              <h2>{totalItems.toLocaleString()}</h2>
-              <p>Total Refund Requests</p>
+            <div className="tr-stat-body">
+              <div className="tr-stat-value tr-stat-value--red">
+                {formatPrice(refundTotals.totalAmount, { compact: true })}
+              </div>
+              <div className="tr-stat-label">Total Refund Amount</div>
             </div>
           </div>
-          <div className="product-report-stat-card">
-            <div className="product-report-stat-icon teal">
-              {icons.checkCircle}
+
+          <div className="tr-stat-card">
+            <div className="tr-stat-icon tr-stat-icon--blue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+              </svg>
             </div>
-            <div className="product-report-stat-content">
-              <h2>{refundStats.processed}</h2>
-              <p>Processed</p>
+            <div className="tr-stat-body">
+              <div className="tr-stat-value">{refundTotals.count.toLocaleString()}</div>
+              <div className="tr-stat-label">Total Refund Requests</div>
             </div>
           </div>
-          <div className="product-report-stat-card">
-            <div className="product-report-stat-icon yellow">
-              {icons.clock}
+
+          <div className="tr-stat-card">
+            <div className="tr-stat-icon tr-stat-icon--teal">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
             </div>
-            <div className="product-report-stat-content">
-              <h2>{refundStats.pending}</h2>
-              <p>Pending</p>
+            <div className="tr-stat-body">
+              <div className="tr-stat-value">{refundTotals.processedCount.toLocaleString()}</div>
+              <div className="tr-stat-label">Processed</div>
+            </div>
+          </div>
+
+          <div className="tr-stat-card">
+            <div className="tr-stat-icon tr-stat-icon--amber">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <circle cx="12" cy="12" r="9" />
+                <polyline points="12 7 12 12 15.5 14" />
+              </svg>
+            </div>
+            <div className="tr-stat-body">
+              <div className="tr-stat-value">{refundTotals.pendingCount.toLocaleString()}</div>
+              <div className="tr-stat-label">Pending</div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Data Table */}
-      <div className="table-card">
-        <div className="table-header">
-          <h3>
-            {activeTab === "order" && "Order Transactions"}
-            {activeTab === "expense" && "Expense Transactions"}
-            {activeTab === "refund" && "Refund Transactions"}
-            <span className="count">{totalItems}</span>
-          </h3>
-          <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-            {/* Filters inside table header for Order tab */}
-            {activeTab === "order" && (
-              <>
-                <select
-                  className="table-filter-select"
-                  value={paymentMethod}
-                  onChange={(e) => {
-                    setPaymentMethod(e.target.value);
-                    setPage(1);
-                  }}
-                >
-                  {PAYMENT_METHODS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  className="table-filter-select"
-                  value={paymentStatus}
-                  onChange={(e) => {
-                    setPaymentStatus(e.target.value);
-                    setPage(1);
-                  }}
-                >
-                  {PAYMENT_STATUSES.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </>
-            )}
-            {/* Filters inside table header for Expense tab */}
-            {activeTab === "expense" && (
-              <>
-                <select
-                  className="table-filter-select"
-                  value={expenseCategory}
-                  onChange={(e) => {
-                    setExpenseCategory(e.target.value);
-                    setPage(1);
-                  }}
-                >
-                  {EXPENSE_CATEGORIES.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  className="table-filter-select"
-                  value={expenseStatus}
-                  onChange={(e) => {
-                    setExpenseStatus(e.target.value);
-                    setPage(1);
-                  }}
-                >
-                  {EXPENSE_STATUSES.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </>
-            )}
-            {/* Filters inside table header for Refund tab */}
-            {activeTab === "refund" && (
+      {/* --- Filter bar ---------------------------------------------------- */}
+      <div className="tr-filter-card">
+        <div className="tr-filter-group">
+          <label htmlFor="tr-date">Date Range</label>
+          <select
+            id="tr-date"
+            value={datePreset}
+            onChange={(e) => {
+              setDatePreset(e.target.value as DatePreset);
+              setPage(1);
+            }}
+          >
+            {DATE_PRESETS.map((preset) => (
+              <option key={preset.value} value={preset.value}>
+                {preset.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {activeTab === "order" && (
+          <>
+            <div className="tr-filter-group">
+              <label htmlFor="tr-method">Payment Method</label>
               <select
-                className="table-filter-select"
-                value={refundStatus}
+                id="tr-method"
+                value={paymentMethod}
                 onChange={(e) => {
-                  setRefundStatus(e.target.value);
+                  setPaymentMethod(e.target.value);
                   setPage(1);
                 }}
               >
-                {REFUND_STATUSES.map((option) => (
+                {PAYMENT_METHODS.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
                 ))}
               </select>
-            )}
-            <div className="search-box">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8" />
-                <path d="M21 21l-4.35-4.35" />
-              </svg>
-              <input
-                type="text"
-                placeholder={
-                  activeTab === "expense"
-                    ? "Search expenses..."
-                    : activeTab === "refund"
-                      ? "Search by order ID..."
-                      : "Search by order ID..."
-                }
-                value={searchQuery}
+            </div>
+
+            <div className="tr-filter-group">
+              <label htmlFor="tr-status">Payment Status</label>
+              <select
+                id="tr-status"
+                value={paymentStatus}
                 onChange={(e) => {
-                  setSearchQuery(e.target.value);
+                  setPaymentStatus(e.target.value);
                   setPage(1);
                 }}
-              />
+              >
+                {PAYMENT_STATUSES.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </div>
-            <button className="btn-export" onClick={handleExport} disabled={exportDisabled}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7,10 12,15 17,10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-              Export
-            </button>
+          </>
+        )}
+
+        {activeTab === "expense" && (
+          <>
+            <div className="tr-filter-group">
+              <label htmlFor="tr-category">Category</label>
+              <select
+                id="tr-category"
+                value={expenseCategory}
+                onChange={(e) => {
+                  setExpenseCategory(e.target.value);
+                  setPage(1);
+                }}
+              >
+                {EXPENSE_CATEGORIES.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="tr-filter-group">
+              <label htmlFor="tr-expense-status">Expense Status</label>
+              <select
+                id="tr-expense-status"
+                value={expenseStatus}
+                onChange={(e) => {
+                  setExpenseStatus(e.target.value);
+                  setPage(1);
+                }}
+              >
+                {EXPENSE_STATUSES.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </>
+        )}
+
+        {activeTab === "refund" && (
+          <div className="tr-filter-group">
+            <label htmlFor="tr-refund-status">Refund Status</label>
+            <select
+              id="tr-refund-status"
+              value={refundStatus}
+              onChange={(e) => {
+                setRefundStatus(e.target.value);
+                setPage(1);
+              }}
+            >
+              {REFUND_STATUSES.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </div>
+        )}
+
+        <button type="button" className="tr-clear-btn" onClick={clearFilters}>
+          Clear
+        </button>
+
+        <div className="tr-filter-actions">
+          <div className="tr-search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" />
+              <path d="M21 21l-4.35-4.35" />
+            </svg>
+            <input
+              type="text"
+              placeholder={activeTab === "expense" ? "Search expenses..." : "Search by order ID..."}
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setPage(1);
+              }}
+            />
+          </div>
+
+          <button
+            type="button"
+            className="tr-export-btn"
+            onClick={handleExport}
+            disabled={exportDisabled}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Export
+          </button>
+        </div>
+      </div>
+
+      {/* --- Table --------------------------------------------------------- */}
+      <div className="tr-table-card">
+        <div className="tr-table-header">
+          <h2>
+            {tableTitle}
+            <span className="tr-table-count">{totalItems.toLocaleString()}</span>
+          </h2>
         </div>
 
-        {activeTab === "expense" ? (
-          <DataTable
-            columns={expenseColumns}
-            data={expenses}
-            loading={loading}
-            loadingText="Loading expenses…"
-            emptyIcon="file"
-            emptyTitle="No expenses found"
-            emptyDescription="Expenses added to the ledger will appear here."
-            keyExtractor={(expense) => expense.id}
-            currentPage={page}
-            totalPages={totalPages}
-            totalItems={totalItems}
-            itemsPerPage={PAGE_SIZE}
-            onPageChange={setPage}
-          />
-        ) : activeTab === "refund" ? (
-          <DataTable
-            columns={refundColumns}
-            data={orders}
-            loading={loading}
-            loadingText="Loading refunds…"
-            emptyIcon="file"
-            emptyTitle="No refunds found"
-            emptyDescription="Refunded orders will appear here with their refund amount and date."
-            keyExtractor={(order) => order.id}
-            currentPage={page}
-            totalPages={totalPages}
-            totalItems={totalItems}
-            itemsPerPage={PAGE_SIZE}
-            onPageChange={setPage}
-          />
-        ) : (
-          <DataTable
-            columns={orderColumns}
-            data={orders}
-            loading={loading}
-            loadingText="Loading transactions…"
-            emptyIcon="cart"
-            emptyTitle="No transactions found"
-            emptyDescription="Try widening the date range or clearing the filters."
-            keyExtractor={(order) => order.id}
-            currentPage={page}
-            totalPages={totalPages}
-            totalItems={totalItems}
-            itemsPerPage={PAGE_SIZE}
-            onPageChange={setPage}
-          />
-        )}
+        {activeTab === "expense"
+          ? (
+              <DataTable
+                columns={expenseColumns}
+                data={expenses}
+                loading={loading}
+                loadingText="Loading expenses…"
+                emptyIcon="file"
+                emptyTitle="No expenses found"
+                emptyDescription="Expenses added to the ledger will appear here."
+                keyExtractor={(expense) => expense.id}
+                currentPage={page}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                itemsPerPage={PAGE_SIZE}
+                onPageChange={setPage}
+                itemLabel={itemLabel}
+              />
+            )
+          : (
+              <DataTable
+                columns={activeTab === "refund" ? refundColumns : orderColumns}
+                data={orders}
+                loading={loading}
+                loadingText={activeTab === "refund" ? "Loading refunds…" : "Loading transactions…"}
+                emptyIcon={activeTab === "refund" ? "folder" : "cart"}
+                emptyTitle={activeTab === "refund" ? "No refunds found" : "No transactions found"}
+                emptyDescription={
+                  activeTab === "refund"
+                    ? "Refunds appear here once an order has been refunded."
+                    : "Transactions appear here once orders are placed."
+                }
+                keyExtractor={(order) => order.id}
+                currentPage={page}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                itemsPerPage={PAGE_SIZE}
+                onPageChange={setPage}
+                itemLabel={itemLabel}
+              />
+            )}
       </div>
     </div>
   );
