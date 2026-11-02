@@ -1,0 +1,743 @@
+/* Product Report - Dedicated Styles */
+
+/* Shares the report screen language with the other screens in the group:
+   soft canvas, display-serif headings, tinted icon tiles, one filter bar and
+   one table card. */
+.product-report {
+  padding: 24px;
+  background: #f8fafc;
+  min-height: 100%;
+}
+
+/* ============================================================
+   BREADCRUMB + TITLE
+   ============================================================ */
+
+.pr-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 10px;
+}
+
+.pr-breadcrumb-sep {
+  color: #cbd5e1;
+}
+
+.pr-breadcrumb-current {
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.pr-title {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 24px 0;
+  letter-spacing: -0.01em;
+}
+
+/* ============================================================
+   TABS
+   ============================================================ */
+
+.pr-tabs {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 24px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.pr-tab {
+  padding: 0 0 12px;
+  margin-bottom: -2px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.pr-tab:hover:not(.pr-tab--active) {
+  color: #2563eb;
+}
+
+.pr-tab--active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+  font-weight: 600;
+}
+
+.pr-tab:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ============================================================
+   ERROR
+   ============================================================ */
+
+.pr-error-card {
+  background: white;
+  border-left: 4px solid #ef4444;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.pr-error-card p {
+  margin: 0;
+  color: #ef4444;
+  font-size: 14px;
+}
+
+/* ============================================================
+   STAT CARDS
+   ============================================================ */
+
+.pr-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 1280px) {
+  .pr-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 860px) {
+  .pr-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pr-stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  min-width: 0;
+}
+
+.pr-stat-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pr-stat-icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.pr-stat-icon--blue {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.pr-stat-icon--green {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.pr-stat-icon--teal {
+  background: #ccfbf1;
+  color: #0d9488;
+}
+
+.pr-stat-icon--amber {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.pr-stat-icon--red {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.pr-stat-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Long rupee figures must stay on one line without widening the column. */
+.pr-stat-value {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  color: #1f2937;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.pr-stat-label {
+  font-size: 13px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.pr-stat-value--green {
+  color: #16a34a;
+}
+
+.pr-stat-value--red {
+  color: #dc2626;
+}
+
+/* ============================================================
+   FILTER BAR
+   ============================================================ */
+
+.pr-filter-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px 24px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  margin-bottom: 24px;
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pr-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 0 1 190px;
+  min-width: 160px;
+}
+
+.pr-filter-group label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.pr-filter-group select {
+  padding: 10px 34px 10px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #334155;
+  background: white;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  appearance: none;
+  cursor: pointer;
+  width: 100%;
+}
+
+.pr-filter-group select:hover {
+  border-color: #cbd5e1;
+}
+
+.pr-filter-group select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.pr-clear-btn {
+  padding: 10px 22px;
+  height: 42px;
+  background: white;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.pr-clear-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.pr-filter-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.pr-search-box {
+  position: relative;
+}
+
+.pr-search-box svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.pr-search-box input {
+  width: 250px;
+  padding: 10px 12px 10px 38px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #334155;
+  background: white;
+}
+
+.pr-search-box input::placeholder {
+  color: #94a3b8;
+}
+
+.pr-search-box input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.pr-export-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  height: 42px;
+  background: #22c55e;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.pr-export-btn:hover:not(:disabled) {
+  background: #16a34a;
+}
+
+.pr-export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pr-export-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+@media (max-width: 1024px) {
+  .pr-filter-actions {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .pr-search-box {
+    flex: 1;
+  }
+
+  .pr-search-box input {
+    width: 100%;
+    max-width: 420px;
+  }
+}
+
+/* ============================================================
+   TABLE CARD
+   ============================================================ */
+
+.pr-table-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.pr-table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.pr-table-header h2 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pr-table-count {
+  background: #e0f2fe;
+  color: #0369a1;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+/* The table sits flush inside the card rather than carrying its own border
+   and padding. `overflow: visible` lets the sticky pagination below reach
+   the bottom of the viewport. */
+.product-report .ak-table-wrapper {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.product-report .ak-table {
+  font-size: 14px;
+}
+
+.product-report .ak-table thead th {
+  background: #f4f5f7;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #6b7280;
+  padding: 12px 16px;
+}
+
+.product-report .ak-table tbody td {
+  padding: 12px 16px;
+  color: #334155;
+  vertical-align: middle;
+  border-bottom-color: #f1f5f9;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+/* The list is long enough that its pagination would otherwise sit several
+   screens down, out of sight of the rows it controls. */
+.product-report .ak-table__footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  background: #ffffff;
+  box-shadow: 0 -1px 0 #e2e8f0;
+}
+
+/* ============================================================
+   CELLS
+   ============================================================ */
+
+.pr-row-no {
+  color: #6b7280;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.pr-secondary {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.pr-money {
+  color: #475569;
+  font-weight: 500;
+}
+
+.pr-amount {
+  font-weight: 600;
+  color: #16a34a;
+}
+
+.pr-amount--out {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.pr-stock-value {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.pr-wish-count {
+  font-weight: 600;
+  color: #0369a1;
+}
+
+.pr-product {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.pr-product-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid #e2e8f0;
+  flex-shrink: 0;
+  background: #f8fafc;
+}
+
+.pr-product-img--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+}
+
+.pr-product-img--placeholder svg {
+  width: 18px;
+  height: 18px;
+}
+
+.pr-product-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 320px;
+}
+
+.pr-product-name {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pr-product-sku {
+  font-size: 12px;
+  color: #94a3b8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   STATUS PILL
+   ============================================================ */
+
+.pr-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.pr-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.pr-status--low {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.pr-status--out {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+/* ============================================================
+   VIEW BUTTON
+   ============================================================ */
+
+.pr-view-btn {
+  padding: 6px 14px;
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.pr-view-btn:hover {
+  background: #dbeafe;
+  border-color: #bfdbfe;
+}
+
+/* ============================================================
+   WISHLIST USERS MODAL
+   ============================================================ */
+
+.pr-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.pr-modal {
+  width: 100%;
+  max-width: 720px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+  overflow: hidden;
+}
+
+.pr-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.pr-modal-header h2 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+}
+
+.pr-modal-subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.pr-modal-close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: #64748b;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.pr-modal-close:hover {
+  background: #f1f5f9;
+  color: #1f2937;
+}
+
+.pr-modal-close svg {
+  width: 18px;
+  height: 18px;
+}
+
+.pr-modal-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+}
+
+.pr-modal-note {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 12px;
+}
+
+.pr-users-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.pr-users-table th {
+  text-align: left;
+  padding: 10px 12px;
+  background: #f4f5f7;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+
+.pr-users-table td {
+  padding: 12px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+}
+
+.pr-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 24px;
+  border-top: 1px solid #e2e8f0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.pr-modal-footer button {
+  padding: 8px 16px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+}
+
+.pr-modal-footer button:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.pr-modal-footer button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

@@ -21,6 +21,7 @@ import type {
   FlashDealProductInfo,
   InhouseSalesReport,
   ProductSalesReport,
+  ProductStockReport,
   TransactionOrderReport,
   TransactionRefundReport,
   VendorEarningsReport,
@@ -115,6 +116,19 @@ export const api = {
     if (params.categoryId) q.set("categoryId", params.categoryId);
     q.set("range", params.range ?? "30d");
     return request<ProductSalesReport>(`/reports/product-sales?${q}`);
+  },
+  getProductStockReport: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    sort?: "stock_asc" | "stock_desc";
+  } = {}) => {
+    const q = new URLSearchParams();
+    if (params.page) q.set("page", String(params.page));
+    if (params.limit) q.set("limit", String(params.limit));
+    if (params.search) q.set("search", params.search);
+    q.set("sort", params.sort ?? "stock_asc");
+    return request<ProductStockReport>(`/reports/product-stock?${q}`);
   },
   getWishlistCountsReport: (params: {
     page?: number;

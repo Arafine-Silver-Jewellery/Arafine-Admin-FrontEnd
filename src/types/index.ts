@@ -301,9 +301,50 @@ export interface ProductSalesRow {
   imageUrl: string | null;
 }
 
+export interface ProductSalesTotals {
+  /** Products with at least one paid sale in the range. */
+  totalProducts: number;
+  /** Net revenue across every matching product. */
+  totalAmount: number;
+  /** Net units sold across every matching product. */
+  unitsSold: number;
+  /** Current stock held across the matching products. */
+  totalStock: number;
+  /** Matching products whose current stock is zero or below. */
+  outOfStock: number;
+}
+
 export interface ProductSalesReport {
   data: ProductSalesRow[];
   pagination: ReportPagination;
+  totals: ProductSalesTotals;
+}
+
+/** Product Report → Stock tab. */
+export interface ProductStockRow {
+  productId: string;
+  name: string;
+  sku: string;
+  price: number;
+  stockQuantity: number;
+  lowStockThreshold: number;
+  status: ProductStatus;
+  updatedAt: string;
+  imageUrl: string | null;
+}
+
+export interface ProductStockTotals {
+  totalProducts: number;
+  outOfStock: number;
+  lowStock: number;
+  totalStock: number;
+  averageStock: number;
+}
+
+export interface ProductStockReport {
+  data: ProductStockRow[];
+  pagination: ReportPagination;
+  totals: ProductStockTotals;
 }
 
 /** Product Report → Wishlist tab. */
@@ -319,9 +360,21 @@ export interface WishlistCountRow {
   imageUrl: string | null;
 }
 
+export interface WishlistCountsTotals {
+  /** Products with at least one wishlist entry. */
+  totalProducts: number;
+  /** Wishlist entries across every matching product. */
+  totalWishes: number;
+  /** The single highest wishlist count. */
+  maxWishlist: number;
+  /** Mean wishlist count per product, rounded. */
+  averageWishlist: number;
+}
+
 export interface WishlistCountsReport {
   data: WishlistCountRow[];
   pagination: ReportPagination;
+  totals: WishlistCountsTotals;
 }
 
 export type ExpenseCategory =
