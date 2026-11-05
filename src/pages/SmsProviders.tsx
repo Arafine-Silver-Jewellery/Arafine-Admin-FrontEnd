@@ -16,6 +16,7 @@ interface SmsProvider {
   apiUrl: string | null;
   // Twilio fields
   accountSid: string | null;
+  serviceSid: string | null;
   phoneNumber: string | null;
   // Common
   decryptError?: boolean;
@@ -40,6 +41,8 @@ export default function SmsProviders() {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showTestModal, setShowTestModal] = useState(false);
+  const [testPhoneNumber, setTestPhoneNumber] = useState("");
 
   // Delete confirmation
   const [providerToDelete, setProviderToDelete] = useState<SmsProvider | null>(null);
@@ -57,6 +60,7 @@ export default function SmsProviders() {
     // Twilio
     accountSid: "",
     authToken: "",
+    serviceSid: "",
     phoneNumber: "",
   });
 
@@ -102,6 +106,7 @@ export default function SmsProviders() {
         // Twilio
         accountSid: "",
         authToken: "",
+        serviceSid: provider.serviceSid || "",
         phoneNumber: provider.phoneNumber || "",
       });
     } else {
@@ -115,6 +120,7 @@ export default function SmsProviders() {
         apiUrl: "https://api.msg91.com/api/v5/otp",
         accountSid: "",
         authToken: "",
+        serviceSid: "",
         phoneNumber: "",
       });
     }
@@ -149,6 +155,7 @@ export default function SmsProviders() {
     } else if (formData.type === "twilio") {
       if (formData.accountSid) data.accountSid = formData.accountSid;
       if (formData.authToken) data.authToken = formData.authToken;
+      if (formData.serviceSid) data.serviceSid = formData.serviceSid;
       if (formData.phoneNumber) data.phoneNumber = formData.phoneNumber;
     }
 
@@ -162,8 +169,8 @@ export default function SmsProviders() {
           toast.error("API Key is required");
           return;
         }
-        if (formData.type === "twilio" && (!formData.accountSid || !formData.authToken || !formData.phoneNumber)) {
-          toast.error("All Twilio fields are required");
+        if (formData.type === "twilio" && (!formData.accountSid || !formData.authToken || !formData.serviceSid)) {
+          toast.error("Account SID, Auth Token, and Service SID are required");
           return;
         }
         await api.createSmsProvider(data);
@@ -220,16 +227,28 @@ export default function SmsProviders() {
   }
 
   async function handleTestConnection() {
+    if (!testPhoneNumber || testPhoneNumber.length < 10) {
+      toast.error("Please enter a valid phone number");
+      return;
+    }
     setTesting(true);
     setTestResult(null);
     try {
-      const res = await api.testSmsConnection();
+      const res = await api.testSmsConnection(testPhoneNumber);
       setTestResult({ success: res.success, message: res.message });
+      setShowTestModal(false);
+      setTestPhoneNumber("");
     } catch (error: any) {
       setTestResult({ success: false, message: error.message || "Connection test failed" });
     } finally {
       setTesting(false);
     }
+  }
+
+  function openTestModal() {
+    setTestPhoneNumber("");
+    setTestResult(null);
+    setShowTestModal(true);
   }
 
   function getTypeLabel(type: SmsProviderType) {
@@ -273,7 +292,7 @@ export default function SmsProviders() {
         <div style={{ display: "flex", gap: "0.5rem" }}>
           <button
             className="btn btn-secondary"
-            onClick={handleTestConnection}
+            onClick={openTestModal}
             disabled={testing || !providers.some(p => p.isActive)}
             title={!providers.some(p => p.isActive) ? "Activate a provider first" : "Test active provider"}
           >
@@ -380,7 +399,7 @@ export default function SmsProviders() {
                       )}
                       {provider.type === "twilio" && (
                         <>
-                          {provider.phoneNumber ? `From: ${provider.phoneNumber}` : "No phone"}
+                          {provider.serviceSid ? `Service: ${provider.serviceSid.slice(0, 10)}...` : "No service"}
                           {provider.accountSid && ` • SID: ${provider.accountSid}`}
                         </>
                       )}
@@ -569,7 +588,7 @@ export default function SmsProviders() {
                         name="accountSid"
                         value={formData.accountSid}
                         onChange={handleChange}
-                        placeholder={editingProvider ? "Leave empty to keep current" : "Enter Twilio Account SID"}
+                        placeholder={editingProvider ? "Leave empty to keep current" : "ACxxxxxxxxxxxxxxxxx"}
                         required={!editingProvider}
                       />
                     </div>
@@ -588,9 +607,24 @@ export default function SmsProviders() {
                       />
                     </div>
                     <div className="form-group">
-                      <label htmlFor="phoneNumber">
-                        Phone Number {!editingProvider && <span style={{ color: "#ef4444" }}>*</span>}
+                      <label htmlFor="serviceSid">
+                        Verify Service SID {!editingProvider && <span style={{ color: "#ef4444" }}>*</span>}
                       </label>
+                      <input
+                        type="text"
+                        id="serviceSid"
+                        name="serviceSid"
+                        value={formData.serviceSid}
+                        onChange={handleChange}
+                        placeholder={editingProvider ? "Leave empty to keep current" : "VAxxxxxxxxxxxxxxxxx"}
+                        required={!editingProvider}
+                      />
+                      <small style={{ color: "#64748b" }}>
+                        From Twilio Console → Verify → Services (starts with "VA")
+                      </small>
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="phoneNumber">Phone Number (optional)</label>
                       <input
                         type="text"
                         id="phoneNumber"
@@ -598,9 +632,8 @@ export default function SmsProviders() {
                         value={formData.phoneNumber}
                         onChange={handleChange}
                         placeholder="+1234567890"
-                        required={!editingProvider}
                       />
-                      <small style={{ color: "#64748b" }}>Your Twilio phone number in E.164 format</small>
+                      <small style={{ color: "#64748b" }}>Only needed if using Messages API instead of Verify</small>
                     </div>
                   </>
                 )}
@@ -657,6 +690,58 @@ export default function SmsProviders() {
                 disabled={deletingProvider}
               >
                 {deletingProvider ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Test Connection Modal */}
+      {showTestModal && (
+        <div className="modal-overlay" onClick={() => setShowTestModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "400px" }}>
+            <div className="modal-header">
+              <h2>Test SMS Connection</h2>
+              <button className="modal-close" onClick={() => setShowTestModal(false)}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+            <div className="modal-body">
+              <p style={{ marginBottom: "1rem", color: "#64748b" }}>
+                Enter a phone number to receive a test OTP message.
+              </p>
+              <div className="form-group">
+                <label htmlFor="testPhoneNumber">Phone Number</label>
+                <input
+                  type="tel"
+                  id="testPhoneNumber"
+                  value={testPhoneNumber}
+                  onChange={(e) => setTestPhoneNumber(e.target.value)}
+                  placeholder="e.g., 9876543210"
+                  autoFocus
+                />
+                <small style={{ color: "#64748b" }}>10-digit mobile number (without country code)</small>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setShowTestModal(false)}
+                disabled={testing}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleTestConnection}
+                disabled={testing || testPhoneNumber.length < 10}
+              >
+                {testing ? "Sending..." : "Send Test SMS"}
               </button>
             </div>
           </div>
