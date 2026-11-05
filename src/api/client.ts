@@ -1229,4 +1229,31 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ phoneNumber }),
     }),
+
+  // ============================================
+  // PAYMENT GATEWAYS API
+  // ============================================
+  getPaymentGateways: () => request<{ data: any[] }>("/payment-gateways"),
+  getPaymentGateway: (id: string) => request<{ data: any }>(`/payment-gateways/${id}`),
+  createPaymentGateway: (data: any) =>
+    request<any>("/payment-gateways", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  updatePaymentGateway: (id: string, data: any) =>
+    request<any>(`/payment-gateways/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  deletePaymentGateway: (id: string) =>
+    request<any>(`/payment-gateways/${id}`, { method: "DELETE" }),
+  activatePaymentGateway: (id: string) =>
+    request<any>(`/payment-gateways/${id}/activate`, { method: "POST" }),
+  deactivatePaymentGateway: (id: string) =>
+    request<any>(`/payment-gateways/${id}/deactivate`, { method: "PUT" }),
+  testPaymentGatewayConnection: (gatewayId?: string) =>
+    request<{ success: boolean; message: string }>("/payment-gateways/test-connection", {
+      method: "POST",
+      body: JSON.stringify({ gatewayId }),
+    }),
 };
