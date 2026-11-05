@@ -9,6 +9,7 @@ import ProductForm from "./pages/ProductForm";
 import Users from "./pages/Users";
 import Promotions from "./pages/Promotions";
 import StorageProviders from "./pages/StorageProviders";
+import SmsProviders from "./pages/SmsProviders";
 import Employees from "./pages/Employees";
 import POS from "./pages/POS";
 import OrdersNew from "./pages/OrdersNew";
@@ -137,6 +138,7 @@ function App() {
                 and lands on "Access Denied". `hasPermission` treats an array
                 as "any of these". */}
             <Route path="storage" element={<RequirePermission permission={["storage", "storage-settings"]}><StorageProviders /></RequirePermission>} />
+            <Route path="sms-providers" element={<RequirePermission permission={["sms-settings"]}><SmsProviders /></RequirePermission>} />
             <Route path="settings" element={<Settings />} />
             
             {/* Employee Management - requires employees permission */}

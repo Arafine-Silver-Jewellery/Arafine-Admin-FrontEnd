@@ -1201,4 +1201,32 @@ export const api = {
     const result = await response.json();
     return result.data;
   },
+
+  // ============================================
+  // SMS PROVIDERS API
+  // ============================================
+  getSmsProviders: () => request<{ data: any[] }>("/sms-providers"),
+  getSmsProvider: (id: string) => request<{ data: any }>(`/sms-providers/${id}`),
+  getActiveSmsProvider: () => request<{ data: any }>("/sms-providers/active"),
+  createSmsProvider: (data: any) =>
+    request<any>("/sms-providers", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  updateSmsProvider: (id: string, data: any) =>
+    request<any>(`/sms-providers/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  deleteSmsProvider: (id: string) =>
+    request<any>(`/sms-providers/${id}`, { method: "DELETE" }),
+  activateSmsProvider: (id: string) =>
+    request<any>(`/sms-providers/${id}/activate`, { method: "PUT" }),
+  deactivateSmsProvider: (id: string) =>
+    request<any>(`/sms-providers/${id}/deactivate`, { method: "PUT" }),
+  testSmsConnection: (phoneNumber?: string) =>
+    request<{ success: boolean; message: string; details?: any }>("/sms-providers/test-connection", {
+      method: "POST",
+      body: JSON.stringify({ phoneNumber }),
+    }),
 };

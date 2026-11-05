@@ -317,6 +317,13 @@ export const MENU_ITEMS: MenuItem[] = [
     keywords: ["storage", "s3", "files", "provider"],
   },
   {
+    path: "/sms-providers",
+    label: "SMS Providers",
+    group: "Settings",
+    permission: ["sms-settings"],
+    keywords: ["sms", "otp", "twilio", "msg91", "text message", "provider"],
+  },
+  {
     path: "/settings",
     label: "Settings",
     group: "Settings",
