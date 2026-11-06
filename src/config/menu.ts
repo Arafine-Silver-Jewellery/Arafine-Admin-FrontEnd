@@ -324,6 +324,13 @@ export const MENU_ITEMS: MenuItem[] = [
     keywords: ["sms", "otp", "twilio", "msg91", "text message", "provider"],
   },
   {
+    path: "/payment-gateways",
+    label: "Payment Gateways",
+    group: "Settings",
+    permission: ["payment-settings"],
+    keywords: ["payment", "razorpay", "stripe", "paypal", "gateway", "checkout"],
+  },
+  {
     path: "/settings",
     label: "Settings",
     group: "Settings",

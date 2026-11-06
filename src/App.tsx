@@ -10,6 +10,7 @@ import Users from "./pages/Users";
 import Promotions from "./pages/Promotions";
 import StorageProviders from "./pages/StorageProviders";
 import SmsProviders from "./pages/SmsProviders";
+import PaymentGateways from "./pages/PaymentGateways";
 import Employees from "./pages/Employees";
 import POS from "./pages/POS";
 import OrdersNew from "./pages/OrdersNew";
@@ -139,6 +140,7 @@ function App() {
                 as "any of these". */}
             <Route path="storage" element={<RequirePermission permission={["storage", "storage-settings"]}><StorageProviders /></RequirePermission>} />
             <Route path="sms-providers" element={<RequirePermission permission={["sms-settings"]}><SmsProviders /></RequirePermission>} />
+            <Route path="payment-gateways" element={<RequirePermission permission={["payment-settings"]}><PaymentGateways /></RequirePermission>} />
             <Route path="settings" element={<Settings />} />
             
             {/* Employee Management - requires employees permission */}
