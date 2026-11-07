@@ -4,6 +4,7 @@ import jsPDF from "jspdf";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { DataTable, StatusDropdown, FilterDrawer, ReceiptModal } from "../components";
+import Invoice from "../components/Invoice";
 import type { Order as SharedOrder } from "../types";
 import "../styles/ui-kit.css";
 
@@ -689,36 +690,15 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
       {/* Invoice Modal */}
       {showInvoice && selectedOrder && (
         <div className="ak-modal-overlay" onClick={() => setShowInvoice(false)}>
-          <div className="ak-modal" style={{ maxWidth: "700px" }} onClick={(e) => e.stopPropagation()}>
+          <div className="ak-modal" style={{ maxWidth: "650px", maxHeight: "95vh" }} onClick={(e) => e.stopPropagation()}>
             <div className="ak-modal__header">
               <h2 className="ak-modal__title">Invoice #{selectedOrder.orderNumber}</h2>
               <button type="button" className="ak-modal__close" onClick={() => setShowInvoice(false)}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
               </button>
             </div>
-            <div className="ak-modal__body" style={{ maxHeight: "60vh", overflow: "auto" }}>
-              <div ref={invoiceRef} style={{ padding: "1rem", background: "#fff" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2rem", paddingBottom: "1rem", borderBottom: "2px solid #e5e7eb" }}>
-                  <div><h1 style={{ fontSize: "1.5rem", color: "#b78d3f", marginBottom: "0.25rem" }}>ARAFINE</h1><p style={{ color: "#6b7280", fontSize: "0.8rem" }}>Premium Silver Jewellery</p></div>
-                  <div style={{ textAlign: "right" }}><h2 style={{ fontSize: "1.25rem", marginBottom: "0.25rem" }}>INVOICE</h2><p style={{ color: "#6b7280" }}>#{selectedOrder.orderNumber}</p><p style={{ color: "#6b7280", fontSize: "0.85rem" }}>{formatDateTime(selectedOrder.createdAt)}</p></div>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem", marginBottom: "2rem" }}>
-                  <div><h3 style={{ fontSize: "0.7rem", textTransform: "uppercase", color: "#6b7280", marginBottom: "0.5rem" }}>Bill To</h3><p style={{ fontWeight: 600 }}>{selectedOrder.shippingAddress?.fullName || "Walk-in Customer"}</p>{selectedOrder.shippingAddress?.phone && <p>{selectedOrder.shippingAddress.phone}</p>}</div>
-                  <div><h3 style={{ fontSize: "0.7rem", textTransform: "uppercase", color: "#6b7280", marginBottom: "0.5rem" }}>Payment</h3><p><span className={`ak-status ak-status--${getPaymentStatusDisplay(selectedOrder).variant}`}>{getPaymentStatusDisplay(selectedOrder).label}</span></p>{selectedOrder.paymentMethod && <p style={{ marginTop: "0.25rem" }}>{selectedOrder.paymentMethod.toUpperCase()}</p>}</div>
-                </div>
-                <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "2rem" }}>
-                  <thead><tr style={{ background: "#f9fafb" }}><th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.7rem", textTransform: "uppercase", color: "#6b7280" }}>Item</th><th style={{ padding: "0.75rem", textAlign: "center", fontSize: "0.7rem", textTransform: "uppercase", color: "#6b7280" }}>Qty</th><th style={{ padding: "0.75rem", textAlign: "right", fontSize: "0.7rem", textTransform: "uppercase", color: "#6b7280" }}>Price</th><th style={{ padding: "0.75rem", textAlign: "right", fontSize: "0.7rem", textTransform: "uppercase", color: "#6b7280" }}>Total</th></tr></thead>
-                  <tbody>{selectedOrder.items?.map((item) => (<tr key={item.id} style={{ borderBottom: "1px solid #e5e7eb" }}><td style={{ padding: "0.75rem" }}>{item.productName}</td><td style={{ padding: "0.75rem", textAlign: "center" }}>{item.quantity}</td><td style={{ padding: "0.75rem", textAlign: "right" }}>{formatPrice(item.unitPrice)}</td><td style={{ padding: "0.75rem", textAlign: "right" }}>{formatPrice(item.totalPrice)}</td></tr>))}</tbody>
-                </table>
-                <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                  <div style={{ width: "250px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", padding: "0.5rem 0" }}><span>Subtotal</span><span>{formatPrice(selectedOrder.subtotal)}</span></div>
-                    {selectedOrder.discount > 0 && <div style={{ display: "flex", justifyContent: "space-between", padding: "0.5rem 0", color: "#22c55e" }}><span>Discount</span><span>-{formatPrice(selectedOrder.discount)}</span></div>}
-                    {selectedOrder.tax > 0 && <div style={{ display: "flex", justifyContent: "space-between", padding: "0.5rem 0" }}><span>Tax</span><span>{formatPrice(selectedOrder.tax)}</span></div>}
-                    <div style={{ display: "flex", justifyContent: "space-between", padding: "0.75rem 0", borderTop: "2px solid #e5e7eb", fontWeight: 700, fontSize: "1.1rem" }}><span>Total</span><span>{formatPrice(selectedOrder.total)}</span></div>
-                  </div>
-                </div>
-              </div>
+            <div className="ak-modal__body" style={{ maxHeight: "calc(95vh - 140px)", overflow: "auto", padding: "16px", background: "#f5f5f5" }}>
+              <Invoice ref={invoiceRef} order={selectedOrder} />
             </div>
             <div className="ak-modal__footer">
               <button type="button" className="ak-btn ak-btn--ghost" onClick={printInvoice}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></svg>Print</button>
