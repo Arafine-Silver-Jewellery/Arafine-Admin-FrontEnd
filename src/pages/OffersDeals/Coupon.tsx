@@ -590,18 +590,106 @@ export default function CouponPage() {
         </div>
       )}
 
-      {/* Form Card */}
-      {showForm && (
-        <div className="ak-card" style={{ marginBottom: 24 }}>
-          <div className="ak-card__header">
-            <h3 className="ak-card__title">
-              {formMode === "create" ? "Add New Coupon" : formMode === "edit" ? "Edit Coupon" : "View Coupon"}
-            </h3>
-            <button type="button" className="ak-icon-btn" onClick={() => setShowForm(false)}>
-              {icons.close}
-            </button>
+      {/* View Modal — read-only detail */}
+      {showForm && formMode === "view" && (
+        <div className="ak-modal-overlay" onClick={() => setShowForm(false)}>
+          <div className="ak-modal" style={{ maxWidth: 480, width: "100%" }} onClick={(e) => e.stopPropagation()}>
+            <div className="ak-modal__header">
+              <h3 className="ak-modal__title">View Coupon</h3>
+              <button type="button" className="ak-modal__close" onClick={() => setShowForm(false)}>
+                {icons.close}
+              </button>
+            </div>
+            <div className="ak-modal__body" style={{ padding: "0.9rem 1.1rem" }}>
+            {/* Highlight card: what the coupon does at a glance */}
+            <div style={{ background: "var(--brand-weak)", borderRadius: "var(--radius-md)", padding: "12px 16px", marginBottom: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "1.5rem", color: "#0d6efd" }}>{formData.code}</div>
+                  <div style={{ color: "var(--text)", marginTop: 2 }}>{formData.name}</div>
+                </div>
+                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <div style={{ fontSize: "1.35rem", fontWeight: 700, color: "var(--text-strong)" }}>
+                    {formData.type === "percentage"
+                      ? `${formData.value}%`
+                      : formData.type === "fixed_amount"
+                        ? formatPrice(parseFloat(formData.value) * 100)
+                        : formData.type === "free_shipping"
+                          ? "Free Shipping"
+                          : formData.value}
+                  </div>
+                  <div style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)" }}>Discount</div>
+                </div>
+              </div>
+              <div style={{ marginTop: 8 }}>
+                {(() => {
+                  if (!formData.isActive) {
+                    return <span className="ak-status ak-status--neutral"><span className="ak-status__dot" />Inactive</span>;
+                  }
+                  const now = new Date();
+                  if (now < new Date(formData.startsAt)) {
+                    return <span className="ak-status ak-status--info"><span className="ak-status__dot" />Scheduled</span>;
+                  }
+                  if (now > new Date(formData.endsAt)) {
+                    return <span className="ak-status ak-status--danger"><span className="ak-status__dot" />Expired</span>;
+                  }
+                  return <span className="ak-status ak-status--success"><span className="ak-status__dot" />Active</span>;
+                })()}
+              </div>
+            </div>
+
+            {/* Details: compact 2-col info tiles, no stretched rows */}
+            {[
+              { head: "Rules", items: [
+                ["Applies To", COUPON_SCOPES.find((s) => s.value === formData.scope)?.label || formData.scope],
+                ["Discount Type", COUPON_TYPES.find((t) => t.value === formData.type)?.label || formData.type],
+                ["Min. Cart Value", formData.minCartValueRupees ? `₹${formData.minCartValueRupees}` : "No minimum"],
+                ["Max. Discount", formData.maxDiscountRupees ? `₹${formData.maxDiscountRupees}` : "No cap"],
+              ]},
+              { head: "Limits & Validity", items: [
+                ["Total Usage Limit", formData.maxUses || "Unlimited"],
+                ["Per User Limit", formData.maxUsesPerUser || "Unlimited"],
+                ["Valid From", formatDate(formData.startsAt)],
+                ["Valid Until", formatDate(formData.endsAt)],
+              ]},
+            ].map((group, gi) => (
+              <div key={group.head} style={{ ...gi > 0 ? { marginTop: 12 } : {} }}>
+                <div style={{ fontSize: "0.72rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)", marginBottom: 6 }}>{group.head}</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  {group.items.map(([label, value]) => (
+                    <div key={label} style={{ background: "var(--color-pearl)", borderRadius: "var(--radius-md)", padding: "8px 12px", minWidth: 0 }}>
+                      <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: 1 }}>{label}</div>
+                      <div style={{ fontWeight: 600, fontSize: "0.9rem", overflowWrap: "break-word" }}>{value}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            {formData.description && (
+              <div style={{ marginTop: 10 }}>
+                <div style={{ fontSize: "0.72rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)", marginBottom: 4 }}>Description</div>
+                <div style={{ color: "var(--text)", lineHeight: 1.6 }}>{formData.description}</div>
+              </div>
+            )}
+            </div>
           </div>
-          <div className="ak-card__body">
+        </div>
+      )}
+
+      {/* Form Card */}
+      {showForm && formMode !== "view" && (
+        <div className="ak-modal-overlay" onClick={() => setShowForm(false)}>
+          <div className="ak-modal" style={{ maxWidth: 860 }} onClick={(e) => e.stopPropagation()}>
+            <div className="ak-modal__header">
+              <h3 className="ak-modal__title">
+                {formMode === "create" ? "Add New Coupon" : "Edit Coupon"}
+              </h3>
+              <button type="button" className="ak-modal__close" onClick={() => setShowForm(false)}>
+                {icons.close}
+              </button>
+            </div>
+            <div className="ak-modal__body">
             {formError && (
               <div style={{ padding: "12px 16px", background: "#ffebee", color: "#c62828", borderRadius: 8, marginBottom: 16 }}>
                 {formError}
@@ -758,16 +846,18 @@ export default function CouponPage() {
               </div>
               <div className="ak-form-group">
                 <label className="ak-label">Status</label>
-                <label className="ak-toggle" style={{ marginTop: 8 }}>
-                  <input
-                    type="checkbox"
-                    checked={formData.isActive}
-                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                    disabled={formMode === "view"}
-                  />
-                  <span className="ak-toggle__slider" />
-                  <span style={{ marginLeft: 12 }}>{formData.isActive ? "Active" : "Inactive"}</span>
-                </label>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 10, height: 24 }}>
+                  <label className="ak-toggle">
+                    <input
+                      type="checkbox"
+                      checked={formData.isActive}
+                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                      disabled={formMode === "view"}
+                    />
+                    <span className="ak-toggle__slider" />
+                  </label>
+                  <span>{formData.isActive ? "Active" : "Inactive"}</span>
+                </div>
               </div>
             </div>
 
@@ -780,12 +870,12 @@ export default function CouponPage() {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 disabled={formMode === "view"}
-                style={{ resize: "vertical" }}
+                style={{ resize: "vertical", height: "auto", minHeight: 80 }}
               />
             </div>
           </div>
           {formMode !== "view" && (
-            <div className="ak-card__footer">
+            <div className="ak-modal__footer">
               <button type="button" className="ak-btn ak-btn--ghost" onClick={() => setShowForm(false)}>
                 Cancel
               </button>
@@ -799,6 +889,7 @@ export default function CouponPage() {
               </button>
             </div>
           )}
+          </div>
         </div>
       )}
 

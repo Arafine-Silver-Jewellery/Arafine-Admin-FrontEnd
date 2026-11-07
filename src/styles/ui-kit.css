@@ -214,6 +214,11 @@
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 .ak-select:focus { border-color: var(--color-champagne); box-shadow: var(--ring); }
+.ak-select:disabled {
+  background-color: var(--color-ivory);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
 
 /* ── Field (label + input/select) ────────────────────────── */
 .ak-field { display: flex; flex-direction: column; gap: 0.4rem; }
@@ -239,6 +244,12 @@
 }
 .ak-input:focus { border-color: var(--color-champagne); box-shadow: var(--ring); }
 .ak-input::placeholder { color: var(--text-faint); }
+/* Disabled inputs/selects/textareas must read as read-only (view screens rely on it). */
+.ak-input:disabled {
+  background: var(--color-ivory);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
 
 /* ── Filter bar ──────────────────────────────────────────── */
 .ak-filter-grid {
@@ -428,6 +439,14 @@
 }
 .ak-toggle input:checked + .ak-toggle__slider { background: var(--color-champagne); }
 .ak-toggle input:checked + .ak-toggle__slider::before { transform: translateX(18px); }
+/* A disabled checkbox input inside a toggle reads the same as --locked
+   (view screens disable the toggle). Kept after the :checked rules so a
+   checked disabled toggle still greys out. */
+.ak-toggle input:disabled + .ak-toggle__slider {
+  background: var(--border-color, #e4e7ec);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
 
 /* ── Row actions ─────────────────────────────────────────── */
 .ak-row-actions { display: inline-flex; gap: 0.4rem; }
