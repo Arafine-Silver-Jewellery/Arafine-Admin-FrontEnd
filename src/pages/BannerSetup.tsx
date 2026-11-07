@@ -549,7 +549,6 @@ export default function BannerSetup() {
             emptyIcon="image"
             emptyTitle="No banners yet"
             emptyDescription="Add your first banner to get started."
-            emptyAction={{ label: "Add Banner", onClick: openAddModal }}
             keyExtractor={(banner) => banner.id}
             currentPage={currentPage}
             totalPages={totalPages}
