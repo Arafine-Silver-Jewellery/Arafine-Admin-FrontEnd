@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "../components/Toast";
 import { api } from "../api/client";
 import { formatDate, formatPrice } from "../utils/format";
-import { DataTable, StatusDropdown, FilterDrawer } from "../components";
+import { DataTable, StatusDropdown } from "../components";
 import type { Order, OrderStatus } from "../types";
 import "../styles/ui-kit.css";
 
@@ -50,7 +50,6 @@ export default function RefundRequests({ statusFilter = "pending" }: RefundReque
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [processing, setProcessing] = useState<string | null>(null);
-  const [showFilterDrawer, setShowFilterDrawer] = useState(false);
   const [refundTarget, setRefundTarget] = useState<Order | null>(null);
   const [refundAmountInr, setRefundAmountInr] = useState<string>("");
 
@@ -251,24 +250,17 @@ export default function RefundRequests({ statusFilter = "pending" }: RefundReque
       <div className="ak-page-body">
         {/* Toolbar */}
         <div className="ak-toolbar">
-          <form onSubmit={handleSearch} className="ak-toolbar__search">
-            <div className="ak-searchbar">
-              <div className="ak-searchbar__form">
-                <svg className="ak-searchbar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /></svg>
-                <input type="text" className="ak-searchbar__input" placeholder="Search by order number, customer…" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+          <div className="ak-toolbar__group" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <form onSubmit={handleSearch} className="ak-toolbar__search" style={{ flex: 'none', minWidth: '280px' }}>
+              <div className="ak-searchbar">
+                <div className="ak-searchbar__form">
+                  <svg className="ak-searchbar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /></svg>
+                  <input type="text" className="ak-searchbar__input" placeholder="Search by order number, customer…" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                </div>
               </div>
-            </div>
-          </form>
+            </form>
 
-          <div className="ak-toolbar__filters">
             <StatusDropdown options={refundStatusOptions} value={filterKey} onChange={handleStatusChange} placeholder="Status" size="sm" />
-          </div>
-
-          <div className="ak-toolbar__actions">
-            <button type="button" className="ak-btn ak-btn--ghost ak-btn--sm" onClick={() => setShowFilterDrawer(true)}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><circle cx="4" cy="12" r="2" /><circle cx="12" cy="10" r="2" /><circle cx="20" cy="14" r="2" /></svg>
-              Filters
-            </button>
           </div>
         </div>
 
@@ -285,14 +277,6 @@ export default function RefundRequests({ statusFilter = "pending" }: RefundReque
           onRowClick={(order) => navigate(`/orders/${order.id}`)}
         />
       </div>
-
-      {/* Filter Drawer */}
-      <FilterDrawer isOpen={showFilterDrawer} onClose={() => setShowFilterDrawer(false)} title="Filter Refunds" onApply={() => setShowFilterDrawer(false)} onReset={() => setShowFilterDrawer(false)}>
-        <div className="ak-filter-field">
-          <label className="ak-filter-field__label">Refund Status</label>
-          <StatusDropdown options={refundStatusOptions} value={filterKey} onChange={handleStatusChange} placeholder="Status" />
-        </div>
-      </FilterDrawer>
 
       {/* Refund Modal */}
       {refundTarget && (
