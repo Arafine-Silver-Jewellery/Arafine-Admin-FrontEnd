@@ -103,6 +103,11 @@ export function Receipt({ order }: { order: Order }) {
             <span>Change:</span> <span>{formatPrice(change)}</span>
           </p>
         )}
+        {paid > 0 && paid < total && (
+          <p className="total">
+            <span>Balance Due:</span> <span>{formatPrice(total - paid)}</span>
+          </p>
+        )}
       </div>
 
       <div className="receipt-footer">

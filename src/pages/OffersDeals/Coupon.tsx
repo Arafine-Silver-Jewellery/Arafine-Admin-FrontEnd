@@ -705,15 +705,12 @@ export default function CouponPage() {
                     placeholder="e.g., SUMMER2026"
                     value={formData.code}
                     onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                    disabled={formMode === "view"}
                     style={{ flex: 1 }}
                   />
-                  {formMode !== "view" && (
-                    <button type="button" className="ak-btn ak-btn--ghost" onClick={handleGenerateCode}>
+                  <button type="button" className="ak-btn ak-btn--ghost" onClick={handleGenerateCode}>
                       {icons.refresh}
                     </button>
-                  )}
-                </div>
+                  </div>
               </div>
               <div className="ak-form-group">
                 <label className="ak-label">Coupon Name *</label>
@@ -723,7 +720,6 @@ export default function CouponPage() {
                   placeholder="e.g., Summer Sale"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  disabled={formMode === "view"}
                 />
               </div>
               <div className="ak-form-group">
@@ -732,7 +728,6 @@ export default function CouponPage() {
                   className="ak-select"
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value as CouponType })}
-                  disabled={formMode === "view"}
                 >
                   {COUPON_TYPES.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -748,7 +743,6 @@ export default function CouponPage() {
                   className="ak-select"
                   value={formData.scope}
                   onChange={(e) => setFormData({ ...formData, scope: e.target.value as CouponScope })}
-                  disabled={formMode === "view"}
                 >
                   {COUPON_SCOPES.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -765,7 +759,6 @@ export default function CouponPage() {
                   placeholder={formData.type === "percentage" ? "e.g., 10" : "e.g., 100"}
                   value={formData.value}
                   onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                  disabled={formMode === "view"}
                   min="0"
                   max={formData.type === "percentage" ? "100" : undefined}
                 />
@@ -778,7 +771,6 @@ export default function CouponPage() {
                   placeholder="e.g., 500"
                   value={formData.minCartValueRupees}
                   onChange={(e) => setFormData({ ...formData, minCartValueRupees: e.target.value })}
-                  disabled={formMode === "view"}
                   min="0"
                 />
               </div>
@@ -793,7 +785,6 @@ export default function CouponPage() {
                   placeholder="e.g., 200"
                   value={formData.maxDiscountRupees}
                   onChange={(e) => setFormData({ ...formData, maxDiscountRupees: e.target.value })}
-                  disabled={formMode === "view"}
                   min="0"
                 />
               </div>
@@ -805,7 +796,6 @@ export default function CouponPage() {
                   placeholder="Unlimited"
                   value={formData.maxUses}
                   onChange={(e) => setFormData({ ...formData, maxUses: e.target.value })}
-                  disabled={formMode === "view"}
                   min="1"
                 />
               </div>
@@ -817,7 +807,6 @@ export default function CouponPage() {
                   placeholder="Unlimited"
                   value={formData.maxUsesPerUser}
                   onChange={(e) => setFormData({ ...formData, maxUsesPerUser: e.target.value })}
-                  disabled={formMode === "view"}
                   min="1"
                 />
               </div>
@@ -831,7 +820,6 @@ export default function CouponPage() {
                   className="ak-input"
                   value={formData.startsAt}
                   onChange={(e) => setFormData({ ...formData, startsAt: e.target.value })}
-                  disabled={formMode === "view"}
                 />
               </div>
               <div className="ak-form-group">
@@ -841,7 +829,6 @@ export default function CouponPage() {
                   className="ak-input"
                   value={formData.endsAt}
                   onChange={(e) => setFormData({ ...formData, endsAt: e.target.value })}
-                  disabled={formMode === "view"}
                 />
               </div>
               <div className="ak-form-group">
@@ -852,7 +839,6 @@ export default function CouponPage() {
                       type="checkbox"
                       checked={formData.isActive}
                       onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                      disabled={formMode === "view"}
                     />
                     <span className="ak-toggle__slider" />
                   </label>
@@ -869,12 +855,11 @@ export default function CouponPage() {
                 placeholder="Optional description..."
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                disabled={formMode === "view"}
                 style={{ resize: "vertical", height: "auto", minHeight: 80 }}
               />
             </div>
           </div>
-          {formMode !== "view" && (
+          {showForm && (
             <div className="ak-modal__footer">
               <button type="button" className="ak-btn ak-btn--ghost" onClick={() => setShowForm(false)}>
                 Cancel

@@ -155,6 +155,8 @@ export default function POS() {
   const [paidAmount, setPaidAmount] = useState("");
   const [upiTransactionId, setUpiTransactionId] = useState("");
   const [couponCode, setCouponCode] = useState("");
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponError, setCouponError] = useState<string | null>(null);
   const [extraDiscount, setExtraDiscount] = useState(0);
   const [showBill, setShowBill] = useState(false);
   const [currentBill, setCurrentBill] = useState<Order | null>(null);  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
@@ -1059,7 +1061,42 @@ export default function POS() {
     return sum + (comparePrice - item.product.price) * item.quantity;
   }, 0);
   
-  const total = subTotal - (extraDiscount * 100);
+  const total = subTotal - couponDiscount - extraDiscount;
+
+  // Live coupon preview: whenever the coupon code or cart changes, ask the
+  // backend what this code is worth (same math as order creation). Invalid
+  // or expired codes zero out the discount and surface the reason.
+  useEffect(() => {
+    const code = couponCode.trim();
+    if (!code || cart.length === 0) {
+      setCouponDiscount(0);
+      setCouponError(null);
+      return;
+    }
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      try {
+        const res = await api.previewCoupon({
+          items: cart.map(item => ({
+            productId: item.product.id,
+            quantity: item.quantity,
+            unitPrice: item.product.price,
+          })),
+          couponCode: code,
+        });
+        if (!cancelled) {
+          setCouponDiscount(res.data.discount);
+          setCouponError(null);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setCouponDiscount(0);
+          setCouponError(error instanceof Error ? error.message : "Invalid coupon code");
+        }
+      }
+    }, 500);
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [couponCode, cart]);
 
   async function handlePlaceOrder() {
     if (cart.length === 0) return;
@@ -1267,6 +1304,17 @@ export default function POS() {
               maxLength={64}
             />
           </div>
+          {couponError && (
+            <div className="summary-row" style={{ color: "#dc3545", fontSize: "0.8rem" }}>
+              <span style={{ whiteSpace: "normal" }}>{couponError}</span>
+            </div>
+          )}
+          {couponDiscount > 0 && (
+            <div className="summary-row" style={{ color: "#0d6efd" }}>
+              <span>Coupon Discount ({couponCode.trim().toUpperCase()}):</span>
+              <span>-{formatPrice(couponDiscount)}</span>
+            </div>
+          )}
           <div className="summary-row editable">
             <span>Extra Discount:</span>
             <input
@@ -1776,7 +1824,7 @@ export default function POS() {
                     {(couponCode || extraDiscount > 0) && (
                       <div className="customer-order-row">
                         <span>Discounts:</span>
-                        <span>-{formatPrice(extraDiscount * 100)}</span>
+                        <span>-{formatPrice(couponDiscount + extraDiscount)}</span>
                       </div>
                     )}
                     <div className="customer-order-row total">

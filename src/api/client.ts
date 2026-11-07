@@ -541,6 +541,24 @@ export const api = {
     }),
 
   // POS Orders
+  previewCoupon: (data: {
+    items: { productId: string; quantity: number; unitPrice: number }[];
+    couponCode: string;
+  }) =>
+    request<{
+      message: string;
+      data: {
+        couponCode: string;
+        couponName: string;
+        discount: number;
+        cartSubtotal: number;
+        total: number;
+      };
+    }>("/pos/orders/coupon-preview", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
   createPOSOrder: (data: {
     items: { productId: string; quantity: number; unitPrice: number }[];
     customerId?: string;
