@@ -744,6 +744,19 @@
   z-index: 1;
 }
 
+.ak-table thead {
+  border-radius: 0;
+}
+
+.ak-table thead tr {
+  border-radius: 0;
+}
+
+.ak-table thead th:first-child,
+.ak-table thead th:last-child {
+  border-radius: 0;
+}
+
 .ak-table tbody td {
   padding: 0.9rem 1.1rem;
   border-bottom: 1px solid var(--border-color-light);
