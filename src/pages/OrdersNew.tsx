@@ -763,7 +763,7 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
       <div className="ak-page-header">
         <div className="ak-page-header__left">
           <h1 className="ak-page-header__title">
-            Orders
+            {orderStatusOptions.find(o => o.value === currentStatus)?.label || "Orders"}
             {totalItems > 0 && <span className="ak-page-header__count">{totalItems.toLocaleString()}</span>}
           </h1>
           <p className="ak-page-header__subtitle">Manage and track all customer orders</p>
