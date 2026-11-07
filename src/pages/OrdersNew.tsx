@@ -103,6 +103,11 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [loadingInvoice, setLoadingInvoice] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
+  const [collectOrder, setCollectOrder] = useState<Order | null>(null);
+  const [collectAmount, setCollectAmount] = useState("");
+  const [collectMethod, setCollectMethod] = useState<"cash" | "card" | "upi">("cash");
+  const [collectUpiRef, setCollectUpiRef] = useState("");
+  const [collectBusy, setCollectBusy] = useState(false);
 
   // Filter drawer state
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);
@@ -290,6 +295,52 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     }
   }
 
+  async function openCollect(order: Order) {
+    setCollectOrder(order);
+    setCollectAmount(String(Math.max(0, Number(order.total) - Number(order.paidAmount || 0))));
+    setCollectMethod("cash");
+    setCollectUpiRef("");
+    // List rows carry items, but load the fresh full order so the cashier
+    // verifies against exactly what's in the DB before collecting money.
+    try {
+      const fullOrder = await api.getOrder(order.id);
+      setCollectOrder(fullOrder);
+    } catch {
+      // fall back to the row data — the backend re-validates anyway
+    }
+  }
+
+  function closeCollect() {
+    setCollectOrder(null);
+    setCollectAmount("");
+    setCollectUpiRef("");
+  }
+
+  async function submitCollect() {
+    if (!collectOrder) return;
+    const amount = Number(collectAmount);
+    if (!amount || amount <= 0) return;
+    if (collectMethod === "upi" && !collectUpiRef.trim()) return;
+    setCollectBusy(true);
+    try {
+      const res = await api.collectOrderBalance(collectOrder.id, {
+        amount,
+        paymentMethod: collectMethod,
+        paymentReference: collectMethod === "upi" ? collectUpiRef.trim() : undefined,
+      });
+      closeCollect();
+      await loadOrders();
+      // Show the refreshed order's receipt — Paid / Balance Due reflects the collection.
+      setSelectedOrder(res.data);
+      setShowReceipt(true);
+    } catch (error) {
+      console.error("Failed to collect balance:", error);
+      alert(error instanceof Error ? error.message : "Failed to collect balance");
+    } finally {
+      setCollectBusy(false);
+    }
+  }
+
   function exportOrders() {
     if (orders.length === 0) { alert("No orders to export"); return; }
     const headers = ["Order ID", "Order Date", "Customer Name", "Phone", "Channel", "Total", "Payment Status", "Order Status"];
@@ -395,6 +446,15 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
               <rect x="6" y="14" width="12" height="8" />
             </svg>
           </button>
+          {getPaymentStatusDisplay(order).label !== "Paid" && (
+            <button type="button" className="ak-icon-btn ak-icon-btn--edit" title="Pending Payment" onClick={(e) => { e.stopPropagation(); openCollect(order); }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M20 12V8H6a2 2 0 0 1 0-4h12v4" />
+                <path d="M4 6v12c0 1.1.9 2 2 2h14v-4" />
+                <path d="M18 12a2 2 0 1 0 0 4h4v-4Z" />
+              </svg>
+            </button>
+          )}
         </div>
       ),
     },
@@ -571,6 +631,108 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
           order={selectedOrder as SharedOrder}
           onClose={() => setShowReceipt(false)}
         />
+      )}
+
+      {/* Collect Balance — record an incoming payment on a pending/partial order */}
+      {collectOrder && (
+        <div className="ak-modal-overlay" onClick={closeCollect}>
+          <div className="ak-modal" style={{ maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
+            <div className="ak-modal__header">
+              <h3 className="ak-modal__title">Pending Payment</h3>
+              <button type="button" className="ak-modal__close" onClick={closeCollect}>×</button>
+            </div>
+            <div className="ak-modal__body">
+              <div style={{ background: "var(--brand-weak)", borderRadius: "var(--radius-md)", padding: "12px 16px", marginBottom: 14, display: "flex", justifyContent: "space-between", gap: 12 }}>
+                <div>
+                  <div style={{ fontFamily: "var(--font-display)", fontWeight: 600 }}>{collectOrder.orderNumber}</div>
+                  <div style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>{collectOrder.shippingAddress?.fullName || "Walk-in"}</div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontWeight: 700, color: "var(--text-strong)" }}>{formatPrice(Math.max(0, Number(collectOrder.total) - Number(collectOrder.paidAmount || 0)))}</div>
+                  <div style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)" }}>Balance Due</div>
+                </div>
+              </div>
+
+              {/* Order totals: total vs paid so the cashier can verify */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 14 }}>
+                {[["Total", formatPrice(collectOrder.total)], ["Already Paid", formatPrice(collectOrder.paidAmount || 0)], ["Items", String(collectOrder.items?.reduce((s, i) => s + i.quantity, 0) ?? 0)]].map(([l, v]) => (
+                  <div key={l} style={{ background: "var(--color-pearl)", borderRadius: "var(--radius-md)", padding: "8px 12px" }}>
+                    <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>{l}</div>
+                    <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>{v}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Line items for verification */}
+              {collectOrder.items && collectOrder.items.length > 0 && (
+                <div className="ak-form-group">
+                  <label className="ak-label">Items</label>
+                  <div style={{ border: "1px solid var(--border-color-light)", borderRadius: "var(--radius-md)", overflow: "hidden", maxHeight: 180, overflowY: "auto" }}>
+                    {collectOrder.items.map((item) => (
+                      <div key={item.id} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "8px 12px", borderBottom: "1px solid var(--border-color-light)" }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, fontSize: "0.9rem", overflowWrap: "break-word" }}>{item.productName}</div>
+                          <div style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>Qty: {item.quantity} × {formatPrice(item.unitPrice)}</div>
+                        </div>
+                        <div style={{ fontWeight: 600, flexShrink: 0 }}>{formatPrice(item.totalPrice)}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="ak-form-group">
+                <label className="ak-label">Amount Received</label>
+                <input
+                  type="number"
+                  className="ak-input"
+                  value={collectAmount}
+                  min={0.01}
+                  step={0.01}
+                  onChange={(e) => setCollectAmount(e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div className="ak-form-group">
+                <label className="ak-label">Payment Method</label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {(["cash", "card", "upi"] as const).map((m) => (
+                    <button key={m} type="button" onClick={() => setCollectMethod(m)}
+                      style={{ flex: 1, padding: "8px 0", borderRadius: "var(--radius-md)", border: "1px solid " + (collectMethod === m ? "var(--brand)" : "var(--border-color)"), background: collectMethod === m ? "var(--brand-weak)" : "var(--surface)", fontWeight: 600, textTransform: "capitalize" }}>
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {collectMethod === "upi" && (
+                <div className="ak-form-group">
+                  <label className="ak-label">UPI Transaction ID</label>
+                  <input
+                    type="text"
+                    className="ak-input"
+                    value={collectUpiRef}
+                    onChange={(e) => setCollectUpiRef(e.target.value)}
+                    placeholder="UPI ref no."
+                    maxLength={64}
+                  />
+                </div>
+              )}
+            </div>
+            <div className="ak-modal__footer">
+              <button type="button" className="ak-btn ak-btn--ghost" onClick={closeCollect}>Cancel</button>
+              <button
+                type="button"
+                className="ak-btn ak-btn--primary"
+                onClick={submitCollect}
+                disabled={collectBusy || !Number(collectAmount) || (collectMethod === "upi" && !collectUpiRef.trim())}
+              >
+                {collectBusy ? "Saving..." : "Pay"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

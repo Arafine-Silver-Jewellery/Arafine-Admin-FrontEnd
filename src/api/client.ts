@@ -540,6 +540,17 @@ export const api = {
       body: JSON.stringify({ refundAmount }),
     }),
 
+  // Record a payment against a pending/partial POS order
+  collectOrderBalance: (orderId: string, data: {
+    amount: number;
+    paymentMethod: "cash" | "card" | "upi";
+    paymentReference?: string;
+  }) =>
+    request<{ message: string; data: any }>(`/pos/orders/${orderId}/collect`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
   // POS Orders
   previewCoupon: (data: {
     items: { productId: string; quantity: number; unitPrice: number }[];
