@@ -259,7 +259,6 @@ export default function Layout() {
           {hasPermission("refund-requests") && (
             <NavLink
               to="/refund-requests"
-              end
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polyline points="23,4 23,10 17,10" />
