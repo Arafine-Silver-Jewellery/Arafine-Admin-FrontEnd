@@ -49,17 +49,17 @@ interface Order {
 }
 
 const orderStatusOptions = [
-  { value: "all", label: "All Orders", color: "neutral" as const, path: "/orders-management" },
-  { value: "pending", label: "Pending", color: "warning" as const, path: "/orders-management/pending" },
-  { value: "confirmed", label: "Confirmed", color: "success" as const, path: "/orders-management/confirmed" },
-  { value: "processing", label: "Processing", color: "info" as const, path: "/orders-management/processing" },
-  { value: "packaging", label: "Packaging", color: "info" as const, path: "/orders-management/packaging" },
-  { value: "shipped", label: "Shipped", color: "info" as const, path: "/orders-management/shipped" },
-  { value: "out_for_delivery", label: "Out for Delivery", color: "info" as const, path: "/orders-management/out-for-delivery" },
-  { value: "delivered", label: "Delivered", color: "success" as const, path: "/orders-management/delivered" },
-  { value: "returned", label: "Returned", color: "neutral" as const, path: "/orders-management/returned" },
-  { value: "failed_to_deliver", label: "Failed to Deliver", color: "danger" as const, path: "/orders-management/failed-to-deliver" },
-  { value: "cancelled", label: "Cancelled", color: "danger" as const, path: "/orders-management/canceled" },
+  { value: "all", label: "All Orders", color: "neutral" as const, path: "/orders" },
+  { value: "pending", label: "Pending", color: "warning" as const, path: "/orders/pending" },
+  { value: "confirmed", label: "Confirmed", color: "success" as const, path: "/orders/confirmed" },
+  { value: "processing", label: "Processing", color: "info" as const, path: "/orders/processing" },
+  { value: "packaging", label: "Packaging", color: "info" as const, path: "/orders/packaging" },
+  { value: "shipped", label: "Shipped", color: "info" as const, path: "/orders/shipped" },
+  { value: "out_for_delivery", label: "Out for Delivery", color: "info" as const, path: "/orders/out-for-delivery" },
+  { value: "delivered", label: "Delivered", color: "success" as const, path: "/orders/delivered" },
+  { value: "returned", label: "Returned", color: "neutral" as const, path: "/orders/returned" },
+  { value: "failed_to_deliver", label: "Failed to Deliver", color: "danger" as const, path: "/orders/failed-to-deliver" },
+  { value: "cancelled", label: "Cancelled", color: "danger" as const, path: "/orders/canceled" },
 ];
 
 const channelOptions = [

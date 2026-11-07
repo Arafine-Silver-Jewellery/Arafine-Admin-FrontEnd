@@ -102,7 +102,7 @@ export default function OrderDetail() {
     <>
       <header className="page-header">
         <h1>Order {order.orderNumber}</h1>
-        <button className="btn btn-secondary" onClick={() => navigate("/orders-management")}>
+        <button className="btn btn-secondary" onClick={() => navigate("/orders")}>
           Back to Orders
         </button>
       </header>

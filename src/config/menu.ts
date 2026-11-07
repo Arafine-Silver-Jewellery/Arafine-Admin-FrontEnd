@@ -60,7 +60,7 @@ export const MENU_ITEMS: MenuItem[] = [
 
   // ── Order Management ──
   {
-    path: "/orders-management",
+    path: "/orders",
     label: "Orders",
     group: "Order Management",
     permission: "orders",

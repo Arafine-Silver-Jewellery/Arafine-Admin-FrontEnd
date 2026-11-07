@@ -47,16 +47,19 @@ const customersSubmenus = [
 const pageTitleMap: Record<string, { title: string; icon: string }> = {
   "/": { title: "Dashboard", icon: "dashboard" },
   "/pos": { title: "POS", icon: "pos" },
-  "/orders-management": { title: "All Orders", icon: "orders" },
-  "/orders-management/pending": { title: "Pending Orders", icon: "orders" },
-  "/orders-management/confirmed": { title: "Confirmed Orders", icon: "orders" },
-  "/orders-management/packaging": { title: "Packaging Orders", icon: "orders" },
-  "/orders-management/out-for-delivery": { title: "Out for Delivery", icon: "orders" },
-  "/orders-management/delivered": { title: "Delivered Orders", icon: "orders" },
-  "/orders-management/returned": { title: "Returned Orders", icon: "orders" },
-  "/orders-management/failed-to-deliver": { title: "Failed to Deliver", icon: "orders" },
-  "/orders-management/canceled": { title: "Canceled Orders", icon: "orders" },
+  "/orders": { title: "All Orders", icon: "orders" },
+  "/orders/pending": { title: "Pending Orders", icon: "orders" },
+  "/orders/confirmed": { title: "Confirmed Orders", icon: "orders" },
+  "/orders/processing": { title: "Processing Orders", icon: "orders" },
+  "/orders/packaging": { title: "Packaging Orders", icon: "orders" },
+  "/orders/shipped": { title: "Shipped Orders", icon: "orders" },
+  "/orders/out-for-delivery": { title: "Out for Delivery", icon: "orders" },
+  "/orders/delivered": { title: "Delivered Orders", icon: "orders" },
+  "/orders/returned": { title: "Returned Orders", icon: "orders" },
+  "/orders/failed-to-deliver": { title: "Failed to Deliver", icon: "orders" },
+  "/orders/canceled": { title: "Canceled Orders", icon: "orders" },
   "/refund-requests": { title: "Refund Requests", icon: "refund" },
+  "/refund-requests/pending": { title: "Refund Requests", icon: "refund" },
   "/refund-requests/all": { title: "Refund Requests", icon: "refund" },
   "/refund-requests/approved": { title: "Refund Requests", icon: "refund" },
   "/refund-requests/refunded": { title: "Refund Requests", icon: "refund" },
@@ -242,8 +245,7 @@ export default function Layout() {
 
           {hasPermission("orders") && (
             <NavLink
-              to="/orders-management"
-              end
+              to="/orders"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
