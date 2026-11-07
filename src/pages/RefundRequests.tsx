@@ -20,8 +20,8 @@ const BACKEND_STATUSES_BY_FILTER: Record<RefundRequestsProps["statusFilter"] & s
 };
 
 const refundStatusOptions = [
-  { value: "all", label: "All", color: "neutral" as const, path: "/refund-requests/all" },
-  { value: "pending", label: "Pending", color: "warning" as const, path: "/refund-requests" },
+  { value: "all", label: "All", color: "neutral" as const, path: "/refund-requests" },
+  { value: "pending", label: "Pending", color: "warning" as const, path: "/refund-requests/pending" },
   { value: "approved", label: "Approved", color: "info" as const, path: "/refund-requests/approved" },
   { value: "refunded", label: "Refunded", color: "success" as const, path: "/refund-requests/refunded" },
   { value: "rejected", label: "Rejected", color: "danger" as const, path: "/refund-requests/rejected" },

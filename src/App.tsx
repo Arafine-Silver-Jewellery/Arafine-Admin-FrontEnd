@@ -63,7 +63,8 @@ function App() {
             <Route path="orders-management/canceled" element={<RequirePermission permission="orders"><OrdersNew statusFilter="cancelled" /></RequirePermission>} />
             
             {/* Refund Requests */}
-            <Route path="refund-requests" element={<RequirePermission permission="refund-requests"><RefundRequests statusFilter="pending" /></RequirePermission>} />
+            <Route path="refund-requests" element={<RequirePermission permission="refund-requests"><RefundRequests statusFilter="all" /></RequirePermission>} />
+            <Route path="refund-requests/pending" element={<RequirePermission permission="refund-requests"><RefundRequests statusFilter="pending" /></RequirePermission>} />
             <Route path="refund-requests/all" element={<RequirePermission permission="refund-requests"><RefundRequests statusFilter="all" /></RequirePermission>} />
             <Route path="refund-requests/approved" element={<RequirePermission permission="refund-requests"><RefundRequests statusFilter="approved" /></RequirePermission>} />
             <Route path="refund-requests/refunded" element={<RequirePermission permission="refund-requests"><RefundRequests statusFilter="refunded" /></RequirePermission>} />
