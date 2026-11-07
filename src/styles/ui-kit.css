@@ -1973,3 +1973,92 @@
     text-align: left;
   }
 }
+
+
+/* ============================================================
+   PAYMENT METHOD DISPLAY
+   ============================================================ */
+.ak-payment-method {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.7rem;
+  background: var(--color-pearl);
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.ak-payment-method__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ak-payment-method__icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.ak-payment-method__label {
+  font-weight: 500;
+  color: var(--text-strong);
+}
+
+/* Payment amount styles */
+.ak-amount {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ak-amount--paid {
+  color: var(--color-success);
+  font-weight: 500;
+}
+
+.ak-amount--due {
+  color: var(--color-error);
+  font-weight: 500;
+}
+
+.ak-amount--total {
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.ak-amount--muted {
+  color: var(--text-faint);
+}
+
+
+/* ============================================================
+   ORDERS TABLE — FIXED COLUMN WIDTHS
+   ============================================================ */
+.ak-table--fixed {
+  table-layout: fixed;
+}
+
+/* Make table use the full width and respect column widths better */
+.ak-table-wrapper .ak-table {
+  width: 100%;
+  table-layout: auto;
+}
+
+/* Ensure columns with explicit widths are respected */
+.ak-table thead th[style*="width"] {
+  white-space: nowrap;
+}
+
+/* Customer column should expand to fill remaining space */
+.ak-table tbody td {
+  white-space: nowrap;
+}
+
+/* Allow customer name to wrap if needed */
+.ak-user-cell__name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}

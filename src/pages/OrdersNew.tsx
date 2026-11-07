@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, type ReactNode } from "react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { useNavigate } from "react-router-dom";
@@ -343,10 +343,22 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
 
   function exportOrders() {
     if (orders.length === 0) { alert("No orders to export"); return; }
-    const headers = ["Order ID", "Order Date", "Customer Name", "Phone", "Channel", "Total", "Payment Status", "Order Status"];
+    const headers = ["Order ID", "Order Date", "Customer Name", "Phone", "Channel", "Payment Method", "Paid", "Payment Status", "Order Status"];
     const rows = orders.map(order => {
       const payment = getPaymentStatusDisplay(order);
-      return [order.orderNumber, formatDateTime(order.createdAt), order.shippingAddress?.fullName || "Walk-in", order.shippingAddress?.phone || "", order.orderChannel.toUpperCase(), order.total.toFixed(2), payment.label, getStatusLabel(order.status)];
+      const pmLabel = order.paymentMethod || "—";
+      const paid = Number(order.paidAmount) || 0;
+      return [
+        order.orderNumber,
+        formatDateTime(order.createdAt),
+        order.shippingAddress?.fullName || "Walk-in",
+        order.shippingAddress?.phone || "",
+        order.orderChannel.toUpperCase(),
+        pmLabel,
+        paid.toFixed(2),
+        payment.label,
+        getStatusLabel(order.status)
+      ];
     });
     const csvContent = [headers.join(","), ...rows.map(row => row.map(cell => `"${cell}"`).join(","))].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -358,16 +370,76 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     document.body.removeChild(link);
   }
 
+  function getPaymentMethodDisplay(method: string | undefined | null): { label: string; icon: ReactNode } {
+    if (!method) return { label: "—", icon: null };
+    const m = method.toLowerCase();
+    
+    // Cash icon
+    if (m === "cash") return { 
+      label: "Cash", 
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16, color: "#16a34a" }}><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+    };
+    
+    // Card icon
+    if (m === "card") return { 
+      label: "Card", 
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16, color: "#6366f1" }}><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+    };
+    
+    // UPI icon
+    if (m === "upi") return { 
+      label: "UPI", 
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16, color: "#ea580c" }}><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
+    };
+    
+    // Razorpay icon
+    if (m.includes("razorpay")) return { 
+      label: "Razorpay", 
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16, color: "#2563eb" }}><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+    };
+    
+    // Stripe icon
+    if (m.includes("stripe")) return { 
+      label: "Stripe", 
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16, color: "#7c3aed" }}><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+    };
+    
+    // PayPal icon
+    if (m.includes("paypal")) return { 
+      label: "PayPal", 
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16, color: "#0ea5e9" }}><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+    };
+    
+    // COD icon
+    if (m === "cod" || m.includes("delivery")) return { 
+      label: "COD", 
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16, color: "#ca8a04" }}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+    };
+    
+    // Default wallet icon
+    return { 
+      label: method, 
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16, color: "#64748b" }}><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 1 0 0 4h4v-4Z"/></svg>
+    };
+  }
+
+  function getBalanceAmount(order: Order): number {
+    const total = Number(order.total) || 0;
+    const paid = Number(order.paidAmount) || 0;
+    return Math.max(0, total - paid);
+  }
+
   const columns = [
     {
       key: "sl",
       header: "#",
-      width: "50px",
+      width: "45px",
       render: (_: Order, index: number) => <span className="ak-text-muted">{(page - 1) * 20 + index + 1}</span>,
     },
     {
       key: "orderNumber",
       header: "Order ID",
+      width: "200px",
       render: (order: Order) => {
         const channel = channelBadges[order.orderChannel] ?? channelBadges.online;
         return (
@@ -381,6 +453,7 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     {
       key: "createdAt",
       header: "Date",
+      width: "120px",
       render: (order: Order) => (
         <div className="ak-date-cell">
           <span className="ak-date-cell__date">{formatDateTime(order.createdAt)}</span>
@@ -404,22 +477,53 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
       ),
     },
     {
-      key: "total",
-      header: "Total",
+      key: "paymentMethod",
+      header: "Payment",
+      width: "110px",
+      render: (order: Order) => {
+        const pm = getPaymentMethodDisplay(order.paymentMethod);
+        return (
+          <div className="ak-payment-method">
+            {pm.icon && <span className="ak-payment-method__icon">{pm.icon}</span>}
+            <span className="ak-payment-method__label">{pm.label}</span>
+          </div>
+        );
+      },
+    },
+
+    {
+      key: "paidAmount",
+      header: "Paid",
+      width: "110px",
       align: "right" as const,
+      render: (order: Order) => {
+        const paid = Number(order.paidAmount) || 0;
+        return (
+          <div className="ak-amount" style={{ color: paid > 0 ? "#16a34a" : "#9ca3af" }}>
+            {paid > 0 ? formatPrice(paid) : "—"}
+          </div>
+        );
+      },
+    },
+
+    {
+      key: "paymentStatus",
+      header: "Pay Status",
+      width: "100px",
       render: (order: Order) => {
         const payment = getPaymentStatusDisplay(order);
         return (
-          <div style={{ textAlign: "right" }}>
-            <div className="ak-amount">{formatPrice(order.total)}</div>
-            <span className={`ak-status ak-status--${payment.variant}`} style={{ marginTop: 4 }}>{payment.label}</span>
-          </div>
+          <span className={`ak-status ak-status--${payment.variant}`}>
+            <span className="ak-status__dot" />
+            {payment.label}
+          </span>
         );
       },
     },
     {
       key: "status",
-      header: "Status",
+      header: "Order Status",
+      width: "130px",
       render: (order: Order) => (
         <span className={`ak-status ak-status--${getStatusVariant(order.status)}`}>
           <span className="ak-status__dot" />
@@ -447,7 +551,7 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
             </svg>
           </button>
           {getPaymentStatusDisplay(order).label !== "Paid" && (
-            <button type="button" className="ak-icon-btn ak-icon-btn--edit" title="Pending Payment" onClick={(e) => { e.stopPropagation(); openCollect(order); }}>
+            <button type="button" className="ak-icon-btn ak-icon-btn--edit" title="Collect Payment" onClick={(e) => { e.stopPropagation(); openCollect(order); }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M20 12V8H6a2 2 0 0 1 0-4h12v4" />
                 <path d="M4 6v12c0 1.1.9 2 2 2h14v-4" />
