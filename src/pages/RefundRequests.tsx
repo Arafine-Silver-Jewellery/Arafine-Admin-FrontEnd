@@ -250,16 +250,16 @@ export default function RefundRequests({ statusFilter = "pending" }: RefundReque
       <div className="ak-page-body">
         {/* Toolbar */}
         <div className="ak-toolbar">
-          <div className="ak-toolbar__group" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <form onSubmit={handleSearch} className="ak-toolbar__search" style={{ flex: 'none', minWidth: '280px' }}>
-              <div className="ak-searchbar">
-                <div className="ak-searchbar__form">
-                  <svg className="ak-searchbar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /></svg>
-                  <input type="text" className="ak-searchbar__input" placeholder="Search by order number, customer…" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-                </div>
+          <form onSubmit={handleSearch} className="ak-toolbar__search">
+            <div className="ak-searchbar">
+              <div className="ak-searchbar__form">
+                <svg className="ak-searchbar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /></svg>
+                <input type="text" className="ak-searchbar__input" placeholder="Search by order number, customer…" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
               </div>
-            </form>
+            </div>
+          </form>
 
+          <div className="ak-toolbar__actions">
             <StatusDropdown options={refundStatusOptions} value={filterKey} onChange={handleStatusChange} placeholder="Status" size="sm" />
           </div>
         </div>
