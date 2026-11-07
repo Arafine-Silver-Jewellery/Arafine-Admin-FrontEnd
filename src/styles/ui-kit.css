@@ -2062,3 +2062,38 @@
   text-overflow: ellipsis;
   max-width: 180px;
 }
+
+
+/* ============================================================
+   DATE FILTER INLINE
+   ============================================================ */
+.ak-date-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.ak-date-filter__separator {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.ak-input--sm {
+  height: 32px;
+  padding: 0 0.6rem;
+  font-size: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+}
+
+input[type="date"].ak-input--sm {
+  width: 120px;
+}
+
+input[type="date"].ak-input--sm:focus {
+  border-color: var(--color-champagne);
+  outline: none;
+  box-shadow: var(--ring);
+}

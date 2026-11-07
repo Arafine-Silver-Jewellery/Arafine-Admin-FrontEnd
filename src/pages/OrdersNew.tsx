@@ -3,7 +3,7 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
-import { DataTable, StatusDropdown, FilterDrawer, ReceiptModal } from "../components";
+import { DataTable, StatusDropdown, ReceiptModal } from "../components";
 import Invoice from "../components/Invoice";
 import type { Order as SharedOrder } from "../types";
 import "../styles/ui-kit.css";
@@ -110,24 +110,12 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
   const [collectUpiRef, setCollectUpiRef] = useState("");
   const [collectBusy, setCollectBusy] = useState(false);
 
-  // Filter drawer state
-  const [showFilterDrawer, setShowFilterDrawer] = useState(false);
+  // Filter drawer state - removed, using inline date filters now
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
   const [filterPaymentStatus, setFilterPaymentStatus] = useState<PaymentStatusFilter>("all");
 
-  // Temp filter state
-  const [tempChannelFilter, setTempChannelFilter] = useState<OrderChannel>("all");
-  const [tempDateFrom, setTempDateFrom] = useState("");
-  const [tempDateTo, setTempDateTo] = useState("");
-  const [tempPaymentStatus, setTempPaymentStatus] = useState<PaymentStatusFilter>("all");
 
-  const activeFiltersCount = [
-    channelFilter !== "all" ? 1 : 0,
-    filterDateFrom ? 1 : 0,
-    filterDateTo ? 1 : 0,
-    filterPaymentStatus !== "all" ? 1 : 0,
-  ].reduce((a, b) => a + b, 0);
 
   useEffect(() => {
     setCurrentStatus(statusFilter);
@@ -177,36 +165,6 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     if (option) {
       navigate(option.path);
     }
-  }
-
-  function openFilterDrawer() {
-    setTempChannelFilter(channelFilter);
-    setTempDateFrom(filterDateFrom);
-    setTempDateTo(filterDateTo);
-    setTempPaymentStatus(filterPaymentStatus);
-    setShowFilterDrawer(true);
-  }
-
-  function applyFilters() {
-    setChannelFilter(tempChannelFilter);
-    setFilterDateFrom(tempDateFrom);
-    setFilterDateTo(tempDateTo);
-    setFilterPaymentStatus(tempPaymentStatus);
-    setPage(1);
-    setShowFilterDrawer(false);
-  }
-
-  function resetFilters() {
-    setTempChannelFilter("all");
-    setTempDateFrom("");
-    setTempDateTo("");
-    setTempPaymentStatus("all");
-    setChannelFilter("all");
-    setFilterDateFrom("");
-    setFilterDateTo("");
-    setFilterPaymentStatus("all");
-    setPage(1);
-    setShowFilterDrawer(false);
   }
 
   function formatDateTime(dateString: string): string {
@@ -862,22 +820,38 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
               placeholder="Payment"
               size="sm"
             />
-          </div>
 
-          <div className="ak-toolbar__actions">
-            <button type="button" className="ak-btn ak-btn--ghost ak-btn--sm" onClick={openFilterDrawer}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
-                <line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" />
-                <line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" />
-                <circle cx="4" cy="12" r="2" /><circle cx="12" cy="10" r="2" /><circle cx="20" cy="14" r="2" />
-              </svg>
-              More
-              {activeFiltersCount > 0 && <span className="ak-page-header__count">{activeFiltersCount}</span>}
-            </button>
+            <div className="ak-date-filter">
+              <input
+                type="date"
+                className="ak-input ak-input--sm"
+                value={filterDateFrom}
+                onChange={(e) => { setFilterDateFrom(e.target.value); setPage(1); }}
+                placeholder="From"
+                title="From Date"
+              />
+              <span className="ak-date-filter__separator">–</span>
+              <input
+                type="date"
+                className="ak-input ak-input--sm"
+                value={filterDateTo}
+                onChange={(e) => { setFilterDateTo(e.target.value); setPage(1); }}
+                placeholder="To"
+                title="To Date"
+              />
+            </div>
 
-            {activeFiltersCount > 0 && (
-              <button type="button" className="ak-btn ak-btn--ghost ak-btn--sm" onClick={resetFilters}>Clear</button>
+            {(filterDateFrom || filterDateTo) && (
+              <button 
+                type="button" 
+                className="ak-btn ak-btn--ghost ak-btn--sm" 
+                onClick={() => { setFilterDateFrom(""); setFilterDateTo(""); setPage(1); }}
+                title="Clear date filter"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
             )}
           </div>
         </div>
@@ -900,26 +874,6 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
           onPageChange={setPage}
         />
       </div>
-
-      {/* Filter Drawer */}
-      <FilterDrawer isOpen={showFilterDrawer} onClose={() => setShowFilterDrawer(false)} title="Filter Orders" onApply={applyFilters} onReset={resetFilters}>
-        <div className="ak-filter-field">
-          <label className="ak-filter-field__label">Channel</label>
-          <StatusDropdown options={channelOptions} value={tempChannelFilter} onChange={(val) => setTempChannelFilter(val as OrderChannel)} placeholder="All Channels" />
-        </div>
-        <div className="ak-filter-field">
-          <label className="ak-filter-field__label">Payment Status</label>
-          <StatusDropdown options={paymentStatusOptions} value={tempPaymentStatus} onChange={(val) => setTempPaymentStatus(val as PaymentStatusFilter)} placeholder="All" />
-        </div>
-        <div className="ak-filter-field">
-          <label className="ak-filter-field__label">Date From</label>
-          <input type="date" className="ak-input" value={tempDateFrom} onChange={(e) => setTempDateFrom(e.target.value)} />
-        </div>
-        <div className="ak-filter-field">
-          <label className="ak-filter-field__label">Date To</label>
-          <input type="date" className="ak-input" value={tempDateTo} onChange={(e) => setTempDateTo(e.target.value)} />
-        </div>
-      </FilterDrawer>
 
       {/* Invoice Modal */}
       {showInvoice && selectedOrder && (
