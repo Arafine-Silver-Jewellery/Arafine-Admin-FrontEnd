@@ -166,7 +166,7 @@ export default function Layout() {
       <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="sidebar-header">
           <img 
-            src="https://arafine.co/storage/app/public/company/2026-06-04-6a218bac104aa.webp" 
+            src="/logo.webp" 
             alt="Arafine" 
             className="sidebar-logo"
           />

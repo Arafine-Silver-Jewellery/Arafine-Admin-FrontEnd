@@ -274,11 +274,245 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
 
   function printInvoice() {
     if (!invoiceRef.current || !selectedOrder) return;
-    const printWindow = window.open("", "_blank", "width=800,height=600");
+    const printWindow = window.open("", "_blank", "width=800,height=1000");
     if (printWindow) {
-      printWindow.document.write(`<!DOCTYPE html><html><head><title>Invoice - ${selectedOrder.orderNumber}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',Arial,sans-serif;padding:20px;font-size:14px;color:#333}@media print{body{padding:0}}</style></head><body>${invoiceRef.current.innerHTML}</body></html>`);
+      printWindow.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <title>Invoice - ${selectedOrder.orderNumber}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 12px;
+      color: #1a1a1a;
+      line-height: 1.5;
+      background: #fff;
+    }
+    
+    .inv {
+      background: #fff;
+      padding: 40px 48px;
+      max-width: 595px;
+      min-height: 842px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .inv__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    
+    .inv__brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .inv__logo-img {
+      height: 44px;
+      width: auto;
+      object-fit: contain;
+    }
+    
+    .inv__title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 28px;
+      font-weight: 400;
+      letter-spacing: 0.08em;
+      color: #1a1a1a;
+    }
+    
+    .inv__divider {
+      height: 1px;
+      background: #1a1a1a;
+      margin-bottom: 20px;
+    }
+    
+    .inv__info {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      gap: 20px;
+    }
+    
+    .inv__info-left { flex: 1; }
+    .inv__info-block { margin-bottom: 16px; }
+    .inv__info-block:last-child { margin-bottom: 0; }
+    
+    .inv__label {
+      display: block;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: #1a1a1a;
+      margin-bottom: 4px;
+    }
+    
+    .inv__value {
+      font-size: 11px;
+      color: #444;
+      margin: 0;
+      line-height: 1.5;
+    }
+    
+    .inv__value--name {
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+    
+    .inv__info-right {
+      text-align: right;
+      min-width: 180px;
+    }
+    
+    .inv__meta-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: flex-end;
+      margin-bottom: 6px;
+      gap: 8px;
+    }
+    
+    .inv__meta-label {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      color: #666;
+    }
+    
+    .inv__meta-dots {
+      flex: 1;
+      border-bottom: 1px dotted #ccc;
+      margin: 0 4px;
+      min-width: 20px;
+    }
+    
+    .inv__meta-value {
+      font-size: 11px;
+      font-weight: 500;
+      color: #1a1a1a;
+    }
+    
+    .inv__table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+      table-layout: fixed;
+    }
+    
+    .inv__th {
+      padding: 10px 0;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+      text-align: left;
+    }
+    
+    .inv__th--rate, .inv__th--qty { text-align: center; width: 70px; }
+    .inv__th--total { text-align: right; width: 80px; }
+    
+    .inv__row { border-bottom: 1px dotted #ccc; }
+    
+    .inv__td {
+      padding: 10px 0;
+      font-size: 11px;
+      color: #333;
+      vertical-align: middle;
+    }
+    
+    .inv__td--desc { text-align: left; }
+    .inv__td--rate, .inv__td--qty { text-align: center; }
+    .inv__td--total { text-align: right; font-weight: 500; }
+    
+    .inv__summary {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      margin-bottom: 32px;
+      padding-top: 8px;
+    }
+    
+    .inv__summary-row {
+      display: flex;
+      justify-content: space-between;
+      width: 180px;
+      padding: 4px 0;
+      font-size: 11px;
+    }
+    
+    .inv__summary-row--small {
+      font-size: 10px;
+      color: #666;
+    }
+    
+    .inv__summary-label {
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      color: #1a1a1a;
+    }
+    
+    .inv__summary-value {
+      font-weight: 500;
+      color: #1a1a1a;
+    }
+    
+    .inv__summary-row--total {
+      padding-top: 8px;
+      margin-top: 4px;
+      border-top: 1px solid #1a1a1a;
+    }
+    
+    .inv__summary-row--total .inv__summary-label,
+    .inv__summary-row--total .inv__summary-value {
+      font-size: 13px;
+      font-weight: 700;
+    }
+    
+    .inv__footer {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+      margin-top: auto;
+      padding-top: 40px;
+    }
+    
+    .inv__thanks {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: #1a1a1a;
+    }
+    
+    .inv__signature {
+      font-family: 'Brush Script MT', 'Segoe Script', cursive;
+      font-size: 22px;
+      color: #1a1a1a;
+      font-style: italic;
+    }
+    
+    @media print {
+      body { padding: 0; }
+      .inv { 
+        padding: 20px 24px; 
+        min-height: auto;
+        border: none;
+      }
+    }
+  </style>
+</head>
+<body>${invoiceRef.current.innerHTML}</body>
+</html>`);
       printWindow.document.close();
-      setTimeout(() => printWindow.print(), 250);
+      setTimeout(() => printWindow.print(), 300);
     }
   }
 
