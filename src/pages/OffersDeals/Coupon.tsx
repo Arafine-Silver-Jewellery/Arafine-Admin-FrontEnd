@@ -400,7 +400,7 @@ export default function CouponPage() {
       return `${coupon.value}%`;
     }
     if (coupon.type === "fixed_amount") {
-      return formatPrice(coupon.value * 100);
+      return formatPrice(coupon.value);
     }
     if (coupon.type === "free_shipping") {
       return "Free Shipping";
@@ -613,7 +613,7 @@ export default function CouponPage() {
                     {formData.type === "percentage"
                       ? `${formData.value}%`
                       : formData.type === "fixed_amount"
-                        ? formatPrice(parseFloat(formData.value) * 100)
+                        ? formatPrice(parseFloat(formData.value))
                         : formData.type === "free_shipping"
                           ? "Free Shipping"
                           : formData.value}
