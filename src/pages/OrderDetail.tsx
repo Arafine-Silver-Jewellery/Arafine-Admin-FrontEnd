@@ -64,7 +64,9 @@ export default function OrderDetail() {
   async function handleStatusUpdate(newStatus: string) {
     if (!order) return;
     try {
-      const updated = await api.updateOrderStatus(order.id, newStatus);
+      await api.updateOrderStatus(order.id, newStatus);
+      // Refetch full order to get all relations (items, etc.)
+      const updated = await api.getOrder(order.id);
       setOrder(updated);
       toast.success(`Status updated to ${newStatus.replace(/_/g, " ")}`);
     } catch (error) {
@@ -77,7 +79,9 @@ export default function OrderDetail() {
     if (!order) return;
     setUpdatingTracking(true);
     try {
-      const updated = await api.updateOrderTracking(order.id, tracking);
+      await api.updateOrderTracking(order.id, tracking);
+      // Refetch full order to get all relations
+      const updated = await api.getOrder(order.id);
       setOrder(updated);
       toast.success("Tracking information updated");
     } catch (error) {
@@ -92,7 +96,9 @@ export default function OrderDetail() {
     if (!order) return;
     setSavingNote(true);
     try {
-      const updated = await api.updateOrderAdminNote(order.id, adminNote.trim() || null);
+      await api.updateOrderAdminNote(order.id, adminNote.trim() || null);
+      // Refetch full order to get all relations
+      const updated = await api.getOrder(order.id);
       setOrder(updated);
       toast.success("Note saved");
     } catch (error) {
