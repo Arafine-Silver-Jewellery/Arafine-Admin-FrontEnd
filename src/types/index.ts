@@ -101,6 +101,8 @@ export interface Order {
   adminNote: string | null;
   returnReason: string | null;
   returnRequestedAt: string | null;
+  cancellationReason: string | null;
+  cancelledAt: string | null;
   refundAmount: number | null;
   refundedAt: string | null;
   processedById: string | null;

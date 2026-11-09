@@ -991,3 +991,69 @@
   height: 18px;
   flex-shrink: 0;
 }
+
+
+/* Alert Banner */
+.od-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid;
+}
+
+.od-alert--danger {
+  background: var(--color-error-light);
+  border-color: rgba(180, 35, 31, 0.2);
+}
+
+.od-alert--warning {
+  background: var(--color-warning-light);
+  border-color: rgba(180, 83, 9, 0.2);
+}
+
+.od-alert__icon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+}
+
+.od-alert--danger .od-alert__icon {
+  color: var(--color-error);
+}
+
+.od-alert--warning .od-alert__icon {
+  color: var(--color-warning);
+}
+
+.od-alert__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.od-alert__content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.od-alert__title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.od-alert__message {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.od-alert__time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
