@@ -212,7 +212,11 @@ export default function OrderDetail() {
       const updated = await api.getOrder(order.id);
       setOrder(updated);
       setShowRefundModal(false);
-      toast.success(`Refunded ${formatPrice(amountInr)}`);
+      if (order.paymentGatewayPaymentId) {
+        toast.success(`Refunded ${formatPrice(amountInr)} · Will be credited to customer within 5-7 business days`);
+      } else {
+        toast.success(`Refunded ${formatPrice(amountInr)}`);
+      }
     } catch (error) {
       console.error("Failed to process refund:", error);
       toast.error("Failed to process refund");
@@ -604,6 +608,16 @@ export default function OrderDetail() {
                   </div>
                 )}
                 
+                {/* Refund Initiated - Pending credit */}
+                {order.paymentStatus === "partially_refunded" && order.status !== "refunded" && (
+                  <div className="od-status-final od-status-final--info" style={{ backgroundColor: "#eff6ff", borderColor: "#3b82f6" }}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2">
+                      <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span style={{ color: "#1d4ed8" }}>Refund of {formatPrice(order.refundAmount || 0)} initiated · Customer will receive within 5-7 business days</span>
+                  </div>
+                )}
+                
                 {/* Return Rejected/Closed */}
                 {order.status === "returned" && (
                   <div className="od-status-final">
@@ -891,6 +905,16 @@ export default function OrderDetail() {
                   onChange={e => setRefundAmount(e.target.value)}
                 />
               </div>
+              {order.paymentGatewayPaymentId && (
+                <p className="od-modal__note" style={{ marginTop: "0.75rem", fontSize: "0.85rem", color: "#6b7280" }}>
+                  Refund will be processed via Razorpay. Amount will be credited to customer's original payment method within 5-7 business days.
+                </p>
+              )}
+              {!order.paymentGatewayPaymentId && order.paymentMethod === "cod" && (
+                <p className="od-modal__note" style={{ marginTop: "0.75rem", fontSize: "0.85rem", color: "#f59e0b" }}>
+                  This is a COD order. Refund needs to be processed manually (bank transfer or store credit).
+                </p>
+              )}
             </div>
             <div className="od-modal__footer">
               <button

@@ -91,6 +91,8 @@ export interface Order {
   couponCode: string | null;
   paymentMethod: string | null;
   paymentReference: string | null;
+  paymentGatewayOrderId: string | null;
+  paymentGatewayPaymentId: string | null;
   shippingAddress: ShippingAddress;
   shippingProvider: string | null;
   trackingNumber: string | null;
