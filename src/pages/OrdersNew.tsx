@@ -640,13 +640,13 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     {
       key: "sl",
       header: "#",
-      width: "45px",
+      width: "50px",
       render: (_: Order, index: number) => <span className="ak-text-muted">{(page - 1) * 20 + index + 1}</span>,
     },
     {
       key: "orderNumber",
       header: "Order ID",
-      width: "200px",
+      width: "220px",
       render: (order: Order) => {
         const channel = channelBadges[order.orderChannel] ?? channelBadges.online;
         return (
@@ -660,7 +660,7 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     {
       key: "createdAt",
       header: "Date",
-      width: "120px",
+      width: "140px",
       render: (order: Order) => (
         <div className="ak-date-cell">
           <span className="ak-date-cell__date">{formatDateTime(order.createdAt)}</span>
@@ -686,7 +686,7 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     {
       key: "paymentMethod",
       header: "Payment",
-      width: "110px",
+      width: "120px",
       render: (order: Order) => {
         const pm = getPaymentMethodDisplay(order.paymentMethod);
         return (
@@ -701,7 +701,7 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     {
       key: "paidAmount",
       header: "Paid",
-      width: "110px",
+      width: "120px",
       align: "right" as const,
       render: (order: Order) => {
         const paid = Number(order.paidAmount) || 0;
@@ -716,7 +716,7 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     {
       key: "paymentStatus",
       header: "Pay Status",
-      width: "100px",
+      width: "120px",
       render: (order: Order) => {
         const payment = getPaymentStatusDisplay(order);
         return (
@@ -730,7 +730,7 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     {
       key: "status",
       header: "Order Status",
-      width: "130px",
+      width: "150px",
       render: (order: Order) => (
         <span className={`ak-status ak-status--${getStatusVariant(order.status)}`}>
           <span className="ak-status__dot" />
@@ -741,7 +741,7 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     {
       key: "actions",
       header: "Actions",
-      width: "100px",
+      width: "110px",
       render: (order: Order) => (
         <div className="ak-row-actions">
           <button type="button" className="ak-icon-btn ak-icon-btn--view" title="View Invoice" onClick={(e) => { e.stopPropagation(); handleViewInvoice(order); }} disabled={loadingInvoice}>
