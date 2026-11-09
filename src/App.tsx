@@ -54,13 +54,17 @@ function App() {
             <Route path="orders/processing" element={<RequirePermission permission="orders"><OrdersNew statusFilter="processing" /></RequirePermission>} />
             <Route path="orders/confirmed" element={<RequirePermission permission="orders"><OrdersNew statusFilter="confirmed" /></RequirePermission>} />
             <Route path="orders/shipped" element={<RequirePermission permission="orders"><OrdersNew statusFilter="shipped" /></RequirePermission>} />
-            <Route path="orders/:id" element={<RequirePermission permission="orders"><OrderDetail /></RequirePermission>} />
             <Route path="orders/packaging" element={<RequirePermission permission="orders"><OrdersNew statusFilter="packaging" /></RequirePermission>} />
             <Route path="orders/out-for-delivery" element={<RequirePermission permission="orders"><OrdersNew statusFilter="out_for_delivery" /></RequirePermission>} />
             <Route path="orders/delivered" element={<RequirePermission permission="orders"><OrdersNew statusFilter="delivered" /></RequirePermission>} />
             <Route path="orders/returned" element={<RequirePermission permission="orders"><OrdersNew statusFilter="returned" /></RequirePermission>} />
+            <Route path="orders/return-requested" element={<RequirePermission permission="orders"><OrdersNew statusFilter="return_requested" /></RequirePermission>} />
+            <Route path="orders/return-approved" element={<RequirePermission permission="orders"><OrdersNew statusFilter="return_approved" /></RequirePermission>} />
+            <Route path="orders/refund-initiated" element={<RequirePermission permission="orders"><OrdersNew statusFilter="refund_initiated" /></RequirePermission>} />
+            <Route path="orders/refunded" element={<RequirePermission permission="orders"><OrdersNew statusFilter="refunded" /></RequirePermission>} />
             <Route path="orders/failed-to-deliver" element={<RequirePermission permission="orders"><OrdersNew statusFilter="failed_to_deliver" /></RequirePermission>} />
             <Route path="orders/canceled" element={<RequirePermission permission="orders"><OrdersNew statusFilter="cancelled" /></RequirePermission>} />
+            <Route path="orders/:id" element={<RequirePermission permission="orders"><OrderDetail /></RequirePermission>} />
             
             {/* Refund Requests */}
             <Route path="refund-requests" element={<RequirePermission permission="refund-requests"><RefundRequests statusFilter="all" /></RequirePermission>} />

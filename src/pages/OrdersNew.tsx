@@ -58,6 +58,10 @@ const orderStatusOptions = [
   { value: "out_for_delivery", label: "Out for Delivery", color: "info" as const, path: "/orders/out-for-delivery" },
   { value: "delivered", label: "Delivered", color: "success" as const, path: "/orders/delivered" },
   { value: "returned", label: "Returned", color: "neutral" as const, path: "/orders/returned" },
+  { value: "return_requested", label: "Return Requested", color: "warning" as const, path: "/orders/return-requested" },
+  { value: "return_approved", label: "Return Approved", color: "info" as const, path: "/orders/return-approved" },
+  { value: "refund_initiated", label: "Refund Initiated", color: "info" as const, path: "/orders/refund-initiated" },
+  { value: "refunded", label: "Refunded", color: "success" as const, path: "/orders/refunded" },
   { value: "failed_to_deliver", label: "Failed to Deliver", color: "danger" as const, path: "/orders/failed-to-deliver" },
   { value: "cancelled", label: "Cancelled", color: "danger" as const, path: "/orders/canceled" },
 ];
