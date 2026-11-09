@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 
 import { api } from "../api/client";
@@ -53,6 +53,9 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [rangeLoading, setRangeLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Track if initial load is complete (to prevent duplicate fetches on range change)
+  const isInitialMount = useRef(true);
 
   // First load: fetch everything (BE caches /stats; we still wait for it to render)
   useEffect(() => {
@@ -61,14 +64,14 @@ export default function Dashboard() {
       try {
         const [statsData, revenueData, ordersData, productsData, usersData, channelData, topData, catData, chData, recentData, lowStockData] = await Promise.all([
           api.getDashboardStats(),
-          api.getDashboardTrend({ metric: "revenue", range: "30d" }),
-          api.getDashboardTrend({ metric: "orders", range: "30d" }),
-          api.getDashboardTrend({ metric: "products", range: "30d" }),
-          api.getDashboardTrend({ metric: "users", range: "30d" }),
-          api.getDashboardTrend({ metric: "channel", range: "30d" }),
-          api.getTopProducts({ limit: 8, range: "30d" }),
-          api.getDashboardBreakdown({ dimension: "category", range: "30d" }),
-          api.getDashboardBreakdown({ dimension: "channel", range: "30d" }),
+          api.getDashboardTrend({ metric: "revenue", range }),
+          api.getDashboardTrend({ metric: "orders", range }),
+          api.getDashboardTrend({ metric: "products", range }),
+          api.getDashboardTrend({ metric: "users", range }),
+          api.getDashboardTrend({ metric: "channel", range }),
+          api.getTopProducts({ limit: 8, range }),
+          api.getDashboardBreakdown({ dimension: "category", range }),
+          api.getDashboardBreakdown({ dimension: "channel", range }),
           api.getRecentOrders(5),
           api.getLowStockProducts(5),
         ]);
@@ -99,11 +102,17 @@ export default function Dashboard() {
     }
     loadInitial();
     return () => ac.abort();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Range-driven refetch — keeps tables and stats untouched (BE caches /stats)
+  // Range-driven refetch — only runs when range CHANGES after initial load
   useEffect(() => {
-    if (loading) return; // initial load handles this
+    // Skip the first render (initial load handles it)
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    
     setRangeLoading(true);
     const ac = new AbortController();
     async function refetchByRange() {
@@ -141,7 +150,8 @@ export default function Dashboard() {
     }
     refetchByRange();
     return () => ac.abort();
-  }, [range, loading]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range]); // Only refetch when range changes
 
   if (loading) {
     return <DashboardSkeleton />;
