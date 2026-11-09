@@ -51,7 +51,7 @@ function formatPrice(rupees: number): string {
 }
 
 const Invoice = forwardRef<HTMLDivElement, InvoiceProps>(({ order }, ref) => {
-  const totalDiscount = (order.discount || 0) + (order.extraDiscount || 0);
+  const totalDiscount = Number(order.discount || 0) + Number(order.extraDiscount || 0);
 
   return (
     <div ref={ref} className="inv">
@@ -156,6 +156,16 @@ const Invoice = forwardRef<HTMLDivElement, InvoiceProps>(({ order }, ref) => {
           <span className="inv__summary-label">TOTAL</span>
           <span className="inv__summary-value">{formatPrice(order.total)}</span>
         </div>
+        <div className="inv__summary-row inv__summary-row--small">
+          <span className="inv__summary-label">Paid</span>
+          <span className="inv__summary-value">{formatPrice(Number(order.paidAmount || 0))}</span>
+        </div>
+        {Number(order.paidAmount || 0) < Number(order.total) && (
+          <div className="inv__summary-row inv__summary-row--balance">
+            <span className="inv__summary-label">BALANCE DUE</span>
+            <span className="inv__summary-value">{formatPrice(Number(order.total) - Number(order.paidAmount || 0))}</span>
+          </div>
+        )}
       </div>
 
       {/* Footer */}
