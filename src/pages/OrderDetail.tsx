@@ -229,6 +229,90 @@ export default function OrderDetail() {
         </div>
       )}
 
+      {/* Horizontal Status Flow */}
+      <section className="od-card od-flow">
+        <div className="od-card__header">
+          <h2 className="od-card__title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+            </svg>
+            Order Progress
+          </h2>
+        </div>
+        <div className="od-flow__track">
+          {(() => {
+            const isCancelled = order.status === "cancelled";
+            const isReturnFlow = ["return_requested", "returned"].includes(order.status);
+            const currentIndex = STATUS_FLOW.indexOf(order.status as typeof STATUS_FLOW[number]);
+            
+            // For return flow, show return steps instead
+            if (isReturnFlow) {
+              const returnSteps = [
+                { value: "return_requested", label: "Requested" },
+                { value: "return_approved", label: "Approved" },
+                { value: "return_picked", label: "Picked Up" },
+                { value: "refund_initiated", label: "Refund Initiated" },
+                { value: "returned", label: "Refunded" },
+              ];
+              const returnIndex = returnSteps.findIndex(s => s.value === order.status);
+              
+              return (
+                <>
+                  <div className="od-flow__label">Return & Refund</div>
+                  <div className="od-flow__steps">
+                    {returnSteps.map((step, index) => (
+                      <div 
+                        key={step.value}
+                        className={`od-flow__step ${index <= returnIndex ? "od-flow__step--done" : ""} ${index === returnIndex ? "od-flow__step--current" : ""}`}
+                      >
+                        <div className="od-flow__dot">
+                          {index < returnIndex && (
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                              <path d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                        <span className="od-flow__name">{step.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              );
+            }
+            
+            // Normal order flow
+            return (
+              <>
+                {isCancelled && <div className="od-flow__label od-flow__label--cancelled">Order Cancelled</div>}
+                <div className={`od-flow__steps ${isCancelled ? "od-flow__steps--cancelled" : ""}`}>
+                  {STATUS_FLOW.map((status, index) => {
+                    const statusInfo = ORDER_STATUSES.find(s => s.value === status);
+                    const isDone = !isCancelled && currentIndex >= index;
+                    const isCurrent = !isCancelled && currentIndex === index;
+                    
+                    return (
+                      <div 
+                        key={status}
+                        className={`od-flow__step ${isDone ? "od-flow__step--done" : ""} ${isCurrent ? "od-flow__step--current" : ""} ${isCancelled ? "od-flow__step--cancelled" : ""}`}
+                      >
+                        <div className="od-flow__dot">
+                          {isDone && !isCurrent && (
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                              <path d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                        <span className="od-flow__name">{statusInfo?.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      </section>
+
       {/* Main Content */}
       <div className="od-content">
         {/* Left Column */}
@@ -527,7 +611,7 @@ export default function OrderDetail() {
           {/* Timeline */}
           <section className="od-card">
             <div className="od-card__header">
-              <h2 className="od-card__title">Order Progress</h2>
+              <h2 className="od-card__title">Timeline</h2>
             </div>
             <div className="od-timeline">
               {/* Show full status flow */}
@@ -579,7 +663,7 @@ export default function OrderDetail() {
                   </div>
                   <div className="od-timeline__content">
                     <span className="od-timeline__label">Cancelled</span>
-                    <span className="od-timeline__time">{formatDateTime(order.updatedAt)}</span>
+                    <span className="od-timeline__time">{formatDateTime(order.cancelledAt || order.updatedAt)}</span>
                   </div>
                 </div>
               )}
