@@ -17,7 +17,10 @@ const ORDER_STATUSES = [
   { value: "out_for_delivery", label: "Out for Delivery", color: "#0891b2", description: "On the way" },
   { value: "delivered", label: "Delivered", color: "#22c55e", description: "Customer received" },
   { value: "return_requested", label: "Return Requested", color: "#f97316", description: "Customer requested return" },
-  { value: "returned", label: "Returned", color: "#6b7280", description: "Items returned" },
+  { value: "return_approved", label: "Return Approved", color: "#8b5cf6", description: "Return approved, awaiting pickup" },
+  { value: "refund_initiated", label: "Refund Initiated", color: "#3b82f6", description: "Processing refund" },
+  { value: "refunded", label: "Refunded", color: "#22c55e", description: "Refund completed" },
+  { value: "returned", label: "Returned", color: "#6b7280", description: "Return completed/rejected" },
   { value: "cancelled", label: "Cancelled", color: "#ef4444", description: "Order cancelled" },
 ];
 
@@ -67,6 +70,8 @@ export default function OrderDetail() {
   const [savingNote, setSavingNote] = useState(false);
   const [updatingTracking, setUpdatingTracking] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [refundAmount, setRefundAmount] = useState("");
 
   useEffect(() => {
     async function loadOrder() {
@@ -142,6 +147,73 @@ export default function OrderDetail() {
     }
   }
 
+  async function handleApproveReturn() {
+    if (!order) return;
+    setUpdatingStatus(true);
+    try {
+      await api.updateOrderStatus(order.id, "return_approved");
+      const updated = await api.getOrder(order.id);
+      setOrder(updated);
+      toast.success("Return request approved");
+    } catch (error) {
+      console.error("Failed to approve return:", error);
+      toast.error("Failed to approve return");
+    } finally {
+      setUpdatingStatus(false);
+    }
+  }
+
+  async function handleRejectReturn() {
+    if (!order) return;
+    if (!confirm("Are you sure you want to reject this return request?")) return;
+    setUpdatingStatus(true);
+    try {
+      await api.updateOrderStatus(order.id, "returned");
+      const updated = await api.getOrder(order.id);
+      setOrder(updated);
+      toast.success("Return request rejected");
+    } catch (error) {
+      console.error("Failed to reject return:", error);
+      toast.error("Failed to reject return");
+    } finally {
+      setUpdatingStatus(false);
+    }
+  }
+
+  function openRefundModal() {
+    if (!order) return;
+    // order.total is in rupees as integer
+    setRefundAmount(String(order.total));
+    setShowRefundModal(true);
+  }
+
+  async function handleProcessRefund() {
+    if (!order) return;
+    const amountInr = Math.round(Number.parseFloat(refundAmount));
+    if (!Number.isFinite(amountInr) || amountInr <= 0) {
+      toast.error("Please enter a valid refund amount");
+      return;
+    }
+    if (amountInr > order.total) {
+      toast.error("Refund amount cannot exceed order total");
+      return;
+    }
+    setUpdatingStatus(true);
+    try {
+      // Send as integer (rupees)
+      await api.processOrderRefund(order.id, amountInr);
+      const updated = await api.getOrder(order.id);
+      setOrder(updated);
+      setShowRefundModal(false);
+      toast.success(`Refunded ${formatPrice(amountInr)}`);
+    } catch (error) {
+      console.error("Failed to process refund:", error);
+      toast.error("Failed to process refund");
+    } finally {
+      setUpdatingStatus(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="od-loading">
@@ -173,6 +245,13 @@ export default function OrderDetail() {
   const allowedTransitions = getAllowedTransitions(order.status);
   const nextStatus = allowedTransitions.find(s => s !== "cancelled");
   const canCancel = allowedTransitions.includes("cancelled");
+  
+  // Return/Refund flow states
+  const isReturnRequested = order.status === "return_requested";
+  const isReturnApproved = order.status === "return_approved" || order.status === "refund_initiated";
+  const isRefunded = order.status === "refunded";
+  const isReturnRejected = order.status === "returned" && !order.refundedAt;
+  const isInReturnFlow = isReturnRequested || isReturnApproved || isRefunded || isReturnRejected;
 
   return (
     <div className="od">
@@ -228,90 +307,6 @@ export default function OrderDetail() {
           </div>
         </div>
       )}
-
-      {/* Horizontal Status Flow */}
-      <section className="od-card od-flow">
-        <div className="od-card__header">
-          <h2 className="od-card__title">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-            </svg>
-            Order Progress
-          </h2>
-        </div>
-        <div className="od-flow__track">
-          {(() => {
-            const isCancelled = order.status === "cancelled";
-            const isReturnFlow = ["return_requested", "returned"].includes(order.status);
-            const currentIndex = STATUS_FLOW.indexOf(order.status as typeof STATUS_FLOW[number]);
-            
-            // For return flow, show return steps instead
-            if (isReturnFlow) {
-              const returnSteps = [
-                { value: "return_requested", label: "Requested" },
-                { value: "return_approved", label: "Approved" },
-                { value: "return_picked", label: "Picked Up" },
-                { value: "refund_initiated", label: "Refund Initiated" },
-                { value: "returned", label: "Refunded" },
-              ];
-              const returnIndex = returnSteps.findIndex(s => s.value === order.status);
-              
-              return (
-                <>
-                  <div className="od-flow__label">Return & Refund</div>
-                  <div className="od-flow__steps">
-                    {returnSteps.map((step, index) => (
-                      <div 
-                        key={step.value}
-                        className={`od-flow__step ${index <= returnIndex ? "od-flow__step--done" : ""} ${index === returnIndex ? "od-flow__step--current" : ""}`}
-                      >
-                        <div className="od-flow__dot">
-                          {index < returnIndex && (
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                              <path d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
-                        </div>
-                        <span className="od-flow__name">{step.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              );
-            }
-            
-            // Normal order flow
-            return (
-              <>
-                {isCancelled && <div className="od-flow__label od-flow__label--cancelled">Order Cancelled</div>}
-                <div className={`od-flow__steps ${isCancelled ? "od-flow__steps--cancelled" : ""}`}>
-                  {STATUS_FLOW.map((status, index) => {
-                    const statusInfo = ORDER_STATUSES.find(s => s.value === status);
-                    const isDone = !isCancelled && currentIndex >= index;
-                    const isCurrent = !isCancelled && currentIndex === index;
-                    
-                    return (
-                      <div 
-                        key={status}
-                        className={`od-flow__step ${isDone ? "od-flow__step--done" : ""} ${isCurrent ? "od-flow__step--current" : ""} ${isCancelled ? "od-flow__step--cancelled" : ""}`}
-                      >
-                        <div className="od-flow__dot">
-                          {isDone && !isCurrent && (
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                              <path d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
-                        </div>
-                        <span className="od-flow__name">{statusInfo?.label}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            );
-          })()}
-        </div>
-      </section>
 
       {/* Main Content */}
       <div className="od-content">
@@ -548,61 +543,137 @@ export default function OrderDetail() {
               <div className="od-status-actions">
                 <span className="od-status-item__label">Order Actions</span>
                 
-                {allowedTransitions.length === 0 ? (
+                {/* Return Request - Pending Approval */}
+                {order.status === "return_requested" && (
+                  <div className="od-status-buttons">
+                    <button
+                      className="od-btn od-btn--success od-btn--block"
+                      onClick={handleApproveReturn}
+                      disabled={updatingStatus}
+                    >
+                      {updatingStatus ? (
+                        <>
+                          <span className="od-btn__spinner" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M5 13l4 4L19 7" />
+                          </svg>
+                          Approve Return
+                        </>
+                      )}
+                    </button>
+                    <button
+                      className="od-btn od-btn--danger od-btn--block"
+                      onClick={handleRejectReturn}
+                      disabled={updatingStatus}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      Reject Return
+                    </button>
+                  </div>
+                )}
+                
+                {/* Return Approved - Ready to Refund */}
+                {(order.status === "return_approved" || order.status === "refund_initiated") && (
+                  <div className="od-status-buttons">
+                    <button
+                      className="od-btn od-btn--primary od-btn--block"
+                      onClick={openRefundModal}
+                      disabled={updatingStatus}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                      </svg>
+                      Process Refund
+                    </button>
+                  </div>
+                )}
+                
+                {/* Refunded - Completed */}
+                {order.status === "refunded" && (
+                  <div className="od-status-final od-status-final--success">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Refund completed{order.refundedAt ? ` on ${formatDateTime(order.refundedAt)}` : ""}</span>
+                  </div>
+                )}
+                
+                {/* Return Rejected/Closed */}
+                {order.status === "returned" && (
                   <div className="od-status-final">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      {order.status === "delivered" ? (
-                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      ) : (
-                        <path d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      )}
+                      <path d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span>
-                      {order.status === "delivered" 
-                        ? "Order completed successfully" 
-                        : "Order has been cancelled"}
-                    </span>
+                    <span>Return request closed</span>
                   </div>
-                ) : (
-                  <div className="od-status-buttons">
-                    {nextStatus && (
-                      <button
-                        className="od-btn od-btn--primary od-btn--block"
-                        onClick={() => handleStatusUpdate(nextStatus)}
-                        disabled={updatingStatus}
-                      >
-                        {updatingStatus ? (
-                          <>
-                            <span className="od-btn__spinner" />
-                            Updating...
-                          </>
-                        ) : (
-                          <>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                            </svg>
-                            Move to {ORDER_STATUSES.find(s => s.value === nextStatus)?.label}
-                          </>
-                        )}
-                      </button>
-                    )}
-                    {canCancel && (
-                      <button
-                        className="od-btn od-btn--danger od-btn--block"
-                        onClick={() => {
-                          if (confirm("Are you sure you want to cancel this order? This action cannot be undone.")) {
-                            handleStatusUpdate("cancelled");
-                          }
-                        }}
-                        disabled={updatingStatus}
-                      >
+                )}
+                
+                {/* Normal Order Flow - only show if NOT in return/refund flow */}
+                {!["return_requested", "return_approved", "refund_initiated", "refunded", "returned"].includes(order.status) && (
+                  <>
+                    {allowedTransitions.length === 0 ? (
+                      <div className="od-status-final">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M6 18L18 6M6 6l12 12" />
+                          {order.status === "delivered" ? (
+                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          ) : (
+                            <path d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          )}
                         </svg>
-                        Cancel Order
-                      </button>
+                        <span>
+                          {order.status === "delivered" 
+                            ? "Order completed successfully" 
+                            : "Order has been cancelled"}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="od-status-buttons">
+                        {nextStatus && (
+                          <button
+                            className="od-btn od-btn--primary od-btn--block"
+                            onClick={() => handleStatusUpdate(nextStatus)}
+                            disabled={updatingStatus}
+                          >
+                            {updatingStatus ? (
+                              <>
+                                <span className="od-btn__spinner" />
+                                Updating...
+                              </>
+                            ) : (
+                              <>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                </svg>
+                                Move to {ORDER_STATUSES.find(s => s.value === nextStatus)?.label}
+                              </>
+                            )}
+                          </button>
+                        )}
+                        {canCancel && (
+                          <button
+                            className="od-btn od-btn--danger od-btn--block"
+                            onClick={() => {
+                              if (confirm("Are you sure you want to cancel this order? This action cannot be undone.")) {
+                                handleStatusUpdate("cancelled");
+                              }
+                            }}
+                            disabled={updatingStatus}
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Cancel Order
+                          </button>
+                        )}
+                      </div>
                     )}
-                  </div>
+                  </>
                 )}
               </div>
             </div>
@@ -710,6 +781,77 @@ export default function OrderDetail() {
           </section>
         </aside>
       </div>
+
+      {/* Refund Modal */}
+      {showRefundModal && order && (
+        <div className="od-modal-overlay" onClick={() => setShowRefundModal(false)}>
+          <div className="od-modal" onClick={e => e.stopPropagation()}>
+            <div className="od-modal__header">
+              <h2 className="od-modal__title">Process Refund</h2>
+              <button 
+                type="button" 
+                className="od-modal__close" 
+                onClick={() => setShowRefundModal(false)}
+                disabled={updatingStatus}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="od-modal__body">
+              <p>
+                Process refund for order <strong>{order.orderNumber}</strong>?
+              </p>
+              <p className="od-modal__info">
+                Order total: <strong>{formatPrice(order.total)}</strong>
+              </p>
+              {order.returnReason && (
+                <div className="od-modal__reason">
+                  <span className="od-modal__reason-label">Return Reason:</span>
+                  <p>{order.returnReason}</p>
+                </div>
+              )}
+              <div className="od-field" style={{ marginTop: "1rem" }}>
+                <label className="od-field__label">Refund Amount (₹)</label>
+                <input
+                  type="number"
+                  className="od-field__input"
+                  step="0.01"
+                  min="0"
+                  value={refundAmount}
+                  onChange={e => setRefundAmount(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="od-modal__footer">
+              <button
+                type="button"
+                className="od-btn od-btn--secondary"
+                onClick={() => setShowRefundModal(false)}
+                disabled={updatingStatus}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="od-btn od-btn--primary"
+                onClick={handleProcessRefund}
+                disabled={updatingStatus}
+              >
+                {updatingStatus ? (
+                  <>
+                    <span className="od-btn__spinner" />
+                    Processing...
+                  </>
+                ) : (
+                  "Confirm Refund"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

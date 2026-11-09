@@ -1244,3 +1244,132 @@
   font-size: 0.75rem;
   color: var(--text-muted);
 }
+
+
+/* Success Button */
+.od-btn--success {
+  background: var(--color-success);
+  color: white;
+  border: none;
+}
+
+.od-btn--success:hover:not(:disabled) {
+  background: #16a34a;
+}
+
+/* Status Final Success Variant */
+.od-status-final--success {
+  background: var(--color-success-light);
+}
+
+.od-status-final--success svg {
+  color: var(--color-success);
+}
+
+/* Refund Modal */
+.od-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.od-modal {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl, 0 20px 25px -5px rgba(0,0,0,0.1));
+  width: 100%;
+  max-width: 420px;
+  overflow: hidden;
+}
+
+.od-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.od-modal__title {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-strong);
+  margin: 0;
+}
+
+.od-modal__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all 0.15s ease;
+}
+
+.od-modal__close:hover {
+  background: var(--color-pearl);
+  color: var(--text);
+}
+
+.od-modal__close svg {
+  width: 18px;
+  height: 18px;
+}
+
+.od-modal__body {
+  padding: 1.25rem;
+}
+
+.od-modal__body p {
+  margin: 0 0 0.5rem;
+  font-size: 0.9375rem;
+  color: var(--text);
+}
+
+.od-modal__info {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.od-modal__reason {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: var(--color-pearl);
+  border-radius: var(--radius-md);
+}
+
+.od-modal__reason-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.od-modal__reason p {
+  font-size: 0.875rem;
+  color: var(--text);
+  margin: 0;
+}
+
+.od-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--border-color);
+  background: var(--color-pearl);
+}

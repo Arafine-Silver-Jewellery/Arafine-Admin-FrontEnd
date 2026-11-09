@@ -184,6 +184,7 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
       pending: "warning", confirmed: "success", processing: "info", packaging: "info",
       shipped: "info", out_for_delivery: "info", delivered: "success", returned: "neutral",
       failed_to_deliver: "danger", cancelled: "danger", return_requested: "warning",
+      return_approved: "info", refund_initiated: "info", refunded: "success",
     };
     return variants[status] || "neutral";
   }
@@ -193,7 +194,8 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
       pending: "Pending", confirmed: "Confirmed", processing: "Processing", packaging: "Packaging",
       shipped: "Shipped", out_for_delivery: "Out for Delivery", delivered: "Delivered",
       returned: "Returned", failed_to_deliver: "Failed", cancelled: "Cancelled",
-      return_requested: "Return Requested",
+      return_requested: "Return Requested", return_approved: "Return Approved",
+      refund_initiated: "Refund Initiated", refunded: "Refunded",
     };
     return labels[status] || status;
   }
