@@ -253,13 +253,6 @@ export default function OrderDetail() {
   const nextStatus = allowedTransitions.find(s => s !== "cancelled");
   const canCancel = allowedTransitions.includes("cancelled");
   
-  // Return/Refund flow states
-  const isReturnRequested = order.status === "return_requested";
-  const isReturnApproved = order.status === "return_approved" || order.status === "refund_initiated";
-  const isRefunded = order.status === "refunded";
-  const isReturnRejected = order.status === "returned" && !order.refundedAt;
-  const isInReturnFlow = isReturnRequested || isReturnApproved || isRefunded || isReturnRejected;
-
   return (
     <div className="od">
       {/* Header */}
@@ -763,7 +756,7 @@ export default function OrderDetail() {
                     // Check if next status was NOT completed
                     const nextStatus = STATUS_FLOW[index + 1];
                     if (!nextStatus) return true;
-                    if (nextStatus === "confirmed" || nextStatus === "processing" || nextStatus === "packaging") {
+                    if (nextStatus === "confirmed" || nextStatus === "processing") {
                       return !order.shippedAt && !order.deliveredAt;
                     }
                     if (nextStatus === "shipped") return !order.shippedAt;

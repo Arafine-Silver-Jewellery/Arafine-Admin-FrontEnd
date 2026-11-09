@@ -8,7 +8,7 @@ import Invoice from "../components/Invoice";
 import type { Order as SharedOrder } from "../types";
 import "../styles/ui-kit.css";
 
-type OrderStatus = "all" | "pending" | "confirmed" | "processing" | "packaging" | "shipped" | "out_for_delivery" | "delivered" | "returned" | "failed_to_deliver" | "cancelled";
+type OrderStatus = "all" | "pending" | "confirmed" | "processing" | "packaging" | "shipped" | "out_for_delivery" | "delivered" | "returned" | "return_requested" | "return_approved" | "refund_initiated" | "refunded" | "failed_to_deliver" | "cancelled";
 type OrderChannel = "all" | "online" | "pos";
 type PaymentStatusFilter = "all" | "paid" | "unpaid" | "partial";
 
@@ -41,6 +41,7 @@ interface Order {
   tax: number;
   total: number;
   paidAmount?: number;
+  refundAmount?: number;
   paymentStatus: "pending" | "paid" | "failed" | "refunded" | "partially_refunded";
   paymentMethod?: string;
   status: string;
