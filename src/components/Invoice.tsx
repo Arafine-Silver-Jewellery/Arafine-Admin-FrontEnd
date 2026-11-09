@@ -100,14 +100,14 @@ const Invoice = forwardRef<HTMLDivElement, InvoiceProps>(({ order }, ref) => {
 
         <div className="inv__info-right">
           <div className="inv__meta-row">
-            <span className="inv__meta-label">INVOICE NO:</span>
-            <span className="inv__meta-dots" />
-            <span className="inv__meta-value">{order.orderNumber}</span>
-          </div>
-          <div className="inv__meta-row">
             <span className="inv__meta-label">DATE:</span>
             <span className="inv__meta-dots" />
             <span className="inv__meta-value">{formatDate(order.createdAt)}</span>
+          </div>
+          <div className="inv__meta-row">
+            <span className="inv__meta-label">INVOICE NO:</span>
+            <span className="inv__meta-dots" />
+            <span className="inv__meta-value">{order.orderNumber}</span>
           </div>
         </div>
       </section>
