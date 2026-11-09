@@ -207,6 +207,19 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
   function getPaymentStatusDisplay(order: Order): { label: string; variant: string } {
     const paidAmount = Number(order.paidAmount || 0);
     const totalAmount = Number(order.total);
+    
+    // For cancelled orders
+    if (order.status === "cancelled") {
+      if (order.refundAmount) return { label: "Refunded", variant: "success" };
+      if (paidAmount > 0) return { label: "Needs Refund", variant: "warning" };
+      return { label: "N/A", variant: "neutral" }; // COD unpaid - no payment expected
+    }
+    
+    // For refunded orders
+    if (order.status === "refunded" || order.paymentStatus === "refunded") {
+      return { label: "Refunded", variant: "success" };
+    }
+    
     if (paidAmount >= totalAmount) return { label: "Paid", variant: "success" };
     if (paidAmount > 0) return { label: "Partial", variant: "warning" };
     return { label: "Unpaid", variant: "danger" };
@@ -744,7 +757,8 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
               <rect x="6" y="14" width="12" height="8" />
             </svg>
           </button>
-          {getPaymentStatusDisplay(order).label !== "Paid" && (
+          {getPaymentStatusDisplay(order).label !== "Paid" && 
+           !["cancelled", "refunded", "returned"].includes(order.status) && (
             <button type="button" className="ak-icon-btn ak-icon-btn--edit" title="Collect Payment" onClick={(e) => { e.stopPropagation(); openCollect(order); }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M20 12V8H6a2 2 0 0 1 0-4h12v4" />

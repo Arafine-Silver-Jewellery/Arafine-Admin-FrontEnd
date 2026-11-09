@@ -182,20 +182,27 @@ export default function OrderDetail() {
 
   function openRefundModal() {
     if (!order) return;
-    // order.total is in rupees as integer
-    setRefundAmount(String(order.total));
+    // For cancelled orders, max refund is what was paid. For returns, max is order total.
+    const maxRefund = order.status === "cancelled" 
+      ? Number(order.paidAmount || 0)
+      : Number(order.total);
+    setRefundAmount(String(maxRefund));
     setShowRefundModal(true);
   }
 
   async function handleProcessRefund() {
     if (!order) return;
     const amountInr = Math.round(Number.parseFloat(refundAmount));
+    const maxRefund = order.status === "cancelled" 
+      ? Number(order.paidAmount || 0)
+      : Number(order.total);
+    
     if (!Number.isFinite(amountInr) || amountInr <= 0) {
       toast.error("Please enter a valid refund amount");
       return;
     }
-    if (amountInr > order.total) {
-      toast.error("Refund amount cannot exceed order total");
+    if (amountInr > maxRefund) {
+      toast.error(`Refund amount cannot exceed ${formatPrice(maxRefund)}`);
       return;
     }
     setUpdatingStatus(true);
@@ -618,20 +625,54 @@ export default function OrderDetail() {
                 {!["return_requested", "return_approved", "refund_initiated", "refunded", "returned"].includes(order.status) && (
                   <>
                     {allowedTransitions.length === 0 ? (
-                      <div className="od-status-final">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          {order.status === "delivered" ? (
-                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          ) : (
-                            <path d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          )}
-                        </svg>
-                        <span>
-                          {order.status === "delivered" 
-                            ? "Order completed successfully" 
-                            : "Order has been cancelled"}
-                        </span>
-                      </div>
+                      <>
+                        {/* Cancelled Order */}
+                        {order.status === "cancelled" && (
+                          <>
+                            {paidAmount > 0 && !order.refundAmount ? (
+                              // Cancelled but paid - needs refund
+                              <div className="od-status-buttons">
+                                <button
+                                  className="od-btn od-btn--primary od-btn--block"
+                                  onClick={openRefundModal}
+                                  disabled={updatingStatus}
+                                >
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                                  </svg>
+                                  Process Refund · {formatPrice(paidAmount)}
+                                </button>
+                              </div>
+                            ) : order.refundAmount ? (
+                              // Already refunded
+                              <div className="od-status-final od-status-final--success">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span>Refunded {formatPrice(order.refundAmount)}</span>
+                              </div>
+                            ) : (
+                              // COD / Unpaid - no refund needed
+                              <div className="od-status-final">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span>Order cancelled · No refund needed</span>
+                              </div>
+                            )}
+                          </>
+                        )}
+                        
+                        {/* Delivered Order */}
+                        {order.status === "delivered" && (
+                          <div className="od-status-final od-status-final--success">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>Order completed successfully</span>
+                          </div>
+                        )}
+                      </>
                     ) : (
                       <div className="od-status-buttons">
                         {nextStatus && (
