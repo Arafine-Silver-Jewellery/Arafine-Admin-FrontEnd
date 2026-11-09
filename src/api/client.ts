@@ -9,6 +9,7 @@ import type {
   CreateDealOfTheDayInput,
   CreateFeaturedDealInput,
   CreateFlashDealInput,
+  CreateWalletBonusInput,
   CustomerAddressInput,
   DealOfTheDay,
   DealOfTheDayProductInfo,
@@ -26,6 +27,9 @@ import type {
   TransactionRefundReport,
   VendorEarningsReport,
   VendorSalesReport,
+  WalletBonus,
+  WalletTransaction,
+  WalletWithUser,
   WishlistCountsReport,
 } from "../types";
 
@@ -1285,4 +1289,81 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ gatewayId }),
     }),
+
+  // ============================================
+  // WALLETS API
+  // ============================================
+  getWallets: (params: { page?: number; limit?: number } = {}) => {
+    const query = new URLSearchParams();
+    if (params.page) query.set("page", params.page.toString());
+    if (params.limit) query.set("limit", params.limit.toString());
+    return request<{
+      data: WalletWithUser[];
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+    }>(`/wallets?${query}`);
+  },
+  getWalletByUser: (userId: string) =>
+    request<{ data: WalletWithUser }>(`/wallets/user/${userId}`),
+  
+  getWalletTransactions: (params: {
+    page?: number;
+    limit?: number;
+    userId?: string;
+    type?: string;
+    startDate?: string;
+    endDate?: string;
+  } = {}) => {
+    const query = new URLSearchParams();
+    if (params.page) query.set("page", params.page.toString());
+    if (params.limit) query.set("limit", params.limit.toString());
+    if (params.userId) query.set("userId", params.userId);
+    if (params.type) query.set("type", params.type);
+    if (params.startDate) query.set("startDate", params.startDate);
+    if (params.endDate) query.set("endDate", params.endDate);
+    return request<{
+      data: WalletTransaction[];
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+      summary: { totalCredit: number; totalDebit: number };
+    }>(`/wallets/transactions?${query}`);
+  },
+  
+  adjustWallet: (data: { userId: string; amount: number; type: "credit" | "debit"; description: string }) =>
+    request<{ message: string; data: { wallet: WalletWithUser; transaction: WalletTransaction } }>("/wallets/adjust", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  
+  refundToWallet: (data: { userId: string; amount: number; orderId: string; description?: string }) =>
+    request<{ message: string; data: { wallet: WalletWithUser; transaction: WalletTransaction } }>("/wallets/refund", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  // Wallet Bonuses
+  getWalletBonuses: (params: { page?: number; limit?: number; isActive?: boolean } = {}) => {
+    const query = new URLSearchParams();
+    if (params.page) query.set("page", params.page.toString());
+    if (params.limit) query.set("limit", params.limit.toString());
+    if (params.isActive !== undefined) query.set("isActive", params.isActive.toString());
+    return request<{
+      data: WalletBonus[];
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+    }>(`/wallets/bonuses?${query}`);
+  },
+  getWalletBonus: (id: string) =>
+    request<{ data: WalletBonus }>(`/wallets/bonuses/${id}`),
+  createWalletBonus: (data: CreateWalletBonusInput) =>
+    request<{ data: WalletBonus }>("/wallets/bonuses", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  updateWalletBonus: (id: string, data: Partial<CreateWalletBonusInput>) =>
+    request<{ data: WalletBonus }>(`/wallets/bonuses/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  deleteWalletBonus: (id: string) =>
+    request<{ message: string }>(`/wallets/bonuses/${id}`, { method: "DELETE" }),
+  toggleWalletBonus: (id: string) =>
+    request<{ data: WalletBonus }>(`/wallets/bonuses/${id}/toggle`, { method: "PATCH" }),
 };

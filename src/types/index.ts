@@ -875,3 +875,76 @@ export interface DealOfTheDayStats {
   activeDeals: number;
   totalProducts: number;
 }
+
+
+// ---------------------------------------------------------------------------
+// Wallet types
+// ---------------------------------------------------------------------------
+
+export interface Wallet {
+  id: string;
+  userId: string;
+  balance: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WalletWithUser extends Wallet {
+  user: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    mobileNumber: string;
+    email: string | null;
+  };
+}
+
+export type WalletTransactionType = "credit" | "debit" | "refund" | "bonus" | "expired" | "adjustment";
+export type WalletTransactionStatus = "pending" | "completed" | "failed" | "reversed";
+
+export interface WalletTransaction {
+  id: string;
+  walletId: string;
+  transactionId: string;
+  type: WalletTransactionType;
+  amount: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  status: WalletTransactionStatus;
+  description: string | null;
+  reference: string | null;
+  referenceType: string | null;
+  createdBy: string | null;
+  createdAt: string;
+  wallet?: WalletWithUser;
+}
+
+export type WalletBonusType = "percentage" | "fixed";
+
+export interface WalletBonus {
+  id: string;
+  title: string;
+  description: string | null;
+  bonusType: WalletBonusType;
+  bonusValue: number;
+  minAddAmount: number;
+  maxBonus: number | null;
+  startsAt: string;
+  endsAt: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateWalletBonusInput {
+  title: string;
+  description?: string | null;
+  bonusType: WalletBonusType;
+  bonusValue: number;
+  minAddAmount: number;
+  maxBonus?: number | null;
+  startsAt: string;
+  endsAt: string;
+  isActive?: boolean;
+}
