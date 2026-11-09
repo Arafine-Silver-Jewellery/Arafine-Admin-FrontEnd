@@ -214,6 +214,11 @@
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 .ak-select:focus { border-color: var(--color-champagne); box-shadow: var(--ring); }
+.ak-select:disabled {
+  background-color: var(--color-ivory);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
 
 /* ── Field (label + input/select) ────────────────────────── */
 .ak-field { display: flex; flex-direction: column; gap: 0.4rem; }
@@ -239,6 +244,12 @@
 }
 .ak-input:focus { border-color: var(--color-champagne); box-shadow: var(--ring); }
 .ak-input::placeholder { color: var(--text-faint); }
+/* Disabled inputs/selects/textareas must read as read-only (view screens rely on it). */
+.ak-input:disabled {
+  background: var(--color-ivory);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
 
 /* ── Filter bar ──────────────────────────────────────────── */
 .ak-filter-grid {
@@ -428,6 +439,14 @@
 }
 .ak-toggle input:checked + .ak-toggle__slider { background: var(--color-champagne); }
 .ak-toggle input:checked + .ak-toggle__slider::before { transform: translateX(18px); }
+/* A disabled checkbox input inside a toggle reads the same as --locked
+   (view screens disable the toggle). Kept after the :checked rules so a
+   checked disabled toggle still greys out. */
+.ak-toggle input:disabled + .ak-toggle__slider {
+  background: var(--border-color, #e4e7ec);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
 
 /* ── Row actions ─────────────────────────────────────────── */
 .ak-row-actions { display: inline-flex; gap: 0.4rem; }
@@ -723,6 +742,19 @@
   position: sticky;
   top: 0;
   z-index: 1;
+}
+
+.ak-table thead {
+  border-radius: 0;
+}
+
+.ak-table thead tr {
+  border-radius: 0;
+}
+
+.ak-table thead th:first-child,
+.ak-table thead th:last-child {
+  border-radius: 0;
 }
 
 .ak-table tbody td {
@@ -1953,4 +1985,128 @@
     flex-direction: row;
     text-align: left;
   }
+}
+
+
+/* ============================================================
+   PAYMENT METHOD DISPLAY
+   ============================================================ */
+.ak-payment-method {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.7rem;
+  background: var(--color-pearl);
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.ak-payment-method__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ak-payment-method__icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.ak-payment-method__label {
+  font-weight: 500;
+  color: var(--text-strong);
+}
+
+/* Payment amount styles */
+.ak-amount {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ak-amount--paid {
+  color: var(--color-success);
+  font-weight: 500;
+}
+
+.ak-amount--due {
+  color: var(--color-error);
+  font-weight: 500;
+}
+
+.ak-amount--total {
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.ak-amount--muted {
+  color: var(--text-faint);
+}
+
+
+/* ============================================================
+   ORDERS TABLE — FIXED COLUMN WIDTHS
+   ============================================================ */
+.ak-table--fixed {
+  table-layout: fixed;
+}
+
+/* Make table use the full width and respect column widths better */
+.ak-table-wrapper .ak-table {
+  width: 100%;
+  table-layout: auto;
+}
+
+/* Ensure columns with explicit widths are respected */
+.ak-table thead th[style*="width"] {
+  white-space: nowrap;
+}
+
+/* Customer column should expand to fill remaining space */
+.ak-table tbody td {
+  white-space: nowrap;
+}
+
+/* Allow customer name to wrap if needed */
+.ak-user-cell__name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+
+/* ============================================================
+   DATE FILTER INLINE
+   ============================================================ */
+.ak-date-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.ak-date-filter__separator {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.ak-input--sm {
+  height: 32px;
+  padding: 0 0.6rem;
+  font-size: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+}
+
+input[type="date"].ak-input--sm {
+  width: 120px;
+}
+
+input[type="date"].ak-input--sm:focus {
+  border-color: var(--color-champagne);
+  outline: none;
+  box-shadow: var(--ring);
 }

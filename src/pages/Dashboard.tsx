@@ -200,7 +200,7 @@ export default function Dashboard() {
           bg="var(--c-tile-bg-2)"
           iconColor="var(--c-series-2)"
           icon="orders"
-          to="/orders-management"
+          to="/orders"
         />
         <KpiTile
           label="Total Users"
@@ -229,7 +229,7 @@ export default function Dashboard() {
               sub="Awaiting confirmation"
               color="#f59e0b"
               bg="rgba(245, 158, 11, 0.12)"
-              to="/orders-management/pending"
+              to="/orders/pending"
               iconKind="clock"
             />
             <StatusTile
@@ -238,7 +238,7 @@ export default function Dashboard() {
               sub="Being prepared"
               color="#818cf8"
               bg="rgba(129, 140, 248, 0.14)"
-              to="/orders-management/processing"
+              to="/orders/processing"
               iconKind="sync"
             />
             <StatusTile
@@ -247,7 +247,7 @@ export default function Dashboard() {
               sub="On the way"
               color="#10b981"
               bg="rgba(16, 185, 129, 0.12)"
-              to="/orders-management/shipped"
+              to="/orders/shipped"
               iconKind="truck"
             />
             <StatusTile
@@ -256,7 +256,7 @@ export default function Dashboard() {
               sub="Completed"
               color="#22c55e"
               bg="rgba(34, 197, 94, 0.12)"
-              to="/orders-management/delivered"
+              to="/orders/delivered"
               iconKind="check"
             />
           </div>
@@ -391,7 +391,7 @@ export default function Dashboard() {
         <div className="card">
           <div className="card-header">
             <h2>Recent Orders</h2>
-            <Link to="/orders-management" className="btn btn-secondary btn-sm">View All</Link>
+            <Link to="/orders" className="btn btn-secondary btn-sm">View All</Link>
           </div>
           {recentOrders.length === 0 ? (
             <div className="empty-state-box">

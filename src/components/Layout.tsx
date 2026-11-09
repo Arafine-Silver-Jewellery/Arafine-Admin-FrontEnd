@@ -47,16 +47,19 @@ const customersSubmenus = [
 const pageTitleMap: Record<string, { title: string; icon: string }> = {
   "/": { title: "Dashboard", icon: "dashboard" },
   "/pos": { title: "POS", icon: "pos" },
-  "/orders-management": { title: "All Orders", icon: "orders" },
-  "/orders-management/pending": { title: "Pending Orders", icon: "orders" },
-  "/orders-management/confirmed": { title: "Confirmed Orders", icon: "orders" },
-  "/orders-management/packaging": { title: "Packaging Orders", icon: "orders" },
-  "/orders-management/out-for-delivery": { title: "Out for Delivery", icon: "orders" },
-  "/orders-management/delivered": { title: "Delivered Orders", icon: "orders" },
-  "/orders-management/returned": { title: "Returned Orders", icon: "orders" },
-  "/orders-management/failed-to-deliver": { title: "Failed to Deliver", icon: "orders" },
-  "/orders-management/canceled": { title: "Canceled Orders", icon: "orders" },
+  "/orders": { title: "Orders", icon: "orders" },
+  "/orders/pending": { title: "Orders", icon: "orders" },
+  "/orders/confirmed": { title: "Orders", icon: "orders" },
+  "/orders/processing": { title: "Orders", icon: "orders" },
+  "/orders/packaging": { title: "Orders", icon: "orders" },
+  "/orders/shipped": { title: "Orders", icon: "orders" },
+  "/orders/out-for-delivery": { title: "Orders", icon: "orders" },
+  "/orders/delivered": { title: "Orders", icon: "orders" },
+  "/orders/returned": { title: "Orders", icon: "orders" },
+  "/orders/failed-to-deliver": { title: "Orders", icon: "orders" },
+  "/orders/canceled": { title: "Orders", icon: "orders" },
   "/refund-requests": { title: "Refund Requests", icon: "refund" },
+  "/refund-requests/pending": { title: "Refund Requests", icon: "refund" },
   "/refund-requests/all": { title: "Refund Requests", icon: "refund" },
   "/refund-requests/approved": { title: "Refund Requests", icon: "refund" },
   "/refund-requests/refunded": { title: "Refund Requests", icon: "refund" },
@@ -166,7 +169,7 @@ export default function Layout() {
       <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="sidebar-header">
           <img 
-            src="https://arafine.co/storage/app/public/company/2026-06-04-6a218bac104aa.webp" 
+            src="/logo.webp" 
             alt="Arafine" 
             className="sidebar-logo"
           />
@@ -242,8 +245,7 @@ export default function Layout() {
 
           {hasPermission("orders") && (
             <NavLink
-              to="/orders-management"
-              end
+              to="/orders"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
@@ -257,7 +259,6 @@ export default function Layout() {
           {hasPermission("refund-requests") && (
             <NavLink
               to="/refund-requests"
-              end
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polyline points="23,4 23,10 17,10" />

@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, type ReactNode } from "react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
-import { DataTable, StatusDropdown, FilterDrawer, ReceiptModal } from "../components";
+import { DataTable, StatusDropdown, ReceiptModal } from "../components";
+import Invoice from "../components/Invoice";
 import type { Order as SharedOrder } from "../types";
 import "../styles/ui-kit.css";
 
@@ -48,17 +49,17 @@ interface Order {
 }
 
 const orderStatusOptions = [
-  { value: "all", label: "All Orders", color: "neutral" as const, path: "/orders-management" },
-  { value: "pending", label: "Pending", color: "warning" as const, path: "/orders-management/pending" },
-  { value: "confirmed", label: "Confirmed", color: "success" as const, path: "/orders-management/confirmed" },
-  { value: "processing", label: "Processing", color: "info" as const, path: "/orders-management/processing" },
-  { value: "packaging", label: "Packaging", color: "info" as const, path: "/orders-management/packaging" },
-  { value: "shipped", label: "Shipped", color: "info" as const, path: "/orders-management/shipped" },
-  { value: "out_for_delivery", label: "Out for Delivery", color: "info" as const, path: "/orders-management/out-for-delivery" },
-  { value: "delivered", label: "Delivered", color: "success" as const, path: "/orders-management/delivered" },
-  { value: "returned", label: "Returned", color: "neutral" as const, path: "/orders-management/returned" },
-  { value: "failed_to_deliver", label: "Failed to Deliver", color: "danger" as const, path: "/orders-management/failed-to-deliver" },
-  { value: "cancelled", label: "Cancelled", color: "danger" as const, path: "/orders-management/canceled" },
+  { value: "all", label: "All Orders", color: "neutral" as const, path: "/orders" },
+  { value: "pending", label: "Pending", color: "warning" as const, path: "/orders/pending" },
+  { value: "confirmed", label: "Confirmed", color: "success" as const, path: "/orders/confirmed" },
+  { value: "processing", label: "Processing", color: "info" as const, path: "/orders/processing" },
+  { value: "packaging", label: "Packaging", color: "info" as const, path: "/orders/packaging" },
+  { value: "shipped", label: "Shipped", color: "info" as const, path: "/orders/shipped" },
+  { value: "out_for_delivery", label: "Out for Delivery", color: "info" as const, path: "/orders/out-for-delivery" },
+  { value: "delivered", label: "Delivered", color: "success" as const, path: "/orders/delivered" },
+  { value: "returned", label: "Returned", color: "neutral" as const, path: "/orders/returned" },
+  { value: "failed_to_deliver", label: "Failed to Deliver", color: "danger" as const, path: "/orders/failed-to-deliver" },
+  { value: "cancelled", label: "Cancelled", color: "danger" as const, path: "/orders/canceled" },
 ];
 
 const channelOptions = [
@@ -103,25 +104,18 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [loadingInvoice, setLoadingInvoice] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
+  const [collectOrder, setCollectOrder] = useState<Order | null>(null);
+  const [collectAmount, setCollectAmount] = useState("");
+  const [collectMethod, setCollectMethod] = useState<"cash" | "card" | "upi">("cash");
+  const [collectUpiRef, setCollectUpiRef] = useState("");
+  const [collectBusy, setCollectBusy] = useState(false);
 
-  // Filter drawer state
-  const [showFilterDrawer, setShowFilterDrawer] = useState(false);
+  // Filter drawer state - removed, using inline date filters now
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
   const [filterPaymentStatus, setFilterPaymentStatus] = useState<PaymentStatusFilter>("all");
 
-  // Temp filter state
-  const [tempChannelFilter, setTempChannelFilter] = useState<OrderChannel>("all");
-  const [tempDateFrom, setTempDateFrom] = useState("");
-  const [tempDateTo, setTempDateTo] = useState("");
-  const [tempPaymentStatus, setTempPaymentStatus] = useState<PaymentStatusFilter>("all");
 
-  const activeFiltersCount = [
-    channelFilter !== "all" ? 1 : 0,
-    filterDateFrom ? 1 : 0,
-    filterDateTo ? 1 : 0,
-    filterPaymentStatus !== "all" ? 1 : 0,
-  ].reduce((a, b) => a + b, 0);
 
   useEffect(() => {
     setCurrentStatus(statusFilter);
@@ -171,36 +165,6 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     if (option) {
       navigate(option.path);
     }
-  }
-
-  function openFilterDrawer() {
-    setTempChannelFilter(channelFilter);
-    setTempDateFrom(filterDateFrom);
-    setTempDateTo(filterDateTo);
-    setTempPaymentStatus(filterPaymentStatus);
-    setShowFilterDrawer(true);
-  }
-
-  function applyFilters() {
-    setChannelFilter(tempChannelFilter);
-    setFilterDateFrom(tempDateFrom);
-    setFilterDateTo(tempDateTo);
-    setFilterPaymentStatus(tempPaymentStatus);
-    setPage(1);
-    setShowFilterDrawer(false);
-  }
-
-  function resetFilters() {
-    setTempChannelFilter("all");
-    setTempDateFrom("");
-    setTempDateTo("");
-    setTempPaymentStatus("all");
-    setChannelFilter("all");
-    setFilterDateFrom("");
-    setFilterDateTo("");
-    setFilterPaymentStatus("all");
-    setPage(1);
-    setShowFilterDrawer(false);
   }
 
   function formatDateTime(dateString: string): string {
@@ -268,11 +232,245 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
 
   function printInvoice() {
     if (!invoiceRef.current || !selectedOrder) return;
-    const printWindow = window.open("", "_blank", "width=800,height=600");
+    const printWindow = window.open("", "_blank", "width=800,height=1000");
     if (printWindow) {
-      printWindow.document.write(`<!DOCTYPE html><html><head><title>Invoice - ${selectedOrder.orderNumber}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',Arial,sans-serif;padding:20px;font-size:14px;color:#333}@media print{body{padding:0}}</style></head><body>${invoiceRef.current.innerHTML}</body></html>`);
+      printWindow.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <title>Invoice - ${selectedOrder.orderNumber}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 12px;
+      color: #1a1a1a;
+      line-height: 1.5;
+      background: #fff;
+    }
+    
+    .inv {
+      background: #fff;
+      padding: 40px 48px;
+      max-width: 595px;
+      min-height: 842px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .inv__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    
+    .inv__brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .inv__logo-img {
+      height: 44px;
+      width: auto;
+      object-fit: contain;
+    }
+    
+    .inv__title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 28px;
+      font-weight: 400;
+      letter-spacing: 0.08em;
+      color: #1a1a1a;
+    }
+    
+    .inv__divider {
+      height: 1px;
+      background: #1a1a1a;
+      margin-bottom: 20px;
+    }
+    
+    .inv__info {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      gap: 20px;
+    }
+    
+    .inv__info-left { flex: 1; }
+    .inv__info-block { margin-bottom: 16px; }
+    .inv__info-block:last-child { margin-bottom: 0; }
+    
+    .inv__label {
+      display: block;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: #1a1a1a;
+      margin-bottom: 4px;
+    }
+    
+    .inv__value {
+      font-size: 11px;
+      color: #444;
+      margin: 0;
+      line-height: 1.5;
+    }
+    
+    .inv__value--name {
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+    
+    .inv__info-right {
+      text-align: right;
+      min-width: 180px;
+    }
+    
+    .inv__meta-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: flex-end;
+      margin-bottom: 6px;
+      gap: 8px;
+    }
+    
+    .inv__meta-label {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      color: #666;
+    }
+    
+    .inv__meta-dots {
+      flex: 1;
+      border-bottom: 1px dotted #ccc;
+      margin: 0 4px;
+      min-width: 20px;
+    }
+    
+    .inv__meta-value {
+      font-size: 11px;
+      font-weight: 500;
+      color: #1a1a1a;
+    }
+    
+    .inv__table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+      table-layout: fixed;
+    }
+    
+    .inv__th {
+      padding: 10px 0;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+      text-align: left;
+    }
+    
+    .inv__th--rate, .inv__th--qty { text-align: center; width: 70px; }
+    .inv__th--total { text-align: right; width: 80px; }
+    
+    .inv__row { border-bottom: 1px dotted #ccc; }
+    
+    .inv__td {
+      padding: 10px 0;
+      font-size: 11px;
+      color: #333;
+      vertical-align: middle;
+    }
+    
+    .inv__td--desc { text-align: left; }
+    .inv__td--rate, .inv__td--qty { text-align: center; }
+    .inv__td--total { text-align: right; font-weight: 500; }
+    
+    .inv__summary {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      margin-bottom: 32px;
+      padding-top: 8px;
+    }
+    
+    .inv__summary-row {
+      display: flex;
+      justify-content: space-between;
+      width: 180px;
+      padding: 4px 0;
+      font-size: 11px;
+    }
+    
+    .inv__summary-row--small {
+      font-size: 10px;
+      color: #666;
+    }
+    
+    .inv__summary-label {
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      color: #1a1a1a;
+    }
+    
+    .inv__summary-value {
+      font-weight: 500;
+      color: #1a1a1a;
+    }
+    
+    .inv__summary-row--total {
+      padding-top: 8px;
+      margin-top: 4px;
+      border-top: 1px solid #1a1a1a;
+    }
+    
+    .inv__summary-row--total .inv__summary-label,
+    .inv__summary-row--total .inv__summary-value {
+      font-size: 13px;
+      font-weight: 700;
+    }
+    
+    .inv__footer {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+      margin-top: auto;
+      padding-top: 40px;
+    }
+    
+    .inv__thanks {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: #1a1a1a;
+    }
+    
+    .inv__signature {
+      font-family: 'Brush Script MT', 'Segoe Script', cursive;
+      font-size: 22px;
+      color: #1a1a1a;
+      font-style: italic;
+    }
+    
+    @media print {
+      body { padding: 0; }
+      .inv { 
+        padding: 20px 24px; 
+        min-height: auto;
+        border: none;
+      }
+    }
+  </style>
+</head>
+<body>${invoiceRef.current.innerHTML}</body>
+</html>`);
       printWindow.document.close();
-      setTimeout(() => printWindow.print(), 250);
+      setTimeout(() => printWindow.print(), 300);
     }
   }
 
@@ -290,12 +488,70 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     }
   }
 
+  async function openCollect(order: Order) {
+    setCollectOrder(order);
+    setCollectAmount(String(Math.max(0, Number(order.total) - Number(order.paidAmount || 0))));
+    setCollectMethod("cash");
+    setCollectUpiRef("");
+    // List rows carry items, but load the fresh full order so the cashier
+    // verifies against exactly what's in the DB before collecting money.
+    try {
+      const fullOrder = await api.getOrder(order.id);
+      setCollectOrder(fullOrder);
+    } catch {
+      // fall back to the row data — the backend re-validates anyway
+    }
+  }
+
+  function closeCollect() {
+    setCollectOrder(null);
+    setCollectAmount("");
+    setCollectUpiRef("");
+  }
+
+  async function submitCollect() {
+    if (!collectOrder) return;
+    const amount = Number(collectAmount);
+    if (!amount || amount <= 0) return;
+    if (collectMethod === "upi" && !collectUpiRef.trim()) return;
+    setCollectBusy(true);
+    try {
+      const res = await api.collectOrderBalance(collectOrder.id, {
+        amount,
+        paymentMethod: collectMethod,
+        paymentReference: collectMethod === "upi" ? collectUpiRef.trim() : undefined,
+      });
+      closeCollect();
+      await loadOrders();
+      // Show the refreshed order's receipt — Paid / Balance Due reflects the collection.
+      setSelectedOrder(res.data);
+      setShowReceipt(true);
+    } catch (error) {
+      console.error("Failed to collect balance:", error);
+      alert(error instanceof Error ? error.message : "Failed to collect balance");
+    } finally {
+      setCollectBusy(false);
+    }
+  }
+
   function exportOrders() {
     if (orders.length === 0) { alert("No orders to export"); return; }
-    const headers = ["Order ID", "Order Date", "Customer Name", "Phone", "Channel", "Total", "Payment Status", "Order Status"];
+    const headers = ["Order ID", "Order Date", "Customer Name", "Phone", "Channel", "Payment Method", "Paid", "Payment Status", "Order Status"];
     const rows = orders.map(order => {
       const payment = getPaymentStatusDisplay(order);
-      return [order.orderNumber, formatDateTime(order.createdAt), order.shippingAddress?.fullName || "Walk-in", order.shippingAddress?.phone || "", order.orderChannel.toUpperCase(), order.total.toFixed(2), payment.label, getStatusLabel(order.status)];
+      const pmLabel = order.paymentMethod || "—";
+      const paid = Number(order.paidAmount) || 0;
+      return [
+        order.orderNumber,
+        formatDateTime(order.createdAt),
+        order.shippingAddress?.fullName || "Walk-in",
+        order.shippingAddress?.phone || "",
+        order.orderChannel.toUpperCase(),
+        pmLabel,
+        paid.toFixed(2),
+        payment.label,
+        getStatusLabel(order.status)
+      ];
     });
     const csvContent = [headers.join(","), ...rows.map(row => row.map(cell => `"${cell}"`).join(","))].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -307,16 +563,76 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     document.body.removeChild(link);
   }
 
+  function getPaymentMethodDisplay(method: string | undefined | null): { label: string; icon: ReactNode } {
+    if (!method) return { label: "—", icon: null };
+    const m = method.toLowerCase();
+    
+    // Cash icon
+    if (m === "cash") return { 
+      label: "Cash", 
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16, color: "#16a34a" }}><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+    };
+    
+    // Card icon
+    if (m === "card") return { 
+      label: "Card", 
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16, color: "#6366f1" }}><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+    };
+    
+    // UPI icon
+    if (m === "upi") return { 
+      label: "UPI", 
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16, color: "#ea580c" }}><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
+    };
+    
+    // Razorpay icon
+    if (m.includes("razorpay")) return { 
+      label: "Razorpay", 
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16, color: "#2563eb" }}><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+    };
+    
+    // Stripe icon
+    if (m.includes("stripe")) return { 
+      label: "Stripe", 
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16, color: "#7c3aed" }}><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+    };
+    
+    // PayPal icon
+    if (m.includes("paypal")) return { 
+      label: "PayPal", 
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16, color: "#0ea5e9" }}><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+    };
+    
+    // COD icon
+    if (m === "cod" || m.includes("delivery")) return { 
+      label: "COD", 
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16, color: "#ca8a04" }}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+    };
+    
+    // Default wallet icon
+    return { 
+      label: method, 
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16, color: "#64748b" }}><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 1 0 0 4h4v-4Z"/></svg>
+    };
+  }
+
+  function getBalanceAmount(order: Order): number {
+    const total = Number(order.total) || 0;
+    const paid = Number(order.paidAmount) || 0;
+    return Math.max(0, total - paid);
+  }
+
   const columns = [
     {
       key: "sl",
       header: "#",
-      width: "50px",
+      width: "45px",
       render: (_: Order, index: number) => <span className="ak-text-muted">{(page - 1) * 20 + index + 1}</span>,
     },
     {
       key: "orderNumber",
       header: "Order ID",
+      width: "200px",
       render: (order: Order) => {
         const channel = channelBadges[order.orderChannel] ?? channelBadges.online;
         return (
@@ -330,6 +646,7 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     {
       key: "createdAt",
       header: "Date",
+      width: "120px",
       render: (order: Order) => (
         <div className="ak-date-cell">
           <span className="ak-date-cell__date">{formatDateTime(order.createdAt)}</span>
@@ -353,22 +670,53 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
       ),
     },
     {
-      key: "total",
-      header: "Total",
+      key: "paymentMethod",
+      header: "Payment",
+      width: "110px",
+      render: (order: Order) => {
+        const pm = getPaymentMethodDisplay(order.paymentMethod);
+        return (
+          <div className="ak-payment-method">
+            {pm.icon && <span className="ak-payment-method__icon">{pm.icon}</span>}
+            <span className="ak-payment-method__label">{pm.label}</span>
+          </div>
+        );
+      },
+    },
+
+    {
+      key: "paidAmount",
+      header: "Paid",
+      width: "110px",
       align: "right" as const,
+      render: (order: Order) => {
+        const paid = Number(order.paidAmount) || 0;
+        return (
+          <div className="ak-amount" style={{ color: paid > 0 ? "#16a34a" : "#9ca3af" }}>
+            {paid > 0 ? formatPrice(paid) : "—"}
+          </div>
+        );
+      },
+    },
+
+    {
+      key: "paymentStatus",
+      header: "Pay Status",
+      width: "100px",
       render: (order: Order) => {
         const payment = getPaymentStatusDisplay(order);
         return (
-          <div style={{ textAlign: "right" }}>
-            <div className="ak-amount">{formatPrice(order.total)}</div>
-            <span className={`ak-status ak-status--${payment.variant}`} style={{ marginTop: 4 }}>{payment.label}</span>
-          </div>
+          <span className={`ak-status ak-status--${payment.variant}`}>
+            <span className="ak-status__dot" />
+            {payment.label}
+          </span>
         );
       },
     },
     {
       key: "status",
-      header: "Status",
+      header: "Order Status",
+      width: "130px",
       render: (order: Order) => (
         <span className={`ak-status ak-status--${getStatusVariant(order.status)}`}>
           <span className="ak-status__dot" />
@@ -395,6 +743,15 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
               <rect x="6" y="14" width="12" height="8" />
             </svg>
           </button>
+          {getPaymentStatusDisplay(order).label !== "Paid" && (
+            <button type="button" className="ak-icon-btn ak-icon-btn--edit" title="Collect Payment" onClick={(e) => { e.stopPropagation(); openCollect(order); }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M20 12V8H6a2 2 0 0 1 0-4h12v4" />
+                <path d="M4 6v12c0 1.1.9 2 2 2h14v-4" />
+                <path d="M18 12a2 2 0 1 0 0 4h4v-4Z" />
+              </svg>
+            </button>
+          )}
         </div>
       ),
     },
@@ -406,7 +763,7 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
       <div className="ak-page-header">
         <div className="ak-page-header__left">
           <h1 className="ak-page-header__title">
-            Orders
+            {orderStatusOptions.find(o => o.value === currentStatus)?.label || "Orders"}
             {totalItems > 0 && <span className="ak-page-header__count">{totalItems.toLocaleString()}</span>}
           </h1>
           <p className="ak-page-header__subtitle">Manage and track all customer orders</p>
@@ -463,22 +820,38 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
               placeholder="Payment"
               size="sm"
             />
-          </div>
 
-          <div className="ak-toolbar__actions">
-            <button type="button" className="ak-btn ak-btn--ghost ak-btn--sm" onClick={openFilterDrawer}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
-                <line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" />
-                <line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" />
-                <circle cx="4" cy="12" r="2" /><circle cx="12" cy="10" r="2" /><circle cx="20" cy="14" r="2" />
-              </svg>
-              More
-              {activeFiltersCount > 0 && <span className="ak-page-header__count">{activeFiltersCount}</span>}
-            </button>
+            <div className="ak-date-filter">
+              <input
+                type="date"
+                className="ak-input ak-input--sm"
+                value={filterDateFrom}
+                onChange={(e) => { setFilterDateFrom(e.target.value); setPage(1); }}
+                placeholder="From"
+                title="From Date"
+              />
+              <span className="ak-date-filter__separator">–</span>
+              <input
+                type="date"
+                className="ak-input ak-input--sm"
+                value={filterDateTo}
+                onChange={(e) => { setFilterDateTo(e.target.value); setPage(1); }}
+                placeholder="To"
+                title="To Date"
+              />
+            </div>
 
-            {activeFiltersCount > 0 && (
-              <button type="button" className="ak-btn ak-btn--ghost ak-btn--sm" onClick={resetFilters}>Clear</button>
+            {(filterDateFrom || filterDateTo) && (
+              <button 
+                type="button" 
+                className="ak-btn ak-btn--ghost ak-btn--sm" 
+                onClick={() => { setFilterDateFrom(""); setFilterDateTo(""); setPage(1); }}
+                title="Clear date filter"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
             )}
           </div>
         </div>
@@ -502,59 +875,18 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
         />
       </div>
 
-      {/* Filter Drawer */}
-      <FilterDrawer isOpen={showFilterDrawer} onClose={() => setShowFilterDrawer(false)} title="Filter Orders" onApply={applyFilters} onReset={resetFilters}>
-        <div className="ak-filter-field">
-          <label className="ak-filter-field__label">Channel</label>
-          <StatusDropdown options={channelOptions} value={tempChannelFilter} onChange={(val) => setTempChannelFilter(val as OrderChannel)} placeholder="All Channels" />
-        </div>
-        <div className="ak-filter-field">
-          <label className="ak-filter-field__label">Payment Status</label>
-          <StatusDropdown options={paymentStatusOptions} value={tempPaymentStatus} onChange={(val) => setTempPaymentStatus(val as PaymentStatusFilter)} placeholder="All" />
-        </div>
-        <div className="ak-filter-field">
-          <label className="ak-filter-field__label">Date From</label>
-          <input type="date" className="ak-input" value={tempDateFrom} onChange={(e) => setTempDateFrom(e.target.value)} />
-        </div>
-        <div className="ak-filter-field">
-          <label className="ak-filter-field__label">Date To</label>
-          <input type="date" className="ak-input" value={tempDateTo} onChange={(e) => setTempDateTo(e.target.value)} />
-        </div>
-      </FilterDrawer>
-
       {/* Invoice Modal */}
       {showInvoice && selectedOrder && (
         <div className="ak-modal-overlay" onClick={() => setShowInvoice(false)}>
-          <div className="ak-modal" style={{ maxWidth: "700px" }} onClick={(e) => e.stopPropagation()}>
+          <div className="ak-modal" style={{ maxWidth: "650px", maxHeight: "95vh" }} onClick={(e) => e.stopPropagation()}>
             <div className="ak-modal__header">
               <h2 className="ak-modal__title">Invoice #{selectedOrder.orderNumber}</h2>
               <button type="button" className="ak-modal__close" onClick={() => setShowInvoice(false)}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
               </button>
             </div>
-            <div className="ak-modal__body" style={{ maxHeight: "60vh", overflow: "auto" }}>
-              <div ref={invoiceRef} style={{ padding: "1rem", background: "#fff" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2rem", paddingBottom: "1rem", borderBottom: "2px solid #e5e7eb" }}>
-                  <div><h1 style={{ fontSize: "1.5rem", color: "#b78d3f", marginBottom: "0.25rem" }}>ARAFINE</h1><p style={{ color: "#6b7280", fontSize: "0.8rem" }}>Premium Silver Jewellery</p></div>
-                  <div style={{ textAlign: "right" }}><h2 style={{ fontSize: "1.25rem", marginBottom: "0.25rem" }}>INVOICE</h2><p style={{ color: "#6b7280" }}>#{selectedOrder.orderNumber}</p><p style={{ color: "#6b7280", fontSize: "0.85rem" }}>{formatDateTime(selectedOrder.createdAt)}</p></div>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem", marginBottom: "2rem" }}>
-                  <div><h3 style={{ fontSize: "0.7rem", textTransform: "uppercase", color: "#6b7280", marginBottom: "0.5rem" }}>Bill To</h3><p style={{ fontWeight: 600 }}>{selectedOrder.shippingAddress?.fullName || "Walk-in Customer"}</p>{selectedOrder.shippingAddress?.phone && <p>{selectedOrder.shippingAddress.phone}</p>}</div>
-                  <div><h3 style={{ fontSize: "0.7rem", textTransform: "uppercase", color: "#6b7280", marginBottom: "0.5rem" }}>Payment</h3><p><span className={`ak-status ak-status--${getPaymentStatusDisplay(selectedOrder).variant}`}>{getPaymentStatusDisplay(selectedOrder).label}</span></p>{selectedOrder.paymentMethod && <p style={{ marginTop: "0.25rem" }}>{selectedOrder.paymentMethod.toUpperCase()}</p>}</div>
-                </div>
-                <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "2rem" }}>
-                  <thead><tr style={{ background: "#f9fafb" }}><th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.7rem", textTransform: "uppercase", color: "#6b7280" }}>Item</th><th style={{ padding: "0.75rem", textAlign: "center", fontSize: "0.7rem", textTransform: "uppercase", color: "#6b7280" }}>Qty</th><th style={{ padding: "0.75rem", textAlign: "right", fontSize: "0.7rem", textTransform: "uppercase", color: "#6b7280" }}>Price</th><th style={{ padding: "0.75rem", textAlign: "right", fontSize: "0.7rem", textTransform: "uppercase", color: "#6b7280" }}>Total</th></tr></thead>
-                  <tbody>{selectedOrder.items?.map((item) => (<tr key={item.id} style={{ borderBottom: "1px solid #e5e7eb" }}><td style={{ padding: "0.75rem" }}>{item.productName}</td><td style={{ padding: "0.75rem", textAlign: "center" }}>{item.quantity}</td><td style={{ padding: "0.75rem", textAlign: "right" }}>{formatPrice(item.unitPrice)}</td><td style={{ padding: "0.75rem", textAlign: "right" }}>{formatPrice(item.totalPrice)}</td></tr>))}</tbody>
-                </table>
-                <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                  <div style={{ width: "250px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", padding: "0.5rem 0" }}><span>Subtotal</span><span>{formatPrice(selectedOrder.subtotal)}</span></div>
-                    {selectedOrder.discount > 0 && <div style={{ display: "flex", justifyContent: "space-between", padding: "0.5rem 0", color: "#22c55e" }}><span>Discount</span><span>-{formatPrice(selectedOrder.discount)}</span></div>}
-                    {selectedOrder.tax > 0 && <div style={{ display: "flex", justifyContent: "space-between", padding: "0.5rem 0" }}><span>Tax</span><span>{formatPrice(selectedOrder.tax)}</span></div>}
-                    <div style={{ display: "flex", justifyContent: "space-between", padding: "0.75rem 0", borderTop: "2px solid #e5e7eb", fontWeight: 700, fontSize: "1.1rem" }}><span>Total</span><span>{formatPrice(selectedOrder.total)}</span></div>
-                  </div>
-                </div>
-              </div>
+            <div className="ak-modal__body" style={{ maxHeight: "calc(95vh - 140px)", overflow: "auto", padding: "16px", background: "#f5f5f5" }}>
+              <Invoice ref={invoiceRef} order={selectedOrder} />
             </div>
             <div className="ak-modal__footer">
               <button type="button" className="ak-btn ak-btn--ghost" onClick={printInvoice}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></svg>Print</button>
@@ -571,6 +903,108 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
           order={selectedOrder as SharedOrder}
           onClose={() => setShowReceipt(false)}
         />
+      )}
+
+      {/* Collect Balance — record an incoming payment on a pending/partial order */}
+      {collectOrder && (
+        <div className="ak-modal-overlay" onClick={closeCollect}>
+          <div className="ak-modal" style={{ maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
+            <div className="ak-modal__header">
+              <h3 className="ak-modal__title">Pending Payment</h3>
+              <button type="button" className="ak-modal__close" onClick={closeCollect}>×</button>
+            </div>
+            <div className="ak-modal__body">
+              <div style={{ background: "var(--brand-weak)", borderRadius: "var(--radius-md)", padding: "12px 16px", marginBottom: 14, display: "flex", justifyContent: "space-between", gap: 12 }}>
+                <div>
+                  <div style={{ fontFamily: "var(--font-display)", fontWeight: 600 }}>{collectOrder.orderNumber}</div>
+                  <div style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>{collectOrder.shippingAddress?.fullName || "Walk-in"}</div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontWeight: 700, color: "var(--text-strong)" }}>{formatPrice(Math.max(0, Number(collectOrder.total) - Number(collectOrder.paidAmount || 0)))}</div>
+                  <div style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)" }}>Balance Due</div>
+                </div>
+              </div>
+
+              {/* Order totals: total vs paid so the cashier can verify */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 14 }}>
+                {[["Total", formatPrice(collectOrder.total)], ["Already Paid", formatPrice(collectOrder.paidAmount || 0)], ["Items", String(collectOrder.items?.reduce((s, i) => s + i.quantity, 0) ?? 0)]].map(([l, v]) => (
+                  <div key={l} style={{ background: "var(--color-pearl)", borderRadius: "var(--radius-md)", padding: "8px 12px" }}>
+                    <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>{l}</div>
+                    <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>{v}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Line items for verification */}
+              {collectOrder.items && collectOrder.items.length > 0 && (
+                <div className="ak-form-group">
+                  <label className="ak-label">Items</label>
+                  <div style={{ border: "1px solid var(--border-color-light)", borderRadius: "var(--radius-md)", overflow: "hidden", maxHeight: 180, overflowY: "auto" }}>
+                    {collectOrder.items.map((item) => (
+                      <div key={item.id} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "8px 12px", borderBottom: "1px solid var(--border-color-light)" }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, fontSize: "0.9rem", overflowWrap: "break-word" }}>{item.productName}</div>
+                          <div style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>Qty: {item.quantity} × {formatPrice(item.unitPrice)}</div>
+                        </div>
+                        <div style={{ fontWeight: 600, flexShrink: 0 }}>{formatPrice(item.totalPrice)}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="ak-form-group">
+                <label className="ak-label">Amount Received</label>
+                <input
+                  type="number"
+                  className="ak-input"
+                  value={collectAmount}
+                  min={0.01}
+                  step={0.01}
+                  onChange={(e) => setCollectAmount(e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div className="ak-form-group">
+                <label className="ak-label">Payment Method</label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {(["cash", "card", "upi"] as const).map((m) => (
+                    <button key={m} type="button" onClick={() => setCollectMethod(m)}
+                      style={{ flex: 1, padding: "8px 0", borderRadius: "var(--radius-md)", border: "1px solid " + (collectMethod === m ? "var(--brand)" : "var(--border-color)"), background: collectMethod === m ? "var(--brand-weak)" : "var(--surface)", fontWeight: 600, textTransform: "capitalize" }}>
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {collectMethod === "upi" && (
+                <div className="ak-form-group">
+                  <label className="ak-label">UPI Transaction ID</label>
+                  <input
+                    type="text"
+                    className="ak-input"
+                    value={collectUpiRef}
+                    onChange={(e) => setCollectUpiRef(e.target.value)}
+                    placeholder="UPI ref no."
+                    maxLength={64}
+                  />
+                </div>
+              )}
+            </div>
+            <div className="ak-modal__footer">
+              <button type="button" className="ak-btn ak-btn--ghost" onClick={closeCollect}>Cancel</button>
+              <button
+                type="button"
+                className="ak-btn ak-btn--primary"
+                onClick={submitCollect}
+                disabled={collectBusy || !Number(collectAmount) || (collectMethod === "upi" && !collectUpiRef.trim())}
+              >
+                {collectBusy ? "Saving..." : "Pay"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

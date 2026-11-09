@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "../components/Toast";
 import { api } from "../api/client";
 import { formatDate, formatPrice } from "../utils/format";
-import { DataTable, StatusDropdown, FilterDrawer } from "../components";
+import { DataTable, StatusDropdown } from "../components";
 import type { Order, OrderStatus } from "../types";
 import "../styles/ui-kit.css";
 
@@ -20,8 +20,8 @@ const BACKEND_STATUSES_BY_FILTER: Record<RefundRequestsProps["statusFilter"] & s
 };
 
 const refundStatusOptions = [
-  { value: "all", label: "All", color: "neutral" as const, path: "/refund-requests/all" },
-  { value: "pending", label: "Pending", color: "warning" as const, path: "/refund-requests" },
+  { value: "all", label: "All Status", color: "neutral" as const, path: "/refund-requests" },
+  { value: "pending", label: "Pending", color: "warning" as const, path: "/refund-requests/pending" },
   { value: "approved", label: "Approved", color: "info" as const, path: "/refund-requests/approved" },
   { value: "refunded", label: "Refunded", color: "success" as const, path: "/refund-requests/refunded" },
   { value: "rejected", label: "Rejected", color: "danger" as const, path: "/refund-requests/rejected" },
@@ -50,7 +50,6 @@ export default function RefundRequests({ statusFilter = "pending" }: RefundReque
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [processing, setProcessing] = useState<string | null>(null);
-  const [showFilterDrawer, setShowFilterDrawer] = useState(false);
   const [refundTarget, setRefundTarget] = useState<Order | null>(null);
   const [refundAmountInr, setRefundAmountInr] = useState<string>("");
 
@@ -260,15 +259,8 @@ export default function RefundRequests({ statusFilter = "pending" }: RefundReque
             </div>
           </form>
 
-          <div className="ak-toolbar__filters">
-            <StatusDropdown options={refundStatusOptions} value={filterKey} onChange={handleStatusChange} placeholder="Status" size="sm" />
-          </div>
-
           <div className="ak-toolbar__actions">
-            <button type="button" className="ak-btn ak-btn--ghost ak-btn--sm" onClick={() => setShowFilterDrawer(true)}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><circle cx="4" cy="12" r="2" /><circle cx="12" cy="10" r="2" /><circle cx="20" cy="14" r="2" /></svg>
-              Filters
-            </button>
+            <StatusDropdown options={refundStatusOptions} value={filterKey} onChange={handleStatusChange} placeholder="Status" size="sm" />
           </div>
         </div>
 
@@ -285,14 +277,6 @@ export default function RefundRequests({ statusFilter = "pending" }: RefundReque
           onRowClick={(order) => navigate(`/orders/${order.id}`)}
         />
       </div>
-
-      {/* Filter Drawer */}
-      <FilterDrawer isOpen={showFilterDrawer} onClose={() => setShowFilterDrawer(false)} title="Filter Refunds" onApply={() => setShowFilterDrawer(false)} onReset={() => setShowFilterDrawer(false)}>
-        <div className="ak-filter-field">
-          <label className="ak-filter-field__label">Refund Status</label>
-          <StatusDropdown options={refundStatusOptions} value={filterKey} onChange={handleStatusChange} placeholder="Status" />
-        </div>
-      </FilterDrawer>
 
       {/* Refund Modal */}
       {refundTarget && (
