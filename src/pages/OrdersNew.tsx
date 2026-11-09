@@ -8,7 +8,7 @@ import Invoice from "../components/Invoice";
 import type { Order as SharedOrder } from "../types";
 import "../styles/ui-kit.css";
 
-type OrderStatus = "all" | "pending" | "confirmed" | "processing" | "packaging" | "shipped" | "out_for_delivery" | "delivered" | "returned" | "failed_to_deliver" | "cancelled";
+type OrderStatus = "all" | "pending" | "confirmed" | "processing" | "packaging" | "shipped" | "out_for_delivery" | "delivered" | "returned" | "return_requested" | "return_approved" | "refund_initiated" | "refunded" | "failed_to_deliver" | "cancelled";
 type OrderChannel = "all" | "online" | "pos";
 type PaymentStatusFilter = "all" | "paid" | "unpaid" | "partial";
 
@@ -41,6 +41,7 @@ interface Order {
   tax: number;
   total: number;
   paidAmount?: number;
+  refundAmount?: number;
   paymentStatus: "pending" | "paid" | "failed" | "refunded" | "partially_refunded";
   paymentMethod?: string;
   status: string;
@@ -58,6 +59,10 @@ const orderStatusOptions = [
   { value: "out_for_delivery", label: "Out for Delivery", color: "info" as const, path: "/orders/out-for-delivery" },
   { value: "delivered", label: "Delivered", color: "success" as const, path: "/orders/delivered" },
   { value: "returned", label: "Returned", color: "neutral" as const, path: "/orders/returned" },
+  { value: "return_requested", label: "Return Requested", color: "warning" as const, path: "/orders/return-requested" },
+  { value: "return_approved", label: "Return Approved", color: "info" as const, path: "/orders/return-approved" },
+  { value: "refund_initiated", label: "Refund Initiated", color: "info" as const, path: "/orders/refund-initiated" },
+  { value: "refunded", label: "Refunded", color: "success" as const, path: "/orders/refunded" },
   { value: "failed_to_deliver", label: "Failed to Deliver", color: "danger" as const, path: "/orders/failed-to-deliver" },
   { value: "cancelled", label: "Cancelled", color: "danger" as const, path: "/orders/canceled" },
 ];
@@ -183,7 +188,8 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     const variants: Record<string, string> = {
       pending: "warning", confirmed: "success", processing: "info", packaging: "info",
       shipped: "info", out_for_delivery: "info", delivered: "success", returned: "neutral",
-      failed_to_deliver: "danger", cancelled: "danger",
+      failed_to_deliver: "danger", cancelled: "danger", return_requested: "warning",
+      return_approved: "info", refund_initiated: "info", refunded: "success",
     };
     return variants[status] || "neutral";
   }
@@ -193,6 +199,8 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
       pending: "Pending", confirmed: "Confirmed", processing: "Processing", packaging: "Packaging",
       shipped: "Shipped", out_for_delivery: "Out for Delivery", delivered: "Delivered",
       returned: "Returned", failed_to_deliver: "Failed", cancelled: "Cancelled",
+      return_requested: "Return Requested", return_approved: "Return Approved",
+      refund_initiated: "Refund Initiated", refunded: "Refunded",
     };
     return labels[status] || status;
   }
@@ -200,6 +208,19 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
   function getPaymentStatusDisplay(order: Order): { label: string; variant: string } {
     const paidAmount = Number(order.paidAmount || 0);
     const totalAmount = Number(order.total);
+    
+    // For cancelled orders
+    if (order.status === "cancelled") {
+      if (order.refundAmount) return { label: "Refunded", variant: "success" };
+      if (paidAmount > 0) return { label: "Needs Refund", variant: "warning" };
+      return { label: "N/A", variant: "neutral" }; // COD unpaid - no payment expected
+    }
+    
+    // For refunded orders
+    if (order.status === "refunded" || order.paymentStatus === "refunded") {
+      return { label: "Refunded", variant: "success" };
+    }
+    
     if (paidAmount >= totalAmount) return { label: "Paid", variant: "success" };
     if (paidAmount > 0) return { label: "Partial", variant: "warning" };
     return { label: "Unpaid", variant: "danger" };
@@ -626,7 +647,7 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     {
       key: "orderNumber",
       header: "Order ID",
-      width: "200px",
+      width: "190px",
       render: (order: Order) => {
         const channel = channelBadges[order.orderChannel] ?? channelBadges.online;
         return (
@@ -651,6 +672,7 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     {
       key: "customer",
       header: "Customer",
+      width: "220px",
       render: (order: Order) => (
         <div className="ak-user-cell">
           <div className="ak-user-cell__initials">{(order.shippingAddress?.fullName?.[0] || "?").toUpperCase()}</div>
@@ -666,7 +688,7 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     {
       key: "paymentMethod",
       header: "Payment",
-      width: "110px",
+      width: "100px",
       render: (order: Order) => {
         const pm = getPaymentMethodDisplay(order.paymentMethod);
         return (
@@ -681,7 +703,7 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     {
       key: "paidAmount",
       header: "Paid",
-      width: "110px",
+      width: "100px",
       align: "right" as const,
       render: (order: Order) => {
         const paid = Number(order.paidAmount) || 0;
@@ -696,7 +718,7 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     {
       key: "paymentStatus",
       header: "Pay Status",
-      width: "100px",
+      width: "110px",
       render: (order: Order) => {
         const payment = getPaymentStatusDisplay(order);
         return (
@@ -721,7 +743,7 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     {
       key: "actions",
       header: "Actions",
-      width: "100px",
+      width: "110px",
       render: (order: Order) => (
         <div className="ak-row-actions">
           <button type="button" className="ak-icon-btn ak-icon-btn--view" title="View Invoice" onClick={(e) => { e.stopPropagation(); handleViewInvoice(order); }} disabled={loadingInvoice}>
@@ -737,7 +759,8 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
               <rect x="6" y="14" width="12" height="8" />
             </svg>
           </button>
-          {getPaymentStatusDisplay(order).label !== "Paid" && (
+          {getPaymentStatusDisplay(order).label !== "Paid" && 
+           !["cancelled", "refunded", "returned"].includes(order.status) && (
             <button type="button" className="ak-icon-btn ak-icon-btn--edit" title="Collect Payment" onClick={(e) => { e.stopPropagation(); openCollect(order); }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M20 12V8H6a2 2 0 0 1 0-4h12v4" />

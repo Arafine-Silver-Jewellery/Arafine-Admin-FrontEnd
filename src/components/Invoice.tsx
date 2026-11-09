@@ -51,7 +51,7 @@ function formatPrice(rupees: number): string {
 }
 
 const Invoice = forwardRef<HTMLDivElement, InvoiceProps>(({ order }, ref) => {
-  const totalDiscount = (order.discount || 0) + (order.extraDiscount || 0);
+  const totalDiscount = Number(order.discount || 0) + Number(order.extraDiscount || 0);
 
   return (
     <div ref={ref} className="inv">
@@ -100,14 +100,14 @@ const Invoice = forwardRef<HTMLDivElement, InvoiceProps>(({ order }, ref) => {
 
         <div className="inv__info-right">
           <div className="inv__meta-row">
-            <span className="inv__meta-label">INVOICE NO:</span>
-            <span className="inv__meta-dots" />
-            <span className="inv__meta-value">{order.orderNumber}</span>
-          </div>
-          <div className="inv__meta-row">
             <span className="inv__meta-label">DATE:</span>
             <span className="inv__meta-dots" />
             <span className="inv__meta-value">{formatDate(order.createdAt)}</span>
+          </div>
+          <div className="inv__meta-row">
+            <span className="inv__meta-label">INVOICE NO:</span>
+            <span className="inv__meta-dots" />
+            <span className="inv__meta-value">{order.orderNumber}</span>
           </div>
         </div>
       </section>
@@ -156,6 +156,16 @@ const Invoice = forwardRef<HTMLDivElement, InvoiceProps>(({ order }, ref) => {
           <span className="inv__summary-label">TOTAL</span>
           <span className="inv__summary-value">{formatPrice(order.total)}</span>
         </div>
+        <div className="inv__summary-row inv__summary-row--small">
+          <span className="inv__summary-label">Paid</span>
+          <span className="inv__summary-value">{formatPrice(Number(order.paidAmount || 0))}</span>
+        </div>
+        {Number(order.paidAmount || 0) < Number(order.total) && (
+          <div className="inv__summary-row inv__summary-row--balance">
+            <span className="inv__summary-label">BALANCE DUE</span>
+            <span className="inv__summary-value">{formatPrice(Number(order.total) - Number(order.paidAmount || 0))}</span>
+          </div>
+        )}
       </div>
 
       {/* Footer */}

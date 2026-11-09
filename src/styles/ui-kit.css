@@ -2110,3 +2110,20 @@ input[type="date"].ak-input--sm:focus {
   outline: none;
   box-shadow: var(--ring);
 }
+
+
+/* ============================================================
+   ORDERS TABLE — FULL WIDTH
+   ============================================================ */
+/* Force the orders table to fill all available horizontal space */
+.ak-page-body .ak-table-wrapper {
+  width: 100%;
+}
+
+.ak-page-body .ak-table-scroll {
+  width: 100%;
+}
+
+.ak-page-body .ak-table {
+  width: 100%;
+}

@@ -234,18 +234,23 @@
 .inv__summary-row {
   display: flex;
   justify-content: space-between;
-  width: 180px;
+  width: 200px;
   padding: 4px 0;
   font-size: 11px;
 }
 
 .inv__summary-row--small {
   font-size: 10px;
-  color: #666;
+  color: #888;
 }
 
 .inv__summary-row--small .inv__summary-label {
   font-weight: 400;
+}
+
+.inv__summary-row--small .inv__summary-value {
+  font-weight: 400;
+  color: #888;
 }
 
 .inv__summary-label {
@@ -270,6 +275,24 @@
 .inv__summary-row--total .inv__summary-value {
   font-size: 13px;
   font-weight: 700;
+}
+
+.inv__summary-row--balance {
+  padding-top: 6px;
+  margin-top: 6px;
+  border-top: 1px solid #e5e5e5;
+}
+
+.inv__summary-row--balance .inv__summary-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #c53030;
+}
+
+.inv__summary-row--balance .inv__summary-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #c53030;
 }
 
 /* ── Footer ─────────────────────────────────────────────── */

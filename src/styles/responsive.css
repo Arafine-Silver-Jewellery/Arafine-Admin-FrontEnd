@@ -656,7 +656,7 @@
   flex-direction: column;
   gap: 1.25rem;
   padding: 1.5rem 2rem;
-  max-width: 1400px;
+  width: 100%;
 }
 
 /* Page Header */
