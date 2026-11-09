@@ -6,14 +6,19 @@ import { formatPrice, formatDateTime } from "../utils/format";
 import type { Order } from "../types";
 import "../styles/order-detail.css";
 
+// Main flow statuses in order
+const STATUS_FLOW = ["pending", "confirmed", "processing", "shipped", "out_for_delivery", "delivered"] as const;
+
 const ORDER_STATUSES = [
-  { value: "pending", label: "Pending", color: "#f59e0b" },
-  { value: "confirmed", label: "Confirmed", color: "#8b5cf6" },
-  { value: "processing", label: "Processing", color: "#3b82f6" },
-  { value: "shipped", label: "Shipped", color: "#06b6d4" },
-  { value: "out_for_delivery", label: "Out for Delivery", color: "#0891b2" },
-  { value: "delivered", label: "Delivered", color: "#22c55e" },
-  { value: "cancelled", label: "Cancelled", color: "#ef4444" },
+  { value: "pending", label: "Pending", color: "#f59e0b", description: "Awaiting review" },
+  { value: "confirmed", label: "Confirmed", color: "#8b5cf6", description: "Payment verified, stock reserved" },
+  { value: "processing", label: "Processing", color: "#3b82f6", description: "Picking, packing, invoice" },
+  { value: "shipped", label: "Shipped", color: "#06b6d4", description: "Handed to courier" },
+  { value: "out_for_delivery", label: "Out for Delivery", color: "#0891b2", description: "On the way" },
+  { value: "delivered", label: "Delivered", color: "#22c55e", description: "Customer received" },
+  { value: "return_requested", label: "Return Requested", color: "#f97316", description: "Customer requested return" },
+  { value: "returned", label: "Returned", color: "#6b7280", description: "Items returned" },
+  { value: "cancelled", label: "Cancelled", color: "#ef4444", description: "Order cancelled" },
 ];
 
 const PAYMENT_STATUSES: Record<string, { label: string; color: string }> = {
@@ -23,6 +28,29 @@ const PAYMENT_STATUSES: Record<string, { label: string; color: string }> = {
   refunded: { label: "Refunded", color: "#6b7280" },
   partially_refunded: { label: "Partial Refund", color: "#f97316" },
 };
+
+// Get allowed next statuses based on current status
+function getAllowedTransitions(currentStatus: string): string[] {
+  const currentIndex = STATUS_FLOW.indexOf(currentStatus as typeof STATUS_FLOW[number]);
+  
+  // Already cancelled or delivered - no transitions allowed
+  if (currentStatus === "cancelled") return [];
+  if (currentStatus === "delivered") return []; // Return/refund is a separate flow
+  
+  const allowed: string[] = [];
+  
+  // Can move to next status in flow (one step forward)
+  if (currentIndex >= 0 && currentIndex < STATUS_FLOW.length - 1) {
+    allowed.push(STATUS_FLOW[currentIndex + 1]);
+  }
+  
+  // Can cancel only from pending, confirmed, or processing (before shipped)
+  if (["pending", "confirmed", "processing"].includes(currentStatus)) {
+    allowed.push("cancelled");
+  }
+  
+  return allowed;
+}
 
 export default function OrderDetail() {
   const { id } = useParams();
@@ -38,6 +66,7 @@ export default function OrderDetail() {
   const [adminNote, setAdminNote] = useState("");
   const [savingNote, setSavingNote] = useState(false);
   const [updatingTracking, setUpdatingTracking] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   useEffect(() => {
     async function loadOrder() {
@@ -63,15 +92,19 @@ export default function OrderDetail() {
 
   async function handleStatusUpdate(newStatus: string) {
     if (!order) return;
+    setUpdatingStatus(true);
     try {
       await api.updateOrderStatus(order.id, newStatus);
       // Refetch full order to get all relations (items, etc.)
       const updated = await api.getOrder(order.id);
       setOrder(updated);
-      toast.success(`Status updated to ${newStatus.replace(/_/g, " ")}`);
+      const statusLabel = ORDER_STATUSES.find(s => s.value === newStatus)?.label || newStatus;
+      toast.success(`Order ${newStatus === "cancelled" ? "cancelled" : `moved to ${statusLabel}`}`);
     } catch (error) {
       console.error("Failed to update status:", error);
       toast.error("Failed to update status");
+    } finally {
+      setUpdatingStatus(false);
     }
   }
 
@@ -137,6 +170,9 @@ export default function OrderDetail() {
   const paymentStatus = PAYMENT_STATUSES[order.paymentStatus] || { label: order.paymentStatus, color: "#6b7280" };
   const paidAmount = Number(order.paidAmount || 0);
   const balanceDue = Number(order.total) - paidAmount;
+  const allowedTransitions = getAllowedTransitions(order.status);
+  const nextStatus = allowedTransitions.find(s => s !== "cancelled");
+  const canCancel = allowedTransitions.includes("cancelled");
 
   return (
     <div className="od">
@@ -394,19 +430,67 @@ export default function OrderDetail() {
                   {paymentStatus.label}
                 </span>
               </div>
-              <div className="od-status-item">
-                <span className="od-status-item__label">Update Order Status</span>
-                <select
-                  className="od-select"
-                  value={order.status}
-                  onChange={e => handleStatusUpdate(e.target.value)}
-                >
-                  {ORDER_STATUSES.map(status => (
-                    <option key={status.value} value={status.value}>
-                      {status.label}
-                    </option>
-                  ))}
-                </select>
+              
+              {/* Status Actions */}
+              <div className="od-status-actions">
+                <span className="od-status-item__label">Order Actions</span>
+                
+                {allowedTransitions.length === 0 ? (
+                  <div className="od-status-final">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      {order.status === "delivered" ? (
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      ) : (
+                        <path d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      )}
+                    </svg>
+                    <span>
+                      {order.status === "delivered" 
+                        ? "Order completed successfully" 
+                        : "Order has been cancelled"}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="od-status-buttons">
+                    {nextStatus && (
+                      <button
+                        className="od-btn od-btn--primary od-btn--block"
+                        onClick={() => handleStatusUpdate(nextStatus)}
+                        disabled={updatingStatus}
+                      >
+                        {updatingStatus ? (
+                          <>
+                            <span className="od-btn__spinner" />
+                            Updating...
+                          </>
+                        ) : (
+                          <>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                            </svg>
+                            Move to {ORDER_STATUSES.find(s => s.value === nextStatus)?.label}
+                          </>
+                        )}
+                      </button>
+                    )}
+                    {canCancel && (
+                      <button
+                        className="od-btn od-btn--danger od-btn--block"
+                        onClick={() => {
+                          if (confirm("Are you sure you want to cancel this order? This action cannot be undone.")) {
+                            handleStatusUpdate("cancelled");
+                          }
+                        }}
+                        disabled={updatingStatus}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Cancel Order
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </section>
@@ -414,37 +498,71 @@ export default function OrderDetail() {
           {/* Timeline */}
           <section className="od-card">
             <div className="od-card__header">
-              <h2 className="od-card__title">Timeline</h2>
+              <h2 className="od-card__title">Order Progress</h2>
             </div>
             <div className="od-timeline">
-              <div className="od-timeline__item od-timeline__item--done">
-                <div className="od-timeline__dot" />
-                <div className="od-timeline__content">
-                  <span className="od-timeline__label">Order Created</span>
-                  <span className="od-timeline__time">{formatDateTime(order.createdAt)}</span>
-                </div>
-              </div>
-              {order.shippedAt && (
-                <div className="od-timeline__item od-timeline__item--done">
-                  <div className="od-timeline__dot" />
+              {/* Show full status flow */}
+              {STATUS_FLOW.map((status, index) => {
+                const statusInfo = ORDER_STATUSES.find(s => s.value === status);
+                const currentIndex = STATUS_FLOW.indexOf(order.status as typeof STATUS_FLOW[number]);
+                const isCancelled = order.status === "cancelled";
+                const isDone = !isCancelled && currentIndex >= index;
+                const isCurrent = !isCancelled && order.status === status;
+                
+                // Get timestamp for this status
+                let timestamp: string | null = null;
+                if (status === "pending") timestamp = order.createdAt;
+                else if (status === "shipped" && order.shippedAt) timestamp = order.shippedAt;
+                else if (status === "delivered" && order.deliveredAt) timestamp = order.deliveredAt;
+                
+                return (
+                  <div 
+                    key={status} 
+                    className={`od-timeline__item ${isDone ? "od-timeline__item--done" : ""} ${isCurrent ? "od-timeline__item--current" : ""}`}
+                  >
+                    <div className="od-timeline__dot">
+                      {isDone && (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                          <path d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                    <div className="od-timeline__content">
+                      <span className="od-timeline__label">{statusInfo?.label}</span>
+                      {timestamp && isDone && (
+                        <span className="od-timeline__time">{formatDateTime(timestamp)}</span>
+                      )}
+                      {!isDone && !isCancelled && (
+                        <span className="od-timeline__desc">{statusInfo?.description}</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+              
+              {/* Show cancelled status if applicable */}
+              {order.status === "cancelled" && (
+                <div className="od-timeline__item od-timeline__item--cancelled">
+                  <div className="od-timeline__dot">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <path d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </div>
                   <div className="od-timeline__content">
-                    <span className="od-timeline__label">Shipped</span>
-                    <span className="od-timeline__time">{formatDateTime(order.shippedAt)}</span>
+                    <span className="od-timeline__label">Cancelled</span>
+                    <span className="od-timeline__time">{formatDateTime(order.updatedAt)}</span>
                   </div>
                 </div>
               )}
-              {order.deliveredAt && (
-                <div className="od-timeline__item od-timeline__item--done">
-                  <div className="od-timeline__dot" />
-                  <div className="od-timeline__content">
-                    <span className="od-timeline__label">Delivered</span>
-                    <span className="od-timeline__time">{formatDateTime(order.deliveredAt)}</span>
-                  </div>
-                </div>
-              )}
+              
+              {/* Show refund if applicable */}
               {order.refundedAt && (
-                <div className="od-timeline__item">
-                  <div className="od-timeline__dot" />
+                <div className="od-timeline__item od-timeline__item--refund">
+                  <div className="od-timeline__dot">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                    </svg>
+                  </div>
                   <div className="od-timeline__content">
                     <span className="od-timeline__label">Refunded</span>
                     <span className="od-timeline__time">{formatDateTime(order.refundedAt)}</span>
