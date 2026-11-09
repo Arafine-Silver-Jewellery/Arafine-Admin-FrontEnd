@@ -729,9 +729,22 @@ export default function OrderDetail() {
               {/* Show full status flow */}
               {STATUS_FLOW.map((status, index) => {
                 const statusInfo = ORDER_STATUSES.find(s => s.value === status);
-                const currentIndex = STATUS_FLOW.indexOf(order.status as typeof STATUS_FLOW[number]);
                 const isCancelled = order.status === "cancelled";
-                const isDone = !isCancelled && currentIndex >= index;
+                
+                // Determine if this step was completed based on available timestamps
+                let wasCompleted = false;
+                if (status === "pending") wasCompleted = true; // Always completed if order exists
+                if (status === "shipped" && order.shippedAt) wasCompleted = true;
+                if (status === "delivered" && order.deliveredAt) wasCompleted = true;
+                // For intermediate statuses without timestamps, check if a later status was reached
+                if (["confirmed", "processing", "packaging"].includes(status)) {
+                  if (order.shippedAt || order.deliveredAt) wasCompleted = true;
+                }
+                if (status === "out_for_delivery" && order.deliveredAt) wasCompleted = true;
+                
+                // For non-cancelled orders, use the normal index-based flow
+                const currentIndex = STATUS_FLOW.indexOf(order.status as typeof STATUS_FLOW[number]);
+                const isDone = isCancelled ? wasCompleted : currentIndex >= index;
                 const isCurrent = !isCancelled && order.status === status;
                 
                 // Get timestamp for this status
@@ -740,45 +753,66 @@ export default function OrderDetail() {
                 else if (status === "shipped" && order.shippedAt) timestamp = order.shippedAt;
                 else if (status === "delivered" && order.deliveredAt) timestamp = order.deliveredAt;
                 
+                // For cancelled orders, don't show uncompleted steps
+                if (isCancelled && !wasCompleted) return null;
+                
+                // Determine if cancelled status should show after this item
+                const isLastCompletedBeforeCancel = isCancelled && wasCompleted && (
+                  index === STATUS_FLOW.length - 1 || // Last status in flow
+                  (() => {
+                    // Check if next status was NOT completed
+                    const nextStatus = STATUS_FLOW[index + 1];
+                    if (!nextStatus) return true;
+                    if (nextStatus === "confirmed" || nextStatus === "processing" || nextStatus === "packaging") {
+                      return !order.shippedAt && !order.deliveredAt;
+                    }
+                    if (nextStatus === "shipped") return !order.shippedAt;
+                    if (nextStatus === "out_for_delivery") return !order.deliveredAt && !order.shippedAt;
+                    if (nextStatus === "delivered") return !order.deliveredAt;
+                    return true;
+                  })()
+                );
+                
                 return (
-                  <div 
-                    key={status} 
-                    className={`od-timeline__item ${isDone ? "od-timeline__item--done" : ""} ${isCurrent ? "od-timeline__item--current" : ""}`}
-                  >
-                    <div className="od-timeline__dot">
-                      {isDone && (
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                          <path d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
+                  <div key={status}>
+                    <div 
+                      className={`od-timeline__item ${isDone ? "od-timeline__item--done" : ""} ${isCurrent ? "od-timeline__item--current" : ""}`}
+                    >
+                      <div className="od-timeline__dot">
+                        {isDone && (
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                            <path d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                      <div className="od-timeline__content">
+                        <span className="od-timeline__label">{statusInfo?.label}</span>
+                        {timestamp && isDone && (
+                          <span className="od-timeline__time">{formatDateTime(timestamp)}</span>
+                        )}
+                        {!isDone && !isCancelled && (
+                          <span className="od-timeline__desc">{statusInfo?.description}</span>
+                        )}
+                      </div>
                     </div>
-                    <div className="od-timeline__content">
-                      <span className="od-timeline__label">{statusInfo?.label}</span>
-                      {timestamp && isDone && (
-                        <span className="od-timeline__time">{formatDateTime(timestamp)}</span>
-                      )}
-                      {!isDone && !isCancelled && (
-                        <span className="od-timeline__desc">{statusInfo?.description}</span>
-                      )}
-                    </div>
+                    
+                    {/* Show cancelled status right after the last completed step */}
+                    {isLastCompletedBeforeCancel && (
+                      <div className="od-timeline__item od-timeline__item--cancelled">
+                        <div className="od-timeline__dot">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                            <path d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </div>
+                        <div className="od-timeline__content">
+                          <span className="od-timeline__label">Cancelled</span>
+                          <span className="od-timeline__time">{formatDateTime(order.cancelledAt || order.updatedAt)}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
-              
-              {/* Show cancelled status if applicable */}
-              {order.status === "cancelled" && (
-                <div className="od-timeline__item od-timeline__item--cancelled">
-                  <div className="od-timeline__dot">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                      <path d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </div>
-                  <div className="od-timeline__content">
-                    <span className="od-timeline__label">Cancelled</span>
-                    <span className="od-timeline__time">{formatDateTime(order.cancelledAt || order.updatedAt)}</span>
-                  </div>
-                </div>
-              )}
               
               {/* Show refund if applicable */}
               {order.refundedAt && (
