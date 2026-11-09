@@ -2115,18 +2115,15 @@ input[type="date"].ak-input--sm:focus {
 /* ============================================================
    ORDERS TABLE — FULL WIDTH
    ============================================================ */
-/* Ensure the table fills all available space */
+/* Force the orders table to fill all available horizontal space */
 .ak-page-body .ak-table-wrapper {
+  width: 100%;
+}
+
+.ak-page-body .ak-table-scroll {
   width: 100%;
 }
 
 .ak-page-body .ak-table {
   width: 100%;
-  min-width: 100%;
-}
-
-/* Customer column expands to fill remaining space */
-.ak-table th:not([style*="width"]),
-.ak-table td:not([style*="width"]) {
-  width: auto;
 }
