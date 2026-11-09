@@ -616,12 +616,6 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
     };
   }
 
-  function getBalanceAmount(order: Order): number {
-    const total = Number(order.total) || 0;
-    const paid = Number(order.paidAmount) || 0;
-    return Math.max(0, total - paid);
-  }
-
   const columns = [
     {
       key: "sl",
