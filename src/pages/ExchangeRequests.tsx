@@ -216,7 +216,7 @@ export default function ExchangeRequests({ statusFilter = "pending" }: ExchangeR
     setRejectModalOpen(true);
   }
 
-  async function handleRejectConfirm(reason: string) {
+  async function handleRejectConfirm(_reason: string) {
     if (!rejectingOrder) return;
     
     setProcessing(rejectingOrder.id);
