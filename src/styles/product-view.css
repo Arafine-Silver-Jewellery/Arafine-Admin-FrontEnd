@@ -884,3 +884,95 @@
     text-align: left;
   }
 }
+
+
+/* ============================================================
+   IMAGE CAROUSEL / AUTO-SCROLL
+   ============================================================ */
+.pv-main-image {
+  position: relative;
+}
+
+.pv-main-image img {
+  transition: opacity 0.3s ease;
+}
+
+/* Navigation Arrows */
+.pv-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  transition: all 0.2s;
+  z-index: 2;
+}
+
+.pv-image-card:hover .pv-nav-btn {
+  opacity: 1;
+}
+
+.pv-nav-btn:hover {
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.pv-nav-btn svg {
+  width: 20px;
+  height: 20px;
+  color: #334155;
+}
+
+.pv-nav-prev {
+  left: 12px;
+}
+
+.pv-nav-next {
+  right: 12px;
+}
+
+/* Dots Indicator */
+.pv-dots {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  z-index: 2;
+}
+
+.pv-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.pv-dot:hover {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.pv-dot.active {
+  background: #fff;
+  transform: scale(1.2);
+}
+
+@keyframes progress {
+  from { width: 0%; }
+  to { width: 100%; }
+}

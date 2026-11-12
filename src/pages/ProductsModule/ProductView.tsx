@@ -89,12 +89,24 @@ export default function ProductView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedImage, setSelectedImage] = useState(0);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
   useEffect(() => {
     if (id) {
       loadProduct(id);
     }
   }, [id]);
+
+  // Auto-scroll images every 3 seconds
+  useEffect(() => {
+    if (!product || !isAutoPlaying || product.images.length <= 1) return;
+    
+    const interval = setInterval(() => {
+      setSelectedImage(prev => (prev + 1) % product.images.length);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [product, isAutoPlaying]);
 
   async function loadProduct(productId: string) {
     setLoading(true);
@@ -210,7 +222,11 @@ export default function ProductView() {
       {/* Top Section: Image + Quick Info */}
       <div className="pv-top-section">
         {/* Product Images */}
-        <div className="pv-image-card">
+        <div 
+          className="pv-image-card"
+          onMouseEnter={() => setIsAutoPlaying(false)}
+          onMouseLeave={() => setIsAutoPlaying(true)}
+        >
           <div className="pv-main-image">
             {allImages.length > 0 ? (
               <img src={allImages[selectedImage]?.url} alt={product.name} />
@@ -223,6 +239,37 @@ export default function ProductView() {
                 </svg>
                 <span>No Image</span>
               </div>
+            )}
+            {/* Navigation arrows */}
+            {allImages.length > 1 && (
+              <>
+                <button 
+                  className="pv-nav-btn pv-nav-prev"
+                  onClick={() => setSelectedImage(prev => prev === 0 ? allImages.length - 1 : prev - 1)}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M15 18l-6-6 6-6" />
+                  </svg>
+                </button>
+                <button 
+                  className="pv-nav-btn pv-nav-next"
+                  onClick={() => setSelectedImage(prev => (prev + 1) % allImages.length)}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </button>
+                {/* Dots indicator */}
+                <div className="pv-dots">
+                  {allImages.map((_, index) => (
+                    <button
+                      key={index}
+                      className={`pv-dot ${selectedImage === index ? "active" : ""}`}
+                      onClick={() => setSelectedImage(index)}
+                    />
+                  ))}
+                </div>
+              </>
             )}
           </div>
           {allImages.length > 1 && (
