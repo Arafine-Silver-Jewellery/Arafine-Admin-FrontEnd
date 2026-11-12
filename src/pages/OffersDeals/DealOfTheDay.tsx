@@ -74,7 +74,7 @@ export default function DealOfTheDay() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [stats, setStats] = useState<DealOfTheDayStats | null>(null);
+  const [, setStats] = useState<DealOfTheDayStats | null>(null);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -300,18 +300,7 @@ export default function DealOfTheDay() {
     }
   }
 
-  // Reset form
-  function handleReset() {
-    setFormData({
-      title: "",
-      description: "",
-      productIds: [],
-      isActive: true,
-    });
-    setSelectedProducts([]);
-    setProductSearch("");
-    setFormErrors({});
-  }
+
 
   // Toggle active status
   async function toggleActive(deal: DealOfTheDay) {

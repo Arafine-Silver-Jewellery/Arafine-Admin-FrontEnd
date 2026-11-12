@@ -78,7 +78,7 @@ export default function FeaturedDeal() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [stats, setStats] = useState<FeaturedDealStats | null>(null);
+  const [, setStats] = useState<FeaturedDealStats | null>(null);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);

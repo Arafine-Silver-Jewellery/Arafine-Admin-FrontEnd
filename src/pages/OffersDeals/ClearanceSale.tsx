@@ -80,20 +80,7 @@ function formatDateForInput(dateStr: string | null): string {
   return date.toISOString().slice(0, 16);
 }
 
-function formatDateRange(start: string, end: string): string {
-  const startDate = new Date(start);
-  const endDate = new Date(end);
-  const formatOptions: Intl.DateTimeFormatOptions = {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-  };
-  return `${startDate.toLocaleString("en-GB", formatOptions)} - ${endDate.toLocaleString("en-GB", formatOptions)}`;
-}
+
 
 export default function ClearanceSale() {
   const [activeTab, setActiveTab] = useState<TabType>("inhouse");
@@ -143,8 +130,6 @@ export default function ClearanceSale() {
     showOnHomepage: false,
   });
   const [vendorSearch, setVendorSearch] = useState("");
-  const [vendors, setVendors] = useState<any[]>([]);
-  const [savingVendor, setSavingVendor] = useState(false);
 
   // ===================== PRIORITY TAB STATE =====================
   const [prioritySettings, setPrioritySettings] = useState({

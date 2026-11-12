@@ -76,12 +76,7 @@ const icons = {
   ),
 };
 
-const STATUS_FILTERS = [
-  { value: "all", label: "All Status" },
-  { value: "active", label: "Active" },
-  { value: "expired", label: "Expired" },
-  { value: "upcoming", label: "Upcoming" },
-];
+
 
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
@@ -110,8 +105,8 @@ export default function FlashDeals() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [stats, setStats] = useState<Stats | null>(null);
+  const [statusFilter] = useState("all");
+  const [, setStats] = useState<Stats | null>(null);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -476,19 +471,7 @@ export default function FlashDeals() {
     }
   }
 
-  // Get status display
-  function getStatusDisplay(status: string): { label: string; variant: string } {
-    switch (status) {
-      case "active":
-        return { label: "Active", variant: "success" };
-      case "expired":
-        return { label: "Expired", variant: "danger" };
-      case "upcoming":
-        return { label: "Upcoming", variant: "info" };
-      default:
-        return { label: status, variant: "neutral" };
-    }
-  }
+
 
   // Table columns
   const columns = [

@@ -151,7 +151,7 @@ const initialFormData: FormData = {
 export default function CouponPage() {
   // Data state
   const [coupons, setCoupons] = useState<Coupon[]>([]);
-  const [stats, setStats] = useState<CouponStats | null>(null);
+  const [, setStats] = useState<CouponStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
