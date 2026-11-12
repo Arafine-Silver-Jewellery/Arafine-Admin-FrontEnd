@@ -203,7 +203,7 @@ export default function AddNewProduct() {
   // Product variation toggle
   const [hasVariations, setHasVariations] = useState(false);
   const [selectedColors, setSelectedColors] = useState<{ id: string; name: string; hex?: string }[]>([]);
-  const [selectedAttributes, setSelectedAttributes] = useState<{ id: string; name: string }[]>([]);
+  const [selectedAttributes, setSelectedAttributes] = useState<{ id: string; name: string; values: string[] }[]>([]);
   const [colorWiseImages, setColorWiseImages] = useState<{ colorId: string; colorName: string; images: { file: File | null; preview: string }[] }[]>([]);
   const [colorVariationData, setColorVariationData] = useState<{ colorId: string; price: number; sku: string; stock: number }[]>([]);
   const colorImageInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
@@ -359,6 +359,7 @@ export default function AddNewProduct() {
           setSelectedAttributes(product.productAttributes.map((attr: any) => ({
             id: attr.id,
             name: attr.name,
+            values: attr.values || [],
           })));
         }
       }
@@ -828,7 +829,7 @@ export default function AddNewProduct() {
       if (hasVariations && selectedAttributes.length > 0) {
         productData.productAttributes = selectedAttributes.map((attr, idx) => ({
           name: attr.name,
-          values: [],
+          values: attr.values || [],
           sortOrder: idx,
         }));
       }
@@ -1240,7 +1241,7 @@ export default function AddNewProduct() {
                       value=""
                       onChange={(e) => {
                         if (e.target.value && !selectedAttributes.some(a => a.id === e.target.value)) {
-                          setSelectedAttributes(prev => [...prev, { id: e.target.value, name: e.target.options[e.target.selectedIndex].text }]);
+                          setSelectedAttributes(prev => [...prev, { id: e.target.value, name: e.target.options[e.target.selectedIndex].text, values: [] }]);
                         }
                       }}
                     >
@@ -1262,6 +1263,57 @@ export default function AddNewProduct() {
                     )}
                   </div>
                 </div>
+
+                {/* Attribute Value Inputs */}
+                {selectedAttributes.length > 0 && (
+                  <div className="anp-attr-values-section">
+                    {selectedAttributes.map(attr => (
+                      <div key={attr.id} className="anp-attr-value-group">
+                        <label>{attr.name}</label>
+                        <div className="anp-attr-value-input">
+                          <input
+                            type="text"
+                            placeholder={`Enter ${attr.name.toLowerCase()} values (press Enter to add)`}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                const input = e.currentTarget;
+                                const value = input.value.trim();
+                                if (value && !attr.values.includes(value)) {
+                                  setSelectedAttributes(prev => prev.map(a => 
+                                    a.id === attr.id 
+                                      ? { ...a, values: [...a.values, value] }
+                                      : a
+                                  ));
+                                  input.value = '';
+                                }
+                              }
+                            }}
+                          />
+                        </div>
+                        {attr.values.length > 0 && (
+                          <div className="anp-attr-value-tags">
+                            {attr.values.map((val, idx) => (
+                              <span key={idx} className="anp-attr-value-tag">
+                                {val}
+                                <button 
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedAttributes(prev => prev.map(a => 
+                                      a.id === attr.id 
+                                        ? { ...a, values: a.values.filter((_, i) => i !== idx) }
+                                        : a
+                                    ));
+                                  }}
+                                >×</button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {/* Variation Table */}
                 {selectedColors.length > 0 && (

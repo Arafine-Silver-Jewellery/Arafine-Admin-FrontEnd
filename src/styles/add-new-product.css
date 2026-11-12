@@ -1148,3 +1148,93 @@
     text-align: center;
   }
 }
+
+
+/* ============================================================
+   ATTRIBUTE VALUE INPUTS
+   ============================================================ */
+.anp-attr-values-section {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.anp-attr-value-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.anp-attr-value-group label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.anp-attr-value-input input {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.anp-attr-value-input input:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.anp-attr-value-input input::placeholder {
+  color: #94a3b8;
+}
+
+.anp-attr-value-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: 0.25rem;
+}
+
+.anp-attr-value-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 4px 10px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  color: #334155;
+}
+
+.anp-attr-value-tag button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  background: #e2e8f0;
+  border: none;
+  border-radius: 50%;
+  font-size: 12px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.anp-attr-value-tag button:hover {
+  background: #dc2626;
+  color: #fff;
+}
+
+@media (max-width: 640px) {
+  .anp-attr-values-section {
+    grid-template-columns: 1fr;
+  }
+}
