@@ -62,12 +62,12 @@ const pageTitleMap: Record<string, { title: string; icon: string }> = {
   "/orders/refunded": { title: "Orders", icon: "orders" },
   "/orders/failed-to-deliver": { title: "Orders", icon: "orders" },
   "/orders/canceled": { title: "Orders", icon: "orders" },
-  "/refund-requests": { title: "Refund Requests", icon: "refund" },
-  "/refund-requests/pending": { title: "Refund Requests", icon: "refund" },
-  "/refund-requests/all": { title: "Refund Requests", icon: "refund" },
-  "/refund-requests/approved": { title: "Refund Requests", icon: "refund" },
-  "/refund-requests/refunded": { title: "Refund Requests", icon: "refund" },
-  "/refund-requests/rejected": { title: "Refund Requests", icon: "refund" },
+  "/exchange-requests": { title: "Exchange Requests", icon: "exchange" },
+  "/exchange-requests/pending": { title: "Exchange Requests", icon: "exchange" },
+  "/exchange-requests/all": { title: "Exchange Requests", icon: "exchange" },
+  "/exchange-requests/approved": { title: "Exchange Requests", icon: "exchange" },
+  "/exchange-requests/exchanged": { title: "Exchange Requests", icon: "exchange" },
+  "/exchange-requests/rejected": { title: "Exchange Requests", icon: "exchange" },
   "/category-setup": { title: "Categories", icon: "category" },
   "/category-setup/sub-categories": { title: "Sub Categories", icon: "category" },
   "/category-setup/sub-sub-categories": { title: "Sub Sub Categories", icon: "category" },
@@ -262,13 +262,15 @@ export default function Layout() {
 
           {hasPermission("refund-requests") && (
             <NavLink
-              to="/refund-requests"
+              to="/exchange-requests"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="23,4 23,10 17,10" />
-                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                <polyline points="17,1 21,5 17,9" />
+                <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                <polyline points="7,23 3,19 7,15" />
+                <path d="M21 13v2a4 4 0 0 1-4 4H3" />
               </svg>
-              <span>Refund Requests</span>
+              <span>Exchange Requests</span>
             </NavLink>
           )}
 

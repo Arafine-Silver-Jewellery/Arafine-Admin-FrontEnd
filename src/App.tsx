@@ -15,7 +15,7 @@ import Employees from "./pages/Employees";
 import POS from "./pages/POS";
 import OrdersNew from "./pages/OrdersNew";
 import OrderDetail from "./pages/OrderDetail";
-import RefundRequests from "./pages/RefundRequests";
+import ExchangeRequests from "./pages/ExchangeRequests";
 import { Categories, SubCategories, SubSubCategories } from "./pages/CategorySetup";
 import { ProductList, AddNewProduct, ProductView, GenerateBarcode, LimitedStock, BulkImport, RequestRestockList } from "./pages/ProductsModule";
 import BannerSetup from "./pages/BannerSetup";
@@ -66,13 +66,13 @@ function App() {
             <Route path="orders/canceled" element={<RequirePermission permission="orders"><OrdersNew statusFilter="cancelled" /></RequirePermission>} />
             <Route path="orders/:id" element={<RequirePermission permission="orders"><OrderDetail /></RequirePermission>} />
             
-            {/* Refund Requests */}
-            <Route path="refund-requests" element={<RequirePermission permission="refund-requests"><RefundRequests statusFilter="all" /></RequirePermission>} />
-            <Route path="refund-requests/pending" element={<RequirePermission permission="refund-requests"><RefundRequests statusFilter="pending" /></RequirePermission>} />
-            <Route path="refund-requests/all" element={<RequirePermission permission="refund-requests"><RefundRequests statusFilter="all" /></RequirePermission>} />
-            <Route path="refund-requests/approved" element={<RequirePermission permission="refund-requests"><RefundRequests statusFilter="approved" /></RequirePermission>} />
-            <Route path="refund-requests/refunded" element={<RequirePermission permission="refund-requests"><RefundRequests statusFilter="refunded" /></RequirePermission>} />
-            <Route path="refund-requests/rejected" element={<RequirePermission permission="refund-requests"><RefundRequests statusFilter="rejected" /></RequirePermission>} />
+            {/* Exchange Requests */}
+            <Route path="exchange-requests" element={<RequirePermission permission="refund-requests"><ExchangeRequests statusFilter="all" /></RequirePermission>} />
+            <Route path="exchange-requests/pending" element={<RequirePermission permission="refund-requests"><ExchangeRequests statusFilter="pending" /></RequirePermission>} />
+            <Route path="exchange-requests/all" element={<RequirePermission permission="refund-requests"><ExchangeRequests statusFilter="all" /></RequirePermission>} />
+            <Route path="exchange-requests/approved" element={<RequirePermission permission="refund-requests"><ExchangeRequests statusFilter="approved" /></RequirePermission>} />
+            <Route path="exchange-requests/exchanged" element={<RequirePermission permission="refund-requests"><ExchangeRequests statusFilter="exchanged" /></RequirePermission>} />
+            <Route path="exchange-requests/rejected" element={<RequirePermission permission="refund-requests"><ExchangeRequests statusFilter="rejected" /></RequirePermission>} />
             
             {/* Category Setup */}
             <Route path="category-setup" element={<RequirePermission permission="category-setup"><Categories /></RequirePermission>} />

@@ -47,6 +47,10 @@ interface Order {
   status: string;
   orderChannel: "online" | "pos";
   items?: OrderItem[];
+  // Exchange fields
+  exchangeForOrderId?: string | null;
+  isExchangeOrder?: boolean;
+  replacementOrderId?: string | null;
 }
 
 const orderStatusOptions = [
@@ -654,6 +658,9 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
           <div className="ak-order-id">
             {order.orderNumber}
             <span className={`ak-badge ${channel.className}`} style={{ marginLeft: 6, fontSize: "0.65rem" }}>{channel.label}</span>
+            {order.isExchangeOrder && (
+              <span className="ak-badge ak-badge--info" style={{ marginLeft: 4, fontSize: "0.65rem" }}>Exchange</span>
+            )}
           </div>
         );
       },

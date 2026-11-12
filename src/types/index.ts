@@ -107,6 +107,9 @@ export interface Order {
   cancelledAt: string | null;
   refundAmount: number | null;
   refundedAt: string | null;
+  exchangeForOrderId: string | null;
+  isExchangeOrder: boolean;
+  replacementOrderId: string | null;
   processedById: string | null;
   createdAt: string;
   updatedAt: string;
