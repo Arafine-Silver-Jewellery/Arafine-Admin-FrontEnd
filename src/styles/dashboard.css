@@ -1047,3 +1047,32 @@
   opacity: 0.5;
 }
 
+
+
+/* Month Filter */
+.month-filter {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.month-filter:hover {
+  border-color: var(--primary);
+}
+
+.month-filter:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.1);
+}
+
+.chart-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}

@@ -17,6 +17,7 @@ import {
   ChartCard,
   DashboardSkeleton,
   DateRangePicker,
+  MonthFilter,
   OrdersTrendChart,
   RevenueTrendChart,
   Sparkline,
@@ -50,8 +51,23 @@ export default function Dashboard() {
     users: [],
   });
 
+  // Per-chart month filters
+  const [revenueMonth, setRevenueMonth] = useState<string>("all");
+  const [ordersMonth, setOrdersMonth] = useState<string>("all");
+  const [topSellingMonth, setTopSellingMonth] = useState<string>("all");
+  const [categoryMonth, setCategoryMonth] = useState<string>("all");
+  const [channelMonth, setChannelMonth] = useState<string>("all");
+
   const [loading, setLoading] = useState(true);
   const [rangeLoading, setRangeLoading] = useState(false);
+  
+  // Per-chart loading states
+  const [revenueLoading, setRevenueLoading] = useState(false);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [topSellingLoading, setTopSellingLoading] = useState(false);
+  const [categoryLoading, setCategoryLoading] = useState(false);
+  const [channelLoading, setChannelLoading] = useState(false);
+
   const [error, setError] = useState<string | null>(null);
   
   // Track if initial load is complete (to prevent duplicate fetches on range change)
@@ -152,6 +168,74 @@ export default function Dashboard() {
     return () => ac.abort();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [range]); // Only refetch when range changes
+
+  // Per-chart month filter effects
+  useEffect(() => {
+    if (loading) return;
+    setRevenueLoading(true);
+    const month = revenueMonth === "all" ? undefined : revenueMonth;
+    api.getDashboardTrend({ metric: "revenue", range, month })
+      .then(data => {
+        setRevenueTrend(data);
+        setSparkPoints(prev => ({ ...prev, revenue: (data?.points ?? []).map((p: { value: number }) => p.value) }));
+      })
+      .catch(console.error)
+      .finally(() => setRevenueLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [revenueMonth]);
+
+  useEffect(() => {
+    if (loading) return;
+    setOrdersLoading(true);
+    const month = ordersMonth === "all" ? undefined : ordersMonth;
+    api.getDashboardTrend({ metric: "orders", range, month })
+      .then(data => {
+        setOrdersTrend(data);
+        setSparkPoints(prev => ({ ...prev, orders: (data?.points ?? []).map((p: { value: number }) => p.value) }));
+      })
+      .catch(console.error)
+      .finally(() => setOrdersLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ordersMonth]);
+
+  useEffect(() => {
+    if (loading) return;
+    setTopSellingLoading(true);
+    const month = topSellingMonth === "all" ? undefined : topSellingMonth;
+    api.getTopProducts({ limit: 8, range, month })
+      .then(setTopSelling)
+      .catch(console.error)
+      .finally(() => setTopSellingLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [topSellingMonth]);
+
+  useEffect(() => {
+    if (loading) return;
+    setCategoryLoading(true);
+    const month = categoryMonth === "all" ? undefined : categoryMonth;
+    api.getDashboardBreakdown({ dimension: "category", range, month })
+      .then(setCategoryBreakdown)
+      .catch(console.error)
+      .finally(() => setCategoryLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categoryMonth]);
+
+  useEffect(() => {
+    if (loading) return;
+    setChannelLoading(true);
+    const month = channelMonth === "all" ? undefined : channelMonth;
+    Promise.all([
+      api.getDashboardBreakdown({ dimension: "channel", range, month }),
+      api.getDashboardTrend({ metric: "channel", range, month }),
+    ])
+      .then(([chData, chTrend]) => {
+        setChannelBreakdown(chData);
+        setChannelTrend(chTrend);
+      })
+      .catch(console.error)
+      .finally(() => setChannelLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channelMonth]);
 
   if (loading) {
     return <DashboardSkeleton />;
@@ -319,8 +403,9 @@ export default function Dashboard() {
       <div className="chart-row chart-row-2">
         <ChartCard
           title="Revenue trend"
-          subtitle={`Daily revenue · ${rangeLabel}`}
-          isLoading={rangeLoading}
+          subtitle={`Daily revenue · ${revenueMonth === "all" ? rangeLabel : revenueMonth}`}
+          isLoading={rangeLoading || revenueLoading}
+          headerRight={<MonthFilter value={revenueMonth} onChange={setRevenueMonth} />}
         >
           {revenueTrend && revenueTrend.points.length > 0 ? (
             <RevenueTrendChart data={revenueTrend.points} />
@@ -333,8 +418,9 @@ export default function Dashboard() {
 
         <ChartCard
           title="Orders trend"
-          subtitle={`Daily orders · ${rangeLabel}`}
-          isLoading={rangeLoading}
+          subtitle={`Daily orders · ${ordersMonth === "all" ? rangeLabel : ordersMonth}`}
+          isLoading={rangeLoading || ordersLoading}
+          headerRight={<MonthFilter value={ordersMonth} onChange={setOrdersMonth} />}
         >
           {ordersTrend && ordersTrend.points.length > 0 ? (
             <OrdersTrendChart data={ordersTrend.points} />
@@ -350,8 +436,9 @@ export default function Dashboard() {
       <div className="chart-row chart-row-3">
         <ChartCard
           title="Top selling"
-          subtitle={`Best sellers · ${rangeLabel}`}
-          isLoading={rangeLoading}
+          subtitle={`Best sellers · ${topSellingMonth === "all" ? rangeLabel : topSellingMonth}`}
+          isLoading={rangeLoading || topSellingLoading}
+          headerRight={<MonthFilter value={topSellingMonth} onChange={setTopSellingMonth} />}
         >
           {topSelling && topSelling.length > 0 ? (
             <TopSellingChart items={topSelling} />
@@ -365,8 +452,9 @@ export default function Dashboard() {
 
         <ChartCard
           title="Sales by category"
-          subtitle={`Revenue share · ${rangeLabel}`}
-          isLoading={rangeLoading}
+          subtitle={`Revenue share · ${categoryMonth === "all" ? rangeLabel : categoryMonth}`}
+          isLoading={rangeLoading || categoryLoading}
+          headerRight={<MonthFilter value={categoryMonth} onChange={setCategoryMonth} />}
         >
           {categoryBreakdown && categoryBreakdown.items.length > 0 ? (
             <CategoryBars items={categoryBreakdown.items} totalLabel="Total revenue" />
@@ -379,8 +467,9 @@ export default function Dashboard() {
 
         <ChartCard
           title="Channel mix"
-          subtitle={`Order count · ${rangeLabel}`}
-          isLoading={rangeLoading}
+          subtitle={`Order count · ${channelMonth === "all" ? rangeLabel : channelMonth}`}
+          isLoading={rangeLoading || channelLoading}
+          headerRight={<MonthFilter value={channelMonth} onChange={setChannelMonth} />}
         >
           {channelItems.length > 0 ? (
             <ChannelStatTile
