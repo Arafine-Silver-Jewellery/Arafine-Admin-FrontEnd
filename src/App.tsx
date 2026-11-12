@@ -24,6 +24,7 @@ import { SendNotification, PushNotificationsSetup } from "./pages/Notifications"
 import { Inbox, Messages, SupportTicket } from "./pages/HelpSupport";
 import { EarningReports, InhouseSales, VendorSales, TransactionReport, ProductReport, OrderReport } from "./pages/Reports";
 import { CustomerList, CustomerReviews, Wallet, WalletBonusSetup, LoyaltyPoints } from "./pages/Customers";
+import { BusinessSetupInfo } from "./pages/BusinessSetup";
 import { Settings } from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -146,6 +147,9 @@ function App() {
             <Route path="storage" element={<RequirePermission permission={["storage", "storage-settings"]}><StorageProviders /></RequirePermission>} />
             <Route path="sms-providers" element={<RequirePermission permission={["sms-settings"]}><SmsProviders /></RequirePermission>} />
             <Route path="payment-gateways" element={<RequirePermission permission={["payment-settings"]}><PaymentGateways /></RequirePermission>} />
+
+            {/* Business Setup */}
+            <Route path="business-setup" element={<RequirePermission permission="business-setup"><BusinessSetupInfo /></RequirePermission>} />
             <Route path="settings" element={<Settings />} />
             
             {/* Employee Management - requires employees permission */}

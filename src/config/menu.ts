@@ -304,7 +304,16 @@ export const MENU_ITEMS: MenuItem[] = [
     keywords: ["employee", "staff", "team"],
   },
 
-  // ── Settings ──
+  // ── Business Settings ──
+  {
+    path: "/business-setup",
+    label: "Business Setup",
+    group: "Business Settings",
+    permission: "business-setup",
+    keywords: ["business", "setup", "company", "info"],
+  },
+
+  // ── System Settings ──
   {
     // Either key grants access — see the note on MenuItem.permission. The
     // sidebar shows this under hasPermission("storage"), and the route
@@ -312,28 +321,28 @@ export const MENU_ITEMS: MenuItem[] = [
     // is never a dead end.
     path: "/storage",
     label: "Storage",
-    group: "Settings",
+    group: "System Settings",
     permission: ["storage", "storage-settings"],
     keywords: ["storage", "s3", "files", "provider"],
   },
   {
     path: "/sms-providers",
     label: "SMS Providers",
-    group: "Settings",
+    group: "System Settings",
     permission: ["sms-settings"],
     keywords: ["sms", "otp", "twilio", "msg91", "text message", "provider"],
   },
   {
     path: "/payment-gateways",
     label: "Payment Gateways",
-    group: "Settings",
+    group: "System Settings",
     permission: ["payment-settings"],
     keywords: ["payment", "razorpay", "stripe", "paypal", "gateway", "checkout"],
   },
   {
     path: "/settings",
     label: "Settings",
-    group: "Settings",
+    group: "System Settings",
     permission: [],
     keywords: ["settings", "configuration", "preferences", "business", "payment", "shipping", "security", "system"],
   },

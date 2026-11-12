@@ -33,8 +33,6 @@ const notificationsSubmenus = [
   { path: "/notifications/push-setup", label: "Push Notifications Setup" },
 ];
 
-
-
 const customersSubmenus = [
   { path: "/customers/list", label: "Customer List" },
   { path: "/customers/reviews", label: "Customer Reviews" },
@@ -105,6 +103,7 @@ const pageTitleMap: Record<string, { title: string; icon: string }> = {
   "/support-ticket": { title: "Support Ticket", icon: "support" },
   "/employees": { title: "Employees", icon: "employee" },
   "/storage": { title: "Storage Providers", icon: "storage" },
+  "/business-setup": { title: "Business Setup", icon: "business" },
 };
 
 function getPageTitle(pathname: string): { title: string; icon: string } {
@@ -575,10 +574,26 @@ export default function Layout() {
           </NavLink>
           )}
 
+          {hasPermission("business-setup") && (
+          <>
+          <div className="sidebar-divider" />
+          <span className="sidebar-label">Business Settings</span>
+          </>
+          )}
+
+          {hasPermission("business-setup") && (
+          <NavLink to="/business-setup" className={({ isActive }) => isActive ? "active" : ""}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+            </svg>
+            Business Setup
+          </NavLink>
+          )}
+
           {hasPermission("storage") && (
           <>
           <div className="sidebar-divider" />
-          <span className="sidebar-label">Settings</span>
+          <span className="sidebar-label">System Settings</span>
           </>
           )}
 
