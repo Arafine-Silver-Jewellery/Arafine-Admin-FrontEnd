@@ -122,6 +122,11 @@ export interface OrderItem {
   productName: string;
   productSku: string;
   productImageUrl: string | null;
+  productHsnCode: string | null;
+  productCategory: string | null;
+  productColor: string | null;
+  productMaterial: string | null;
+  productAttributes: Record<string, string | number | boolean> | null;
   quantity: number;
   unitPrice: number;
   totalPrice: number;
