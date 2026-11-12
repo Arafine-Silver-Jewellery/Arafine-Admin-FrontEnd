@@ -85,7 +85,7 @@ export default function Dashboard() {
           api.getDashboardTrend({ metric: "products", range }),
           api.getDashboardTrend({ metric: "users", range }),
           api.getDashboardTrend({ metric: "channel", range }),
-          api.getTopProducts({ limit: 8, range }),
+          api.getTopProducts({ limit: 4, range }),
           api.getDashboardBreakdown({ dimension: "category", range }),
           api.getDashboardBreakdown({ dimension: "channel", range }),
           api.getRecentOrders(5),
@@ -139,7 +139,7 @@ export default function Dashboard() {
           api.getDashboardTrend({ metric: "products", range }),
           api.getDashboardTrend({ metric: "users", range }),
           api.getDashboardTrend({ metric: "channel", range }),
-          api.getTopProducts({ limit: 8, range }),
+          api.getTopProducts({ limit: 4, range }),
           api.getDashboardBreakdown({ dimension: "category", range }),
           api.getDashboardBreakdown({ dimension: "channel", range }),
         ]);
@@ -202,7 +202,7 @@ export default function Dashboard() {
     if (loading) return;
     setTopSellingLoading(true);
     const month = topSellingMonth === "all" ? undefined : topSellingMonth;
-    api.getTopProducts({ limit: 8, range, month })
+    api.getTopProducts({ limit: 4, range, month })
       .then(setTopSelling)
       .catch(console.error)
       .finally(() => setTopSellingLoading(false));
