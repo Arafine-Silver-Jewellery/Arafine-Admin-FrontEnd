@@ -82,8 +82,8 @@ export default function DealOfTheDay() {
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
-  // Drawer state
-  const [showDrawer, setShowDrawer] = useState(false);
+  // Drawer state -> Modal state
+  const [showModal, setShowModal] = useState(false);
   const [editingDeal, setEditingDeal] = useState<DealOfTheDay | null>(null);
   const [formData, setFormData] = useState<CreateDealOfTheDayInput>({
     title: "",
@@ -169,16 +169,16 @@ export default function DealOfTheDay() {
 
   // Debounce product search
   useEffect(() => {
-    if (showDrawer) {
+    if (showModal) {
       const timer = setTimeout(() => {
         fetchProducts(productSearch);
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [productSearch, showDrawer, fetchProducts]);
+  }, [productSearch, showModal, fetchProducts]);
 
-  // Open drawer for adding
-  function openAddDrawer() {
+  // Open modal for adding
+  function openAddModal() {
     setEditingDeal(null);
     setFormData({
       title: "",
@@ -189,11 +189,11 @@ export default function DealOfTheDay() {
     setSelectedProducts([]);
     setProductSearch("");
     setFormErrors({});
-    setShowDrawer(true);
+    setShowModal(true);
   }
 
-  // Open drawer for editing
-  async function openEditDrawer(deal: DealOfTheDay) {
+  // Open modal for editing
+  async function openEditModal(deal: DealOfTheDay) {
     setEditingDeal(deal);
     setFormData({
       title: deal.title,
@@ -202,7 +202,7 @@ export default function DealOfTheDay() {
       isActive: deal.isActive,
     });
     setFormErrors({});
-    setShowDrawer(true);
+    setShowModal(true);
 
     // Fetch product details for selected products
     if (deal.productIds.length > 0) {
@@ -218,9 +218,9 @@ export default function DealOfTheDay() {
     setProductSearch("");
   }
 
-  // Close drawer
-  function closeDrawer() {
-    setShowDrawer(false);
+  // Close modal
+  function closeModal() {
+    setShowModal(false);
     setEditingDeal(null);
     setSelectedProducts([]);
     setProductSearch("");
@@ -229,22 +229,16 @@ export default function DealOfTheDay() {
   // Handle keyboard events
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (!showDrawer) return;
+      if (!showModal) return;
       
       if (e.key === "Escape") {
-        closeDrawer();
-      } else if (e.key === "Enter" && e.target instanceof HTMLInputElement) {
-        // Don't submit on Enter in search input
-        if (e.target !== productSearchRef.current) {
-          e.preventDefault();
-          handleSubmit();
-        }
+        closeModal();
       }
     }
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [showDrawer]);
+  }, [showModal]);
 
   // Add product to selection
   function addProduct(product: DealOfTheDayProductInfo) {
@@ -296,7 +290,7 @@ export default function DealOfTheDay() {
         showToast("Deal added successfully");
       }
 
-      closeDrawer();
+      closeModal();
       fetchDeals();
     } catch (error: any) {
       console.error("Failed to save deal:", error);
@@ -431,7 +425,7 @@ export default function DealOfTheDay() {
             title="Edit"
             onClick={(e) => {
               e.stopPropagation();
-              openEditDrawer(deal);
+              openEditModal(deal);
             }}
           >
             {icons.edit}
@@ -531,7 +525,7 @@ export default function DealOfTheDay() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <button className="btn-export" onClick={openAddDrawer}>
+            <button className="btn-export" onClick={openAddModal}>
               {icons.plus}
               Add Deal
             </button>
@@ -559,203 +553,233 @@ export default function DealOfTheDay() {
         />
       </div>
 
-      {/* Slide-over Drawer */}
-      {showDrawer && (
-        <div className="ak-drawer-overlay" onClick={closeDrawer}>
-          <div className="ak-drawer" onClick={(e) => e.stopPropagation()}>
-            <div className="ak-drawer__header">
-              <h2 className="ak-drawer__title">
+      {/* Form Modal */}
+      {showModal && (
+        <div className="ak-modal-overlay" onClick={closeModal}>
+          <div className="ak-modal" style={{ maxWidth: "620px", width: "95%" }} onClick={(e) => e.stopPropagation()}>
+            <div className="ak-modal__header">
+              <h2 className="ak-modal__title">
                 {editingDeal ? "Edit Deal" : "Add New Deal"}
               </h2>
-              <button type="button" className="ak-drawer__close" onClick={closeDrawer}>
+              <button type="button" className="ak-modal__close" onClick={closeModal}>
                 {icons.close}
               </button>
             </div>
 
-            <div className="ak-drawer__body">
-              {formErrors.submit && (
-                <div style={{ padding: "12px 16px", background: "#ffebee", color: "#c62828", borderRadius: 8, marginBottom: 16 }}>
-                  {formErrors.submit}
-                </div>
-              )}
-
-              <div className="ak-form-group">
-                <label className="ak-label">Title (EN) *</label>
-                <input
-                  type="text"
-                  className={`ak-input ${formErrors.title ? "ak-input--error" : ""}`}
-                  placeholder="Enter deal title"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                />
-                {formErrors.title && (
-                  <span className="ak-field-error">{formErrors.title}</span>
-                )}
-              </div>
-
-              <div className="ak-form-group">
-                <label className="ak-label">Description</label>
-                <textarea
-                  className="ak-input ak-textarea"
-                  rows={2}
-                  placeholder="Enter description (optional)"
-                  value={formData.description || ""}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  style={{ resize: "vertical", minHeight: "60px" }}
-                />
-              </div>
-
-              <div className="ak-form-group">
-                <label className="ak-label">Products *</label>
-                
-                {/* Selected products as chips */}
-                {selectedProducts.length > 0 && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "12px" }}>
-                    {selectedProducts.map((product) => (
-                      <div
-                        key={product.id}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          padding: "6px 10px",
-                          background: "var(--color-champagne-gold-light, #fef3e0)",
-                          borderRadius: "20px",
-                          fontSize: "0.85rem",
-                        }}
-                      >
-                        {product.imageUrl && (
-                          <img
-                            src={product.imageUrl}
-                            alt=""
-                            style={{ width: "20px", height: "20px", borderRadius: "4px", objectFit: "cover" }}
-                          />
-                        )}
-                        <span style={{ color: "var(--text-strong)", fontWeight: 500 }}>{product.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => removeProduct(product.id)}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            padding: "0",
-                            cursor: "pointer",
-                            color: "var(--text-muted)",
-                            display: "flex",
-                          }}
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <line x1="18" y1="6" x2="6" y2="18" />
-                            <line x1="6" y1="6" x2="18" y2="18" />
-                          </svg>
-                        </button>
-                      </div>
-                    ))}
+            <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
+              <div className="ak-modal__body" style={{ padding: "24px", maxHeight: "calc(80vh - 140px)", overflowY: "auto" }}>
+                {formErrors.submit && (
+                  <div style={{ padding: "12px 16px", background: "#ffebee", color: "#c62828", borderRadius: 8, marginBottom: 20 }}>
+                    {formErrors.submit}
                   </div>
                 )}
 
-                {/* Product search */}
-                <div className="search-box" style={{ marginBottom: "8px" }}>
-                  {icons.search}
+                {/* Title Field */}
+                <div className="ak-form-group" style={{ marginBottom: "20px" }}>
+                  <label className="ak-label">Title <span style={{ color: "#c62828" }}>*</span></label>
                   <input
-                    ref={productSearchRef}
                     type="text"
-                    placeholder="Search products by name or SKU..."
-                    value={productSearch}
-                    onChange={(e) => setProductSearch(e.target.value)}
+                    className={`ak-input ${formErrors.title ? "ak-input--error" : ""}`}
+                    placeholder="e.g., Today's Special Offer"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   />
-                </div>
-
-                {/* Product list */}
-                <div
-                  style={{
-                    maxHeight: "250px",
-                    overflow: "auto",
-                    border: "1px solid var(--border-color-light, #e6e8ec)",
-                    borderRadius: "8px",
-                  }}
-                >
-                  {loadingProducts ? (
-                    <div style={{ padding: "20px", textAlign: "center" }}>
-                      <span className="ak-spinner" style={{ width: "20px", height: "20px" }} />
-                    </div>
-                  ) : availableProducts.length === 0 ? (
-                    <div style={{ padding: "20px", textAlign: "center", color: "var(--text-muted)" }}>
-                      {productSearch ? "No products found" : "Type to search products"}
-                    </div>
-                  ) : (
-                    availableProducts.map((product) => (
-                      <div
-                        key={product.id}
-                        onClick={() => addProduct(product)}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "12px",
-                          padding: "10px 12px",
-                          cursor: "pointer",
-                          borderBottom: "1px solid var(--border-color-light, #e6e8ec)",
-                          transition: "background 0.15s ease",
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-pearl, #f5f6f8)")}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = "")}
-                      >
-                        <input type="checkbox" checked={false} readOnly style={{ accentColor: "var(--color-champagne-gold)" }} />
-                        <div
-                          style={{
-                            width: "40px",
-                            height: "40px",
-                            borderRadius: "6px",
-                            overflow: "hidden",
-                            background: "var(--color-pearl)",
-                            flexShrink: 0,
-                          }}
-                        >
-                          {product.imageUrl ? (
-                            <img src={product.imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                          ) : (
-                            <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)" }}>
-                              {icons.package}
-                            </div>
-                          )}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 500, fontSize: "0.9rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {product.name}
-                          </div>
-                          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                            <span>SKU: {product.sku} • {formatRupees(product.price)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))
+                  {formErrors.title && (
+                    <span style={{ color: "#c62828", fontSize: "0.75rem", marginTop: "4px", display: "block" }}>{formErrors.title}</span>
                   )}
                 </div>
 
-                {formErrors.products && (
-                  <span className="ak-field-error">{formErrors.products}</span>
-                )}
-              </div>
-            </div>
+                {/* Description Field */}
+                <div className="ak-form-group" style={{ marginBottom: "20px" }}>
+                  <label className="ak-label">Description <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></label>
+                  <textarea
+                    className="ak-input ak-textarea"
+                    rows={2}
+                    placeholder="Brief description of this deal..."
+                    value={formData.description || ""}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    style={{ resize: "vertical", minHeight: "70px" }}
+                  />
+                </div>
 
-            <div className="ak-drawer__footer">
-              <button
-                type="button"
-                className="ak-btn ak-btn--ghost"
-                onClick={handleReset}
-                disabled={submitting}
-              >
-                Reset
-              </button>
-              <button
-                type="button"
-                className="ak-btn ak-btn--primary"
-                onClick={handleSubmit}
-                disabled={submitting}
-              >
-                {submitting ? "Saving..." : "Submit"}
-              </button>
-            </div>
+                {/* Products Field */}
+                <div className="ak-form-group" style={{ marginBottom: "20px" }}>
+                  <label className="ak-label">Products <span style={{ color: "#c62828" }}>*</span></label>
+                  
+                  {/* Selected products as chips */}
+                  {selectedProducts.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "12px" }}>
+                      {selectedProducts.map((product) => (
+                        <div
+                          key={product.id}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            padding: "6px 12px",
+                            background: "var(--color-champagne-gold-light, #fef3e0)",
+                            borderRadius: "20px",
+                            fontSize: "0.85rem",
+                          }}
+                        >
+                          {product.imageUrl && (
+                            <img
+                              src={product.imageUrl}
+                              alt=""
+                              style={{ width: "20px", height: "20px", borderRadius: "4px", objectFit: "cover" }}
+                            />
+                          )}
+                          <span style={{ color: "var(--text-strong)", fontWeight: 500 }}>{product.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => removeProduct(product.id)}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              padding: "0",
+                              cursor: "pointer",
+                              color: "var(--text-muted)",
+                              display: "flex",
+                            }}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <line x1="18" y1="6" x2="6" y2="18" />
+                              <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Product search */}
+                  <div className="search-box" style={{ marginBottom: "8px" }}>
+                    {icons.search}
+                    <input
+                      ref={productSearchRef}
+                      type="text"
+                      placeholder="Search products by name or SKU..."
+                      value={productSearch}
+                      onChange={(e) => setProductSearch(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Product list */}
+                  <div
+                    style={{
+                      maxHeight: "200px",
+                      overflow: "auto",
+                      border: "1px solid var(--border-color-light, #e6e8ec)",
+                      borderRadius: "8px",
+                    }}
+                  >
+                    {loadingProducts ? (
+                      <div style={{ padding: "20px", textAlign: "center" }}>
+                        <span className="ak-spinner" style={{ width: "20px", height: "20px" }} />
+                      </div>
+                    ) : availableProducts.length === 0 ? (
+                      <div style={{ padding: "20px", textAlign: "center", color: "var(--text-muted)" }}>
+                        {productSearch ? "No products found" : "Type to search products"}
+                      </div>
+                    ) : (
+                      availableProducts.map((product) => (
+                        <div
+                          key={product.id}
+                          onClick={() => addProduct(product)}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "12px",
+                            padding: "10px 12px",
+                            cursor: "pointer",
+                            borderBottom: "1px solid var(--border-color-light, #e6e8ec)",
+                            transition: "background 0.15s ease",
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-pearl, #f5f6f8)")}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = "")}
+                        >
+                          <input type="checkbox" checked={false} readOnly style={{ accentColor: "var(--color-champagne-gold)" }} />
+                          <div
+                            style={{
+                              width: "40px",
+                              height: "40px",
+                              borderRadius: "6px",
+                              overflow: "hidden",
+                              background: "var(--color-pearl)",
+                              flexShrink: 0,
+                            }}
+                          >
+                            {product.imageUrl ? (
+                              <img src={product.imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            ) : (
+                              <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)" }}>
+                                {icons.package}
+                              </div>
+                            )}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 500, fontSize: "0.9rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {product.name}
+                            </div>
+                            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                              <span>SKU: {product.sku} • {formatRupees(product.price)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {formErrors.products && (
+                    <span style={{ color: "#c62828", fontSize: "0.75rem", marginTop: "4px", display: "block" }}>{formErrors.products}</span>
+                  )}
+                </div>
+
+                {/* Active Toggle */}
+                <div style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  justifyContent: "space-between",
+                  padding: "16px",
+                  background: formData.isActive ? "var(--color-champagne-gold-light, #fef7ed)" : "var(--color-pearl)",
+                  borderRadius: "10px",
+                  border: formData.isActive ? "1px solid var(--color-champagne-gold)" : "1px solid var(--border-color-light)"
+                }}>
+                  <div>
+                    <p style={{ margin: "0 0 2px", fontWeight: 600, fontSize: "0.9rem" }}>Active Status</p>
+                    <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                      {formData.isActive ? "This deal is visible to customers" : "Deal is inactive and hidden"}
+                    </p>
+                  </div>
+                  <label className="ak-toggle">
+                    <input
+                      type="checkbox"
+                      checked={formData.isActive}
+                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                    />
+                    <span className="ak-toggle__slider" />
+                  </label>
+                </div>
+              </div>
+
+              <div className="ak-modal__footer" style={{ padding: "16px 24px", borderTop: "1px solid var(--border-color-light)" }}>
+                <button
+                  type="button"
+                  className="ak-btn ak-btn--ghost"
+                  onClick={closeModal}
+                  disabled={submitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="ak-btn ak-btn--primary"
+                  disabled={submitting}
+                >
+                  {submitting ? "Saving..." : editingDeal ? "Update Deal" : "Create Deal"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -787,76 +811,8 @@ export default function DealOfTheDay() {
         </div>
       )}
 
-      {/* Drawer styles */}
+      {/* Custom styles */}
       <style>{`
-        .ak-drawer-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0, 0, 0, 0.4);
-          z-index: 1000;
-          animation: fadeIn 0.2s ease;
-        }
-
-        .ak-drawer {
-          position: fixed;
-          top: 0;
-          right: 0;
-          bottom: 0;
-          width: 450px;
-          max-width: 100%;
-          background: white;
-          display: flex;
-          flex-direction: column;
-          box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
-          animation: slideIn 0.3s ease;
-        }
-
-        .ak-drawer__header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 20px 24px;
-          border-bottom: 1px solid var(--border-color-light, #e6e8ec);
-        }
-
-        .ak-drawer__title {
-          font-family: "Playfair Display", serif;
-          font-size: 1.25rem;
-          font-weight: 600;
-          color: var(--text-strong, #1f2430);
-          margin: 0;
-        }
-
-        .ak-drawer__close {
-          background: none;
-          border: none;
-          padding: 8px;
-          cursor: pointer;
-          color: var(--text-muted, #6b7280);
-          border-radius: 6px;
-          display: flex;
-          transition: background 0.15s ease;
-        }
-
-        .ak-drawer__close:hover {
-          background: var(--color-pearl, #f5f6f8);
-        }
-
-        .ak-drawer__body {
-          flex: 1;
-          overflow-y: auto;
-          padding: 24px;
-        }
-
-        .ak-drawer__footer {
-          display: flex;
-          gap: 12px;
-          justify-content: flex-end;
-          padding: 16px 24px;
-          border-top: 1px solid var(--border-color-light, #e6e8ec);
-          background: var(--color-pearl, #f5f6f8);
-        }
-
         .ak-field-error {
           display: block;
           color: #c62828;
@@ -871,17 +827,6 @@ export default function DealOfTheDay() {
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
-        }
-
-        @keyframes slideIn {
-          from { transform: translateX(100%); }
-          to { transform: translateX(0); }
-        }
-
-        @media (max-width: 500px) {
-          .ak-drawer {
-            width: 100%;
-          }
         }
       `}</style>
     </div>
