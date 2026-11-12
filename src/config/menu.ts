@@ -67,11 +67,11 @@ export const MENU_ITEMS: MenuItem[] = [
     keywords: ["order", "sales", "all orders"],
   },
   {
-    path: "/refund-requests",
-    label: "Refund Requests",
+    path: "/exchange-requests",
+    label: "Exchange Requests",
     group: "Order Management",
     permission: "refund-requests",
-    keywords: ["refund", "return"],
+    keywords: ["exchange", "return", "replace"],
   },
 
   // ── Product Management ──

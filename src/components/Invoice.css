@@ -100,6 +100,7 @@
 
 .inv__info-left {
   flex: 1;
+  max-width: 280px;
 }
 
 .inv__info-block {
@@ -116,7 +117,7 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   color: #1a1a1a;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .inv__value {
@@ -129,41 +130,51 @@
 .inv__value--name {
   font-weight: 600;
   color: #1a1a1a;
+  font-size: 12px;
 }
 
 .inv__info-right {
-  text-align: right;
-  min-width: 180px;
+  padding: 14px 0;
 }
 
 .inv__meta-row {
   display: flex;
-  align-items: baseline;
-  justify-content: flex-end;
-  margin-bottom: 6px;
-  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.inv__meta-row:last-child {
+  margin-bottom: 0;
 }
 
 .inv__meta-label {
   font-size: 9px;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   color: #666;
-  flex-shrink: 0;
-}
-
-.inv__meta-dots {
-  flex: 1;
-  border-bottom: 1px dotted #ccc;
-  margin: 0 4px;
-  min-width: 20px;
+  min-width: 75px;
 }
 
 .inv__meta-value {
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
   color: #1a1a1a;
-  flex-shrink: 0;
+}
+
+.inv__meta-value--paid {
+  color: #16a34a;
+  background: #dcfce7;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+}
+
+.inv__meta-value--pending {
+  color: #d97706;
+  background: #fef3c7;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
 }
 
 /* ── Items Table ────────────────────────────────────────── */
@@ -183,6 +194,19 @@
   text-align: left;
 }
 
+.inv__th--img {
+  width: 50px;
+}
+
+.inv__th--desc {
+  text-align: left;
+}
+
+.inv__th--hsn {
+  text-align: center;
+  width: 70px;
+}
+
 .inv__th--rate,
 .inv__th--qty {
   text-align: center;
@@ -199,15 +223,81 @@
 }
 
 .inv__td {
-  padding: 10px 0;
+  padding: 12px 0;
   font-size: 11px;
   color: #333;
-  vertical-align: middle;
+  vertical-align: top;
+}
+
+.inv__td--img {
+  width: 50px;
+  padding-right: 10px;
+}
+
+.inv__item-img {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #e5e5e5;
+}
+
+.inv__item-img-placeholder {
+  width: 44px;
+  height: 44px;
+  border-radius: 4px;
+  border: 1px solid #e5e5e5;
+  background: #f9f9f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ccc;
+}
+
+.inv__item-img-placeholder svg {
+  width: 20px;
+  height: 20px;
 }
 
 .inv__td--desc {
   text-align: left;
-  font-weight: 400;
+}
+
+.inv__item-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.inv__item-name {
+  font-weight: 600;
+  color: #1a1a1a;
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.inv__item-sku {
+  font-size: 9px;
+  color: #888;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
+
+.inv__item-category {
+  font-size: 9px;
+  color: #666;
+}
+
+.inv__item-variants {
+  font-size: 9px;
+  color: #666;
+  font-style: italic;
+}
+
+.inv__td--hsn {
+  text-align: center;
+  font-size: 10px;
+  color: #666;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
 }
 
 .inv__td--rate,
@@ -241,7 +331,7 @@
 
 .inv__summary-row--small {
   font-size: 10px;
-  color: #888;
+  color: #666;
 }
 
 .inv__summary-row--small .inv__summary-label {
@@ -250,7 +340,38 @@
 
 .inv__summary-row--small .inv__summary-value {
   font-weight: 400;
-  color: #888;
+  color: #666;
+}
+
+.inv__summary-row--discount {
+  font-size: 10px;
+}
+
+.inv__summary-row--discount .inv__summary-label {
+  font-weight: 400;
+  color: #16a34a;
+}
+
+.inv__summary-row--discount .inv__summary-value {
+  font-weight: 500;
+  color: #16a34a;
+}
+
+.inv__summary-row--paid {
+  font-size: 10px;
+  padding-top: 6px;
+  margin-top: 4px;
+  border-top: 1px dashed #ddd;
+}
+
+.inv__summary-row--paid .inv__summary-label {
+  font-weight: 500;
+  color: #16a34a;
+}
+
+.inv__summary-row--paid .inv__summary-value {
+  font-weight: 600;
+  color: #16a34a;
 }
 
 .inv__summary-label {
@@ -358,12 +479,8 @@
   }
   
   .inv__info-right {
-    text-align: left;
     min-width: auto;
-  }
-  
-  .inv__meta-row {
-    justify-content: flex-start;
+    max-width: none;
   }
   
   .inv__summary {

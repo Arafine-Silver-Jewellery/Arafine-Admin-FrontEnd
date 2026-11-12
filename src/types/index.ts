@@ -107,6 +107,9 @@ export interface Order {
   cancelledAt: string | null;
   refundAmount: number | null;
   refundedAt: string | null;
+  exchangeForOrderId: string | null;
+  isExchangeOrder: boolean;
+  replacementOrderId: string | null;
   processedById: string | null;
   createdAt: string;
   updatedAt: string;
@@ -119,6 +122,11 @@ export interface OrderItem {
   productName: string;
   productSku: string;
   productImageUrl: string | null;
+  productHsnCode: string | null;
+  productCategory: string | null;
+  productColor: string | null;
+  productMaterial: string | null;
+  productAttributes: Record<string, string | number | boolean> | null;
   quantity: number;
   unitPrice: number;
   totalPrice: number;
@@ -188,6 +196,7 @@ export type OrderStatus =
   | "cancelled"
   | "return_requested"
   | "return_approved"
+  | "exchange_rejected"
   | "returned"
   | "refund_initiated"
   | "refunded";

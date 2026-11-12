@@ -547,6 +547,17 @@ export const api = {
       body: JSON.stringify({ refundAmount }),
     }),
 
+  // Exchange endpoints
+  approveExchange: (id: string, itemIds?: string[]) =>
+    request<{ originalOrder: any; replacementOrder: any }>(`/orders/${id}/exchange/approve`, {
+      method: "POST",
+      body: JSON.stringify({ itemIds }),
+    }),
+  completeExchange: (id: string) =>
+    request<any>(`/orders/${id}/exchange/complete`, {
+      method: "POST",
+    }),
+
   // Record a payment against a pending/partial POS order
   collectOrderBalance: (orderId: string, data: {
     amount: number;
