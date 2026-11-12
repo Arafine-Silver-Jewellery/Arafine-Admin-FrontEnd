@@ -12,11 +12,11 @@ interface ExchangeRequestsProps {
 }
 
 const BACKEND_STATUSES_BY_FILTER: Record<ExchangeRequestsProps["statusFilter"] & string, OrderStatus[]> = {
-  all: ["return_requested", "return_approved", "refund_initiated", "refunded", "returned"],
+  all: ["return_requested", "return_approved", "refund_initiated", "refunded", "exchange_rejected"],
   pending: ["return_requested"],
   approved: ["return_approved", "refund_initiated"],
   exchanged: ["refunded"],
-  rejected: ["returned"],
+  rejected: ["exchange_rejected"],
 };
 
 const exchangeStatusOptions = [
@@ -27,21 +27,126 @@ const exchangeStatusOptions = [
   { value: "rejected", label: "Rejected", color: "danger" as const, path: "/exchange-requests/rejected" },
 ];
 
+const REJECTION_REASONS = [
+  "Product is not eligible for exchange",
+  "Exchange window has expired",
+  "Product shows signs of misuse",
+  "Product tags/packaging removed",
+  "Item is non-returnable",
+  "Other",
+];
+
 /**
  * The exchange bucket a backend order status falls into.
- *
- * The four filters group several backend statuses each (approved covers both
- * `return_approved` and `refund_initiated`). The "All" view shows every
- * bucket side by side, so each row needs to be labelled with its own bucket
- * rather than the filter's label.
  */
 function exchangeBucketOf(status: string): "pending" | "approved" | "exchanged" | "rejected" {
   if (status === "return_requested") return "pending";
   if (status === "return_approved" || status === "refund_initiated") return "approved";
   if (status === "refunded") return "exchanged";
-  return "rejected"; // "returned" — the request was rejected/closed
+  if (status === "exchange_rejected") return "rejected";
+  return "rejected";
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Rejection Modal Component
+   ───────────────────────────────────────────────────────────────────────────── */
+interface RejectModalProps {
+  open: boolean;
+  order: Order | null;
+  loading: boolean;
+  onClose: () => void;
+  onConfirm: (reason: string) => void;
+}
+
+function RejectModal({ open, order, loading, onClose, onConfirm }: RejectModalProps) {
+  const [selectedReason, setSelectedReason] = useState("");
+  const [customReason, setCustomReason] = useState("");
+
+  // Reset when modal opens
+  useEffect(() => {
+    if (open) {
+      setSelectedReason("");
+      setCustomReason("");
+    }
+  }, [open]);
+
+  if (!open || !order) return null;
+
+  const finalReason = selectedReason === "Other" ? customReason : selectedReason;
+
+  return (
+    <div className="ak-modal-overlay" onClick={onClose}>
+      <div className="ak-modal ak-modal--sm" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="ak-modal__header">
+          <div className="ak-modal__icon ak-modal__icon--danger">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="15" y1="9" x2="9" y2="15" />
+              <line x1="9" y1="9" x2="15" y2="15" />
+            </svg>
+          </div>
+          <h3 className="ak-modal__title">Reject Exchange Request</h3>
+          <p className="ak-modal__subtitle">
+            Order <strong>{order.orderNumber}</strong> · {order.shippingAddress?.fullName}
+          </p>
+        </div>
+
+        {/* Body */}
+        <div className="ak-modal__body">
+          <label className="ak-label">Select Reason</label>
+          <div className="ak-radio-group">
+            {REJECTION_REASONS.map((reason) => (
+              <label key={reason} className="ak-radio-item">
+                <input
+                  type="radio"
+                  name="rejection-reason"
+                  value={reason}
+                  checked={selectedReason === reason}
+                  onChange={(e) => setSelectedReason(e.target.value)}
+                />
+                <span className="ak-radio-item__checkmark" />
+                <span className="ak-radio-item__label">{reason}</span>
+              </label>
+            ))}
+          </div>
+
+          {selectedReason === "Other" && (
+            <div style={{ marginTop: "12px" }}>
+              <label className="ak-label">Please specify</label>
+              <textarea
+                className="ak-textarea"
+                placeholder="Enter the reason for rejection..."
+                value={customReason}
+                onChange={(e) => setCustomReason(e.target.value)}
+                rows={3}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="ak-modal__footer">
+          <button type="button" className="ak-btn ak-btn--ghost" onClick={onClose} disabled={loading}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="ak-btn ak-btn--danger"
+            onClick={() => onConfirm(finalReason)}
+            disabled={loading || !selectedReason || (selectedReason === "Other" && !customReason.trim())}
+          >
+            {loading ? "Rejecting..." : "Reject Exchange"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Main Component
+   ───────────────────────────────────────────────────────────────────────────── */
 export default function ExchangeRequests({ statusFilter = "pending" }: ExchangeRequestsProps) {
   const navigate = useNavigate();
   const toast = useToast();
@@ -50,6 +155,10 @@ export default function ExchangeRequests({ statusFilter = "pending" }: ExchangeR
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [processing, setProcessing] = useState<string | null>(null);
+
+  // Reject modal state
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [rejectingOrder, setRejectingOrder] = useState<Order | null>(null);
 
   const filterKey = (statusFilter ?? "pending") as keyof typeof BACKEND_STATUSES_BY_FILTER;
   const currentStatusOption = exchangeStatusOptions.find((o) => o.value === filterKey);
@@ -102,11 +211,20 @@ export default function ExchangeRequests({ statusFilter = "pending" }: ExchangeR
     }
   }
 
-  async function rejectExchange(order: Order) {
-    setProcessing(order.id);
+  function openRejectModal(order: Order) {
+    setRejectingOrder(order);
+    setRejectModalOpen(true);
+  }
+
+  async function handleRejectConfirm(reason: string) {
+    if (!rejectingOrder) return;
+    
+    setProcessing(rejectingOrder.id);
     try {
-      await api.updateOrderStatus(order.id, "returned");
-      toast.success(`Exchange rejected for ${order.orderNumber}`);
+      await api.updateOrderStatus(rejectingOrder.id, "exchange_rejected");
+      toast.success(`Exchange rejected for ${rejectingOrder.orderNumber}`);
+      setRejectModalOpen(false);
+      setRejectingOrder(null);
       await loadExchangeRequests();
     } catch (error) {
       console.error("Failed to reject exchange:", error);
@@ -194,7 +312,7 @@ export default function ExchangeRequests({ statusFilter = "pending" }: ExchangeR
             {bucket === "pending" && (
               <>
                 <button type="button" className="ak-btn ak-btn--sm ak-btn--success" disabled={isProcessing} onClick={(e) => { e.stopPropagation(); approveExchange(order); }}>Approve</button>
-                <button type="button" className="ak-btn ak-btn--sm ak-btn--danger" disabled={isProcessing} onClick={(e) => { e.stopPropagation(); rejectExchange(order); }}>Reject</button>
+                <button type="button" className="ak-btn ak-btn--sm ak-btn--danger" disabled={isProcessing} onClick={(e) => { e.stopPropagation(); openRejectModal(order); }}>Reject</button>
               </>
             )}
             {bucket === "approved" && order.replacementOrderId && (
@@ -255,6 +373,15 @@ export default function ExchangeRequests({ statusFilter = "pending" }: ExchangeR
           onRowClick={(order) => navigate(`/orders/${order.id}`)}
         />
       </div>
+
+      {/* Reject Modal */}
+      <RejectModal
+        open={rejectModalOpen}
+        order={rejectingOrder}
+        loading={processing === rejectingOrder?.id}
+        onClose={() => { setRejectModalOpen(false); setRejectingOrder(null); }}
+        onConfirm={handleRejectConfirm}
+      />
     </div>
   );
 }

@@ -1406,10 +1406,46 @@
 
 .ak-modal__header {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid var(--border-color-light);
+  text-align: center;
+  padding: 1.5rem 1.5rem 1rem;
+  border-bottom: none;
+}
+
+.ak-modal__icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.ak-modal__icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.ak-modal__icon--danger {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.ak-modal__icon--warning {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.ak-modal__icon--success {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.ak-modal__icon--info {
+  background: #eff6ff;
+  color: #2563eb;
 }
 
 .ak-modal__title {
@@ -1418,6 +1454,20 @@
   font-weight: 600;
   color: var(--text-strong);
   margin: 0;
+}
+
+.ak-modal__subtitle {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.ak-modal--sm {
+  max-width: 420px;
+}
+
+.ak-modal--lg {
+  max-width: 640px;
 }
 
 .ak-modal__close {
@@ -1468,6 +1518,124 @@
   padding: 1rem 1.5rem;
   border-top: 1px solid var(--border-color-light);
   background: var(--color-pearl);
+}
+
+/* ============================================================
+   FORM — LABELS
+   ============================================================ */
+.ak-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-strong);
+  margin-bottom: 0.5rem;
+}
+
+/* ============================================================
+   FORM — RADIO GROUP
+   ============================================================ */
+.ak-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ak-radio-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--color-pearl);
+  border: 1px solid var(--border-color-light);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.ak-radio-item:hover {
+  border-color: var(--border-color);
+  background: var(--color-ivory);
+}
+
+.ak-radio-item:has(input:checked) {
+  border-color: var(--brand);
+  background: var(--brand-weak);
+}
+
+.ak-radio-item input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.ak-radio-item__checkmark {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border-strong);
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.ak-radio-item:has(input:checked) .ak-radio-item__checkmark {
+  border-color: var(--brand);
+}
+
+.ak-radio-item__checkmark::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  width: 8px;
+  height: 8px;
+  background: var(--brand);
+  border-radius: 50%;
+  transition: transform var(--transition-fast);
+}
+
+.ak-radio-item:has(input:checked) .ak-radio-item__checkmark::after {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.ak-radio-item__label {
+  font-size: 0.875rem;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.ak-radio-item:has(input:checked) .ak-radio-item__label {
+  color: var(--text-strong);
+  font-weight: 500;
+}
+
+/* ============================================================
+   FORM — TEXTAREA
+   ============================================================ */
+.ak-textarea {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  color: var(--text-strong);
+  background: var(--surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  resize: vertical;
+  transition: all var(--transition-fast);
+}
+
+.ak-textarea:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-weak);
+}
+
+.ak-textarea::placeholder {
+  color: var(--text-muted);
 }
 
 /* ============================================================

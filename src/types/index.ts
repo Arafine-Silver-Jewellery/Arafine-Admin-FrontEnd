@@ -196,6 +196,7 @@ export type OrderStatus =
   | "cancelled"
   | "return_requested"
   | "return_approved"
+  | "exchange_rejected"
   | "returned"
   | "refund_initiated"
   | "refunded";
