@@ -1238,3 +1238,54 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ============================================================
+   CUSTOM ATTRIBUTE INPUT
+   ============================================================ */
+.anp-custom-attr-input {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.anp-custom-attr-input input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #6366f1;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  outline: none;
+}
+
+.anp-custom-attr-input input:focus {
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.anp-custom-attr-input button {
+  padding: 0.5rem 1rem;
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.anp-custom-attr-input button:hover {
+  background: #4f46e5;
+}
+
+.anp-custom-attr-input .anp-cancel-btn {
+  padding: 0.5rem 0.75rem;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 1rem;
+}
+
+.anp-custom-attr-input .anp-cancel-btn:hover {
+  background: #e2e8f0;
+  color: #475569;
+}

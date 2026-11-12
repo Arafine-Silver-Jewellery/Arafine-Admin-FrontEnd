@@ -650,13 +650,14 @@ export default function AddNewProduct() {
     }
     setSelectedColors(prev => [...prev, { id: preset.id, name: preset.name, hex: preset.hex }]);
     setColorWiseImages(prev => [...prev, { colorId: preset.id, colorName: preset.name, images: [] }]);
-    // Add variation data for this color with auto-generated full SKU
-    const baseSku = formData.sku || formData.name.substring(0, 3).toUpperCase() || "PRD";
-    const colorSuffix = preset.name.replace(/\s+/g, "");
+    // Add variation data for this color with auto-generated dynamic SKU
+    const prefix = formData.name.substring(0, 3).toUpperCase() || "PRD";
+    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const colorSuffix = preset.name.replace(/\s+/g, "").toUpperCase();
     setColorVariationData(prev => [...prev, { 
       colorId: preset.id, 
       price: formData.price || 0, 
-      sku: `${baseSku}-${colorSuffix}`,
+      sku: `${prefix}-${random}-${colorSuffix}`,
       stock: 1 
     }]);
   }
@@ -1240,7 +1241,14 @@ export default function AddNewProduct() {
                     <select
                       value=""
                       onChange={(e) => {
-                        if (e.target.value && !selectedAttributes.some(a => a.id === e.target.value)) {
+                        if (e.target.value === "other") {
+                          // Show custom input - handled by the input below
+                          const customInput = document.getElementById('custom-attr-input');
+                          if (customInput) {
+                            customInput.style.display = 'flex';
+                            (customInput.querySelector('input') as HTMLInputElement)?.focus();
+                          }
+                        } else if (e.target.value && !selectedAttributes.some(a => a.id === e.target.value)) {
                           setSelectedAttributes(prev => [...prev, { id: e.target.value, name: e.target.options[e.target.selectedIndex].text, values: [] }]);
                         }
                       }}
@@ -1250,7 +1258,66 @@ export default function AddNewProduct() {
                       <option value="material">Material</option>
                       <option value="style">Style</option>
                       <option value="weight">Weight</option>
+
+                      <option value="other">+ Other (Custom)</option>
                     </select>
+                    <div id="custom-attr-input" className="anp-custom-attr-input" style={{ display: 'none' }}>
+                      <input
+                        type="text"
+                        placeholder="Enter custom attribute name"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const input = e.currentTarget;
+                            const value = input.value.trim();
+                            if (value) {
+                              const customId = value.toLowerCase().replace(/\s+/g, '-');
+                              if (!selectedAttributes.some(a => a.id === customId)) {
+                                setSelectedAttributes(prev => [...prev, { id: customId, name: value, values: [] }]);
+                              }
+                              input.value = '';
+                              const container = document.getElementById('custom-attr-input');
+                              if (container) container.style.display = 'none';
+                            }
+                          } else if (e.key === 'Escape') {
+                            const input = e.currentTarget;
+                            input.value = '';
+                            const container = document.getElementById('custom-attr-input');
+                            if (container) container.style.display = 'none';
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const input = document.querySelector('#custom-attr-input input') as HTMLInputElement;
+                          const value = input?.value.trim();
+                          if (value) {
+                            const customId = value.toLowerCase().replace(/\s+/g, '-');
+                            if (!selectedAttributes.some(a => a.id === customId)) {
+                              setSelectedAttributes(prev => [...prev, { id: customId, name: value, values: [] }]);
+                            }
+                            input.value = '';
+                          }
+                          const container = document.getElementById('custom-attr-input');
+                          if (container) container.style.display = 'none';
+                        }}
+                      >
+                        Add
+                      </button>
+                      <button
+                        type="button"
+                        className="anp-cancel-btn"
+                        onClick={() => {
+                          const container = document.getElementById('custom-attr-input');
+                          if (container) container.style.display = 'none';
+                          const input = document.querySelector('#custom-attr-input input') as HTMLInputElement;
+                          if (input) input.value = '';
+                        }}
+                      >
+                        ×
+                      </button>
+                    </div>
                     {selectedAttributes.length > 0 && (
                       <div className="anp-attr-tags">
                         {selectedAttributes.map(attr => (
