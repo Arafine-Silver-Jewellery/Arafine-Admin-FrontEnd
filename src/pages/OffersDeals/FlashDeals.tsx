@@ -634,40 +634,6 @@ export default function FlashDeals() {
 
   return (
     <div className="reports-container">
-      {/* Stats Grid */}
-      {stats && (
-        <div className="product-report-stats-grid">
-          <div className="product-report-stat-card">
-            <div className="product-report-stat-icon blue">{icons.flash}</div>
-            <div className="product-report-stat-content">
-              <h2>{stats.totalDeals}</h2>
-              <p>Total Deals</p>
-            </div>
-          </div>
-          <div className="product-report-stat-card">
-            <div className="product-report-stat-icon green">{icons.check}</div>
-            <div className="product-report-stat-content">
-              <h2>{stats.activeDeals}</h2>
-              <p>Active Deals</p>
-            </div>
-          </div>
-          <div className="product-report-stat-card">
-            <div className="product-report-stat-icon orange">{icons.clock}</div>
-            <div className="product-report-stat-content">
-              <h2>{stats.expiredDeals}</h2>
-              <p>Expired Deals</p>
-            </div>
-          </div>
-          <div className="product-report-stat-card">
-            <div className="product-report-stat-icon teal">{icons.calendar}</div>
-            <div className="product-report-stat-content">
-              <h2>{stats.upcomingDeals}</h2>
-              <p>Upcoming Deals</p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Main Card */}
       <div className="table-card">
         <div className="table-header">
@@ -701,6 +667,10 @@ export default function FlashDeals() {
                 </button>
               )}
             </div>
+            <button className="btn-export" onClick={openAddModal}>
+              {icons.plus}
+              Add Flash Deal
+            </button>
           </div>
         </div>
 

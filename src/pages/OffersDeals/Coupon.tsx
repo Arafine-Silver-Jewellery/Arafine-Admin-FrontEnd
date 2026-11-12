@@ -549,40 +549,6 @@ export default function CouponPage() {
 
   return (
     <div className="reports-container">
-      {/* Stats Grid */}
-      {stats && (
-        <div className="product-report-stats-grid">
-          <div className="product-report-stat-card">
-            <div className="product-report-stat-icon blue">{icons.tag}</div>
-            <div className="product-report-stat-content">
-              <h2>{stats.totalCoupons}</h2>
-              <p>Total Coupons</p>
-            </div>
-          </div>
-          <div className="product-report-stat-card">
-            <div className="product-report-stat-icon green">{icons.check}</div>
-            <div className="product-report-stat-content">
-              <h2>{stats.activeCoupons}</h2>
-              <p>Active Coupons</p>
-            </div>
-          </div>
-          <div className="product-report-stat-card">
-            <div className="product-report-stat-icon orange">{icons.clock}</div>
-            <div className="product-report-stat-content">
-              <h2>{stats.expiredCoupons}</h2>
-              <p>Expired Coupons</p>
-            </div>
-          </div>
-          <div className="product-report-stat-card">
-            <div className="product-report-stat-icon teal">{icons.users}</div>
-            <div className="product-report-stat-content">
-              <h2>{stats.totalUsage.toLocaleString()}</h2>
-              <p>Total Usage</p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Error */}
       {error && (
         <div className="report-card" style={{ borderLeft: "4px solid #f44336", marginBottom: 16 }}>

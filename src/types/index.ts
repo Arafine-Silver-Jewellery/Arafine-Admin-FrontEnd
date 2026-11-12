@@ -801,6 +801,7 @@ export interface FlashDealStats {
 export interface FeaturedDeal {
   id: string;
   title: string;
+  bannerImageUrl: string | null;
   startsAt: string;
   endsAt: string;
   isPublished: boolean;
@@ -814,6 +815,7 @@ export interface FeaturedDeal {
 
 export interface CreateFeaturedDealInput {
   title: string;
+  bannerImageUrl?: string | null;
   startsAt: string;
   endsAt: string;
   isPublished?: boolean;

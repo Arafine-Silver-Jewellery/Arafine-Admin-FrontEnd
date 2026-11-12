@@ -468,33 +468,6 @@ export default function DealOfTheDay() {
         </div>
       )}
 
-      {/* Stats Grid */}
-      {stats && (
-        <div className="product-report-stats-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
-          <div className="product-report-stat-card">
-            <div className="product-report-stat-icon blue">{icons.tag}</div>
-            <div className="product-report-stat-content">
-              <h2>{stats.totalDeals}</h2>
-              <p>Total Deals</p>
-            </div>
-          </div>
-          <div className="product-report-stat-card">
-            <div className="product-report-stat-icon green">{icons.check}</div>
-            <div className="product-report-stat-content">
-              <h2>{stats.activeDeals}</h2>
-              <p>Active Now</p>
-            </div>
-          </div>
-          <div className="product-report-stat-card">
-            <div className="product-report-stat-icon teal">{icons.package}</div>
-            <div className="product-report-stat-content">
-              <h2>{stats.totalProducts}</h2>
-              <p>Products Featured</p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Main Card */}
       <div className="table-card">
         <div className="table-header">

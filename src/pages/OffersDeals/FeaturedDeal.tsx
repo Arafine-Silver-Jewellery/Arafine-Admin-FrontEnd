@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { api } from "../../api/client";
 import { DataTable, StatusDropdown } from "../../components";
 import type {
@@ -52,6 +52,12 @@ export default function FeaturedDeal() {
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+
+  // Image upload state
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [imagePreview, setImagePreview] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
   // Products modal
   const [showProductsModal, setShowProductsModal] = useState(false);
@@ -108,11 +114,13 @@ export default function FeaturedDeal() {
     setEditingDeal(null);
     setFormData({
       title: "",
+      bannerImageUrl: "",
       startsAt: now.toISOString().slice(0, 16),
       endsAt: endDate.toISOString().slice(0, 16),
       isPublished: true,
       productIds: [],
     });
+    setImagePreview("");
     setFormErrors({});
     setShowFormModal(true);
   }
@@ -121,11 +129,13 @@ export default function FeaturedDeal() {
     setEditingDeal(deal);
     setFormData({
       title: deal.title,
+      bannerImageUrl: deal.bannerImageUrl || "",
       startsAt: formatDateForInput(deal.startsAt),
       endsAt: formatDateForInput(deal.endsAt),
       isPublished: deal.isPublished,
       productIds: deal.productIds,
     });
+    setImagePreview(deal.bannerImageUrl || "");
     setFormErrors({});
     setShowFormModal(true);
   }
@@ -133,6 +143,69 @@ export default function FeaturedDeal() {
   function closeFormModal() {
     setShowFormModal(false);
     setEditingDeal(null);
+    if (imagePreview && imagePreview.startsWith("blob:")) {
+      URL.revokeObjectURL(imagePreview);
+    }
+    setImagePreview("");
+  }
+
+  // Image upload handlers
+  async function handleFileSelect(file: File | null) {
+    if (!file) return;
+    
+    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowed.includes(file.type)) {
+      setFormErrors((prev) => ({ ...prev, image: "Unsupported file type. Use JPG, PNG, or WEBP." }));
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setFormErrors((prev) => ({ ...prev, image: "File is larger than 5 MB." }));
+      return;
+    }
+    setFormErrors((prev) => {
+      const { image, ...rest } = prev;
+      return rest;
+    });
+
+    if (imagePreview && imagePreview.startsWith("blob:")) {
+      URL.revokeObjectURL(imagePreview);
+    }
+
+    const localPreview = URL.createObjectURL(file);
+    setImagePreview(localPreview);
+
+    setUploading(true);
+    try {
+      const result = await api.uploadFile(file, "featured-deals");
+      setFormData((prev) => ({ ...prev, bannerImageUrl: result.url }));
+      setImagePreview(result.url);
+      URL.revokeObjectURL(localPreview);
+    } catch (err) {
+      setImagePreview("");
+      setFormData((prev) => ({ ...prev, bannerImageUrl: "" }));
+      setFormErrors((prev) => ({ ...prev, image: err instanceof Error ? err.message : "Upload failed" }));
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
+    handleFileSelect(e.target.files?.[0] ?? null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setDragOver(false);
+    handleFileSelect(e.dataTransfer.files?.[0] ?? null);
+  }
+
+  function clearImage() {
+    if (imagePreview && imagePreview.startsWith("blob:")) {
+      URL.revokeObjectURL(imagePreview);
+    }
+    setImagePreview("");
+    setFormData((prev) => ({ ...prev, bannerImageUrl: "" }));
   }
 
   function validateForm(): boolean {
@@ -335,6 +408,37 @@ export default function FeaturedDeal() {
       render: (_: FeaturedDeal, index: number) => (currentPage - 1) * itemsPerPage + index + 1,
     },
     {
+      key: "image",
+      header: "Image",
+      width: "80px",
+      render: (deal: FeaturedDeal) => (
+        <div style={{
+          width: "50px",
+          height: "50px",
+          borderRadius: "8px",
+          overflow: "hidden",
+          background: "var(--color-pearl)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}>
+          {deal.bannerImageUrl ? (
+            <img
+              src={deal.bannerImageUrl}
+              alt={deal.title}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          ) : (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21,15 16,10 5,21" />
+            </svg>
+          )}
+        </div>
+      ),
+    },
+    {
       key: "title",
       header: "Title",
       render: (deal: FeaturedDeal) => <span className="ak-text-link" style={{ fontWeight: 600 }}>{deal.title}</span>,
@@ -512,7 +616,7 @@ export default function FeaturedDeal() {
       {/* Form Modal */}
       {showFormModal && (
         <div className="ak-modal-overlay" onClick={closeFormModal}>
-          <div className="ak-modal" style={{ maxWidth: "550px" }} onClick={(e) => e.stopPropagation()}>
+          <div className="ak-modal" style={{ maxWidth: "620px", width: "95%" }} onClick={(e) => e.stopPropagation()}>
             <div className="ak-modal__header">
               <h2 className="ak-modal__title">
                 {editingDeal ? "Edit Featured Deal" : "Add Featured Deal"}
@@ -525,75 +629,165 @@ export default function FeaturedDeal() {
               </button>
             </div>
             <form onSubmit={handleSubmit}>
-              <div className="ak-modal__body">
+              <div className="ak-modal__body" style={{ padding: "24px", maxHeight: "calc(80vh - 140px)", overflowY: "auto" }}>
                 {formErrors.submit && (
-                  <div style={{ padding: "12px 16px", background: "#ffebee", color: "#c62828", borderRadius: 8, marginBottom: 16 }}>
+                  <div style={{ padding: "12px 16px", background: "#ffebee", color: "#c62828", borderRadius: 8, marginBottom: 20 }}>
                     {formErrors.submit}
                   </div>
                 )}
 
-                <div className="ak-form-group">
-                  <label className="ak-label">Title *</label>
+                {/* Title Field */}
+                <div className="ak-form-group" style={{ marginBottom: "20px" }}>
+                  <label className="ak-label">Title <span style={{ color: "#c62828" }}>*</span></label>
                   <input
                     type="text"
                     className="ak-input"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="Enter featured deal title"
+                    placeholder="e.g., Weekend Special Featured Items"
                   />
-                  {formErrors.title && <span style={{ color: "#c62828", fontSize: "0.75rem" }}>{formErrors.title}</span>}
+                  {formErrors.title && <span style={{ color: "#c62828", fontSize: "0.75rem", marginTop: "4px", display: "block" }}>{formErrors.title}</span>}
                 </div>
 
-                <div className="ak-form-grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                  <div className="ak-form-group">
-                    <label className="ak-label">Start Date *</label>
+                {/* Date Range - Side by Side */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }}>
+                  <div className="ak-form-group" style={{ marginBottom: 0 }}>
+                    <label className="ak-label">Start Date & Time <span style={{ color: "#c62828" }}>*</span></label>
                     <input
                       type="datetime-local"
                       className="ak-input"
                       value={formData.startsAt}
                       onChange={(e) => setFormData({ ...formData, startsAt: e.target.value })}
+                      style={{ width: "100%" }}
                     />
-                    {formErrors.startsAt && <span style={{ color: "#c62828", fontSize: "0.75rem" }}>{formErrors.startsAt}</span>}
+                    {formErrors.startsAt && <span style={{ color: "#c62828", fontSize: "0.75rem", marginTop: "4px", display: "block" }}>{formErrors.startsAt}</span>}
                   </div>
-                  <div className="ak-form-group">
-                    <label className="ak-label">End Date *</label>
+                  <div className="ak-form-group" style={{ marginBottom: 0 }}>
+                    <label className="ak-label">End Date & Time <span style={{ color: "#c62828" }}>*</span></label>
                     <input
                       type="datetime-local"
                       className="ak-input"
                       value={formData.endsAt}
                       onChange={(e) => setFormData({ ...formData, endsAt: e.target.value })}
+                      style={{ width: "100%" }}
                     />
-                    {formErrors.endsAt && <span style={{ color: "#c62828", fontSize: "0.75rem" }}>{formErrors.endsAt}</span>}
+                    {formErrors.endsAt && <span style={{ color: "#c62828", fontSize: "0.75rem", marginTop: "4px", display: "block" }}>{formErrors.endsAt}</span>}
                   </div>
                 </div>
 
-                <div className="ak-form-group">
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <label className="ak-toggle">
-                      <input
-                        type="checkbox"
-                        checked={formData.isPublished}
-                        onChange={(e) => setFormData({ ...formData, isPublished: e.target.checked })}
-                      />
-                      <span className="ak-toggle__slider" />
-                    </label>
-                    <span>Publish immediately</span>
+                {/* Banner Image */}
+                <div className="ak-form-group" style={{ marginBottom: "20px" }}>
+                  <label className="ak-label">Banner Image <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></label>
+                  <div
+                    className={`ak-upload-area ${dragOver ? "ak-upload-area--dragover" : ""} ${uploading ? "ak-upload-area--uploading" : ""}`}
+                    onClick={() => !uploading && fileInputRef.current?.click()}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setDragOver(true);
+                    }}
+                    onDragLeave={() => setDragOver(false)}
+                    onDrop={handleDrop}
+                    style={{ 
+                      minHeight: imagePreview ? "auto" : "100px", 
+                      padding: imagePreview ? "12px" : "20px",
+                      border: "2px dashed var(--border-color-light)",
+                      borderRadius: "10px",
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                      background: dragOver ? "var(--color-champagne-gold-light, #fef7ed)" : "var(--color-pearl, #f9fafb)",
+                    }}
+                  >
+                    {imagePreview ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                        <img src={imagePreview} alt="Preview" style={{ width: "80px", height: "80px", objectFit: "cover", borderRadius: "8px" }} />
+                        <div style={{ flex: 1 }}>
+                          <p style={{ margin: "0 0 8px", fontWeight: 500, fontSize: "0.875rem" }}>Banner uploaded</p>
+                          {!uploading && (
+                            <button
+                              type="button"
+                              className="ak-btn ak-btn--ghost"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                clearImage();
+                              }}
+                              style={{ padding: "6px 12px", fontSize: "0.8rem" }}
+                            >
+                              Remove
+                            </button>
+                          )}
+                          {uploading && (
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--text-muted)" }}>
+                              <span className="ak-spinner" style={{ width: "16px", height: "16px" }} />
+                              <span>Uploading…</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                        <div style={{ width: "48px", height: "48px", borderRadius: "8px", background: "white", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)" }}>
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                            <circle cx="8.5" cy="8.5" r="1.5" />
+                            <polyline points="21,15 16,10 5,21" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p style={{ margin: "0 0 4px", fontWeight: 500 }}>Click to upload or drag and drop</p>
+                          <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-muted)" }}>JPG, PNG, or WEBP — max 5 MB</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleFileInput}
+                    style={{ display: "none" }}
+                  />
+                  {formErrors.image && <span style={{ color: "#c62828", fontSize: "0.75rem", marginTop: "4px", display: "block" }}>{formErrors.image}</span>}
                 </div>
 
-                {(editingDeal || (formData.productIds?.length ?? 0) > 0) && (
-                  <div className="ak-text-sm ak-text-muted" style={{ marginTop: 8 }}>
-                    Products are managed from the <strong>+ Add product</strong> button in the table.
-                    {editingDeal && ` This deal currently has ${editingDeal.activeProductsCount} product(s).`}
+                {/* Published Toggle */}
+                <div style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  justifyContent: "space-between",
+                  padding: "16px",
+                  background: formData.isPublished ? "var(--color-champagne-gold-light, #fef7ed)" : "var(--color-pearl)",
+                  borderRadius: "10px",
+                  border: formData.isPublished ? "1px solid var(--color-champagne-gold)" : "1px solid var(--border-color-light)"
+                }}>
+                  <div>
+                    <p style={{ margin: "0 0 2px", fontWeight: 600, fontSize: "0.9rem" }}>Publish Immediately</p>
+                    <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                      {formData.isPublished ? "This deal will be visible to customers" : "Keep as draft until ready"}
+                    </p>
+                  </div>
+                  <label className="ak-toggle">
+                    <input
+                      type="checkbox"
+                      checked={formData.isPublished}
+                      onChange={(e) => setFormData({ ...formData, isPublished: e.target.checked })}
+                    />
+                    <span className="ak-toggle__slider" />
+                  </label>
+                </div>
+
+                {editingDeal && (
+                  <div className="ak-text-sm ak-text-muted" style={{ marginTop: 16, padding: "12px", background: "var(--color-pearl)", borderRadius: "8px" }}>
+                    💡 Products are managed from the <strong>+ Add product</strong> button in the table.
+                    This deal currently has {editingDeal.activeProductsCount} product(s).
                   </div>
                 )}
               </div>
-              <div className="ak-modal__footer">
-                <button type="button" className="ak-btn ak-btn--ghost" onClick={closeFormModal} disabled={submitting}>
+              <div className="ak-modal__footer" style={{ padding: "16px 24px", borderTop: "1px solid var(--border-color-light)" }}>
+                <button type="button" className="ak-btn ak-btn--ghost" onClick={closeFormModal} disabled={submitting || uploading}>
                   Cancel
                 </button>
-                <button type="submit" className="ak-btn ak-btn--primary" disabled={submitting}>
-                  {submitting ? "Saving…" : editingDeal ? "Update" : "Create"}
+                <button type="submit" className="ak-btn ak-btn--primary" disabled={submitting || uploading}>
+                  {submitting ? "Saving…" : uploading ? "Uploading…" : editingDeal ? "Update Deal" : "Create Deal"}
                 </button>
               </div>
             </form>
