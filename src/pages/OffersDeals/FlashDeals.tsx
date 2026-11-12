@@ -499,65 +499,50 @@ export default function FlashDeals() {
       render: (_: FlashDeal, index: number) => (currentPage - 1) * itemsPerPage + index + 1,
     },
     {
-      key: "deal",
-      header: "Flash Deal",
+      key: "image",
+      header: "Image",
+      width: "80px",
       render: (deal: FlashDeal) => (
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <div style={{
+          width: "50px",
+          height: "50px",
+          borderRadius: "8px",
+          overflow: "hidden",
+          background: "var(--color-pearl)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}>
           {deal.bannerImageUrl ? (
             <img
               src={deal.bannerImageUrl}
               alt={deal.title}
-              style={{
-                width: "48px",
-                height: "48px",
-                objectFit: "cover",
-                borderRadius: "8px",
-                border: "1px solid var(--border-color-light)",
-              }}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
           ) : (
-            <div
-              style={{
-                width: "48px",
-                height: "48px",
-                borderRadius: "8px",
-                background: "var(--color-pearl)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "var(--text-muted)",
-              }}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-              </svg>
-            </div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21,15 16,10 5,21" />
+            </svg>
           )}
-          <div>
-            <span style={{ fontWeight: 600, display: "block", color: "var(--text-strong)" }}>{deal.title}</span>
-            {deal.description && (
-              <span className="ak-text-muted ak-text-sm" style={{ 
-                display: "block", 
-                maxWidth: "200px", 
-                overflow: "hidden", 
-                textOverflow: "ellipsis", 
-                whiteSpace: "nowrap" 
-              }}>
-                {deal.description}
-              </span>
-            )}
-          </div>
         </div>
+      ),
+    },
+    {
+      key: "title",
+      header: "Title",
+      render: (deal: FlashDeal) => (
+        <span style={{ color: "var(--color-champagne-gold)", fontWeight: 500 }}>{deal.title}</span>
       ),
     },
     {
       key: "duration",
       header: "Duration",
       render: (deal: FlashDeal) => (
-        <div className="ak-text-sm">
-          <div style={{ fontWeight: 500 }}>{formatDate(deal.startsAt)}</div>
-          <div className="ak-text-muted">to {formatDate(deal.endsAt)}</div>
-        </div>
+        <span style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>
+          {formatDate(deal.startsAt)} - {formatDate(deal.endsAt)}
+        </span>
       ),
     },
     {
@@ -565,43 +550,32 @@ export default function FlashDeals() {
       header: "Status",
       width: "120px",
       render: (deal: FlashDeal) => {
-        const status = getStatusDisplay(deal.status);
+        const statusColors: Record<string, string> = {
+          active: "#22c55e",
+          expired: "#ef4444",
+          upcoming: "#3b82f6",
+        };
         return (
-          <span className={`ak-status ak-status--${status.variant}`}>
-            <span className="ak-status__dot" />
-            {status.label}
+          <span style={{ color: statusColors[deal.status] || "var(--text-muted)", fontWeight: 500 }}>
+            {deal.status.charAt(0).toUpperCase() + deal.status.slice(1)}
           </span>
         );
       },
     },
     {
       key: "products",
-      header: "Products",
-      width: "100px",
+      header: "Active Products",
+      width: "130px",
       align: "center" as const,
       render: (deal: FlashDeal) => (
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "4px",
-            padding: "4px 10px",
-            background: deal.activeProductsCount > 0 ? "var(--color-champagne-gold-light, #fef3e0)" : "var(--color-pearl)",
-            color: deal.activeProductsCount > 0 ? "var(--color-champagne-gold)" : "var(--text-muted)",
-            borderRadius: "20px",
-            fontSize: "0.875rem",
-            fontWeight: 500,
-          }}
-        >
-          {icons.package}
-          {deal.activeProductsCount}
-        </span>
+        <span style={{ color: "var(--text-strong)" }}>{deal.activeProductsCount}</span>
       ),
     },
     {
       key: "publish",
-      header: "Published",
+      header: "Publish",
       width: "100px",
+      align: "center" as const,
       render: (deal: FlashDeal) => (
         <label className="ak-toggle" onClick={(e) => e.stopPropagation()}>
           <input
@@ -615,7 +589,7 @@ export default function FlashDeals() {
     },
     {
       key: "actions",
-      header: "Actions",
+      header: "Action",
       width: "160px",
       render: (deal: FlashDeal) => (
         <div className="ak-row-actions">
@@ -660,69 +634,38 @@ export default function FlashDeals() {
 
   return (
     <div className="reports-container">
-      {/* Stats Grid */}
-      {stats && (
-        <div className="product-report-stats-grid">
-          <div className="product-report-stat-card">
-            <div className="product-report-stat-icon blue">{icons.flash}</div>
-            <div className="product-report-stat-content">
-              <h2>{stats.totalDeals}</h2>
-              <p>Total Deals</p>
-            </div>
-          </div>
-          <div className="product-report-stat-card">
-            <div className="product-report-stat-icon green">{icons.check}</div>
-            <div className="product-report-stat-content">
-              <h2>{stats.activeDeals}</h2>
-              <p>Active Deals</p>
-            </div>
-          </div>
-          <div className="product-report-stat-card">
-            <div className="product-report-stat-icon orange">{icons.clock}</div>
-            <div className="product-report-stat-content">
-              <h2>{stats.expiredDeals}</h2>
-              <p>Expired Deals</p>
-            </div>
-          </div>
-          <div className="product-report-stat-card">
-            <div className="product-report-stat-icon teal">{icons.calendar}</div>
-            <div className="product-report-stat-content">
-              <h2>{stats.upcomingDeals}</h2>
-              <p>Upcoming Deals</p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Main Card */}
       <div className="table-card">
         <div className="table-header">
           <h3>
-            Flash Deals <span className="count">{totalItems}</span>
+            Flash Deal Table <span className="count">{totalItems}</span>
           </h3>
           <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-            <select
-              className="table-filter-select"
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-            >
-              {STATUS_FILTERS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
             <div className="search-box">
               {icons.search}
               <input
                 type="text"
-                placeholder="Search by title..."
+                placeholder="Search by Title"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "4px",
+                    display: "flex",
+                    alignItems: "center",
+                    color: "var(--text-muted)",
+                  }}
+                >
+                  {icons.close}
+                </button>
+              )}
             </div>
             <button className="btn-export" onClick={openAddModal}>
               {icons.plus}
@@ -751,7 +694,7 @@ export default function FlashDeals() {
       {/* Form Modal */}
       {showFormModal && (
         <div className="ak-modal-overlay" onClick={closeFormModal}>
-          <div className="ak-modal" style={{ maxWidth: "550px" }} onClick={(e) => e.stopPropagation()}>
+          <div className="ak-modal" style={{ maxWidth: "620px", width: "95%" }} onClick={(e) => e.stopPropagation()}>
             <div className="ak-modal__header">
               <h2 className="ak-modal__title">
                 {editingDeal ? "Edit Flash Deal" : "Add Flash Deal"}
@@ -761,39 +704,68 @@ export default function FlashDeals() {
               </button>
             </div>
             <form onSubmit={handleSubmit}>
-              <div className="ak-modal__body">
+              <div className="ak-modal__body" style={{ padding: "24px" }}>
                 {formErrors.submit && (
-                  <div style={{ padding: "12px 16px", background: "#ffebee", color: "#c62828", borderRadius: 8, marginBottom: 16 }}>
+                  <div style={{ padding: "12px 16px", background: "#ffebee", color: "#c62828", borderRadius: 8, marginBottom: 20 }}>
                     {formErrors.submit}
                   </div>
                 )}
 
-                <div className="ak-form-group">
-                  <label className="ak-label">Title *</label>
+                {/* Title Field */}
+                <div className="ak-form-group" style={{ marginBottom: "20px" }}>
+                  <label className="ak-label">Title <span style={{ color: "#c62828" }}>*</span></label>
                   <input
                     type="text"
                     className="ak-input"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="Enter flash deal title"
+                    placeholder="e.g., Weekend Flash Sale"
                   />
-                  {formErrors.title && <span style={{ color: "#c62828", fontSize: "0.75rem" }}>{formErrors.title}</span>}
+                  {formErrors.title && <span style={{ color: "#c62828", fontSize: "0.75rem", marginTop: "4px", display: "block" }}>{formErrors.title}</span>}
                 </div>
 
-                <div className="ak-form-group">
-                  <label className="ak-label">Description</label>
+                {/* Description Field */}
+                <div className="ak-form-group" style={{ marginBottom: "20px" }}>
+                  <label className="ak-label">Description <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></label>
                   <textarea
                     className="ak-input ak-textarea"
-                    rows={3}
+                    rows={2}
                     value={formData.description || ""}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Enter description (optional)"
-                    style={{ minHeight: "80px", resize: "vertical" }}
+                    placeholder="Brief description of this flash deal..."
+                    style={{ minHeight: "70px", resize: "vertical" }}
                   />
                 </div>
 
-                <div className="ak-form-group">
-                  <label className="ak-label">Banner Image</label>
+                {/* Date Range - Side by Side */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }}>
+                  <div className="ak-form-group" style={{ marginBottom: 0 }}>
+                    <label className="ak-label">Start Date & Time <span style={{ color: "#c62828" }}>*</span></label>
+                    <input
+                      type="datetime-local"
+                      className="ak-input"
+                      value={formData.startsAt}
+                      onChange={(e) => setFormData({ ...formData, startsAt: e.target.value })}
+                      style={{ width: "100%" }}
+                    />
+                    {formErrors.startsAt && <span style={{ color: "#c62828", fontSize: "0.75rem", marginTop: "4px", display: "block" }}>{formErrors.startsAt}</span>}
+                  </div>
+                  <div className="ak-form-group" style={{ marginBottom: 0 }}>
+                    <label className="ak-label">End Date & Time <span style={{ color: "#c62828" }}>*</span></label>
+                    <input
+                      type="datetime-local"
+                      className="ak-input"
+                      value={formData.endsAt}
+                      onChange={(e) => setFormData({ ...formData, endsAt: e.target.value })}
+                      style={{ width: "100%" }}
+                    />
+                    {formErrors.endsAt && <span style={{ color: "#c62828", fontSize: "0.75rem", marginTop: "4px", display: "block" }}>{formErrors.endsAt}</span>}
+                  </div>
+                </div>
+
+                {/* Banner Image */}
+                <div className="ak-form-group" style={{ marginBottom: "20px" }}>
+                  <label className="ak-label">Banner Image <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></label>
                   <div
                     className={`ak-upload-area ${dragOver ? "ak-upload-area--dragover" : ""} ${uploading ? "ak-upload-area--uploading" : ""}`}
                     onClick={() => !uploading && fileInputRef.current?.click()}
@@ -803,38 +775,47 @@ export default function FlashDeals() {
                     }}
                     onDragLeave={() => setDragOver(false)}
                     onDrop={handleDrop}
+                    style={{ minHeight: imagePreview ? "auto" : "100px", padding: imagePreview ? "12px" : "20px" }}
                   >
                     {imagePreview ? (
-                      <div className="ak-upload-area__preview">
-                        <img src={imagePreview} alt="Preview" />
-                        {!uploading && (
-                          <button
-                            type="button"
-                            className="ak-upload-area__remove"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              clearImage();
-                            }}
-                          >
-                            Remove
-                          </button>
-                        )}
-                        {uploading && (
-                          <div className="ak-upload-area__overlay">
-                            <span className="ak-spinner" />
-                            <span>Uploading…</span>
-                          </div>
-                        )}
+                      <div className="ak-upload-area__preview" style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                        <img src={imagePreview} alt="Preview" style={{ width: "80px", height: "80px", objectFit: "cover", borderRadius: "8px" }} />
+                        <div style={{ flex: 1 }}>
+                          <p style={{ margin: "0 0 8px", fontWeight: 500, fontSize: "0.875rem" }}>Banner uploaded</p>
+                          {!uploading && (
+                            <button
+                              type="button"
+                              className="ak-btn ak-btn--ghost"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                clearImage();
+                              }}
+                              style={{ padding: "6px 12px", fontSize: "0.8rem" }}
+                            >
+                              Remove
+                            </button>
+                          )}
+                          {uploading && (
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--text-muted)" }}>
+                              <span className="ak-spinner" style={{ width: "16px", height: "16px" }} />
+                              <span>Uploading…</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ) : (
-                      <div className="ak-upload-area__placeholder">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                          <circle cx="8.5" cy="8.5" r="1.5" />
-                          <polyline points="21,15 16,10 5,21" />
-                        </svg>
-                        <p>Click to upload or drag and drop</p>
-                        <p className="ak-text-muted ak-text-sm">JPG, PNG, or WEBP — up to 5 MB</p>
+                      <div className="ak-upload-area__placeholder" style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                        <div style={{ width: "48px", height: "48px", borderRadius: "8px", background: "var(--color-pearl)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)" }}>
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                            <circle cx="8.5" cy="8.5" r="1.5" />
+                            <polyline points="21,15 16,10 5,21" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p style={{ margin: "0 0 4px", fontWeight: 500 }}>Click to upload or drag and drop</p>
+                          <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-muted)" }}>JPG, PNG, or WEBP — max 5 MB</p>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -845,49 +826,41 @@ export default function FlashDeals() {
                     onChange={handleFileInput}
                     style={{ display: "none" }}
                   />
-                  {formErrors.image && <span style={{ color: "#c62828", fontSize: "0.75rem" }}>{formErrors.image}</span>}
+                  {formErrors.image && <span style={{ color: "#c62828", fontSize: "0.75rem", marginTop: "4px", display: "block" }}>{formErrors.image}</span>}
                 </div>
 
-                <div className="ak-form-grid ak-form-grid--3" style={{ alignItems: "end" }}>
-                  <div className="ak-form-group">
-                    <label className="ak-label">Start Date *</label>
+                {/* Published Toggle */}
+                <div style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  justifyContent: "space-between",
+                  padding: "16px",
+                  background: formData.isPublished ? "var(--color-champagne-gold-light, #fef7ed)" : "var(--color-pearl)",
+                  borderRadius: "10px",
+                  border: formData.isPublished ? "1px solid var(--color-champagne-gold)" : "1px solid var(--border-color-light)"
+                }}>
+                  <div>
+                    <p style={{ margin: "0 0 2px", fontWeight: 600, fontSize: "0.9rem" }}>Publish Immediately</p>
+                    <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                      {formData.isPublished ? "This deal will be visible to customers" : "Keep as draft until ready"}
+                    </p>
+                  </div>
+                  <label className="ak-toggle">
                     <input
-                      type="datetime-local"
-                      className="ak-input"
-                      value={formData.startsAt}
-                      onChange={(e) => setFormData({ ...formData, startsAt: e.target.value })}
+                      type="checkbox"
+                      checked={formData.isPublished}
+                      onChange={(e) => setFormData({ ...formData, isPublished: e.target.checked })}
                     />
-                    {formErrors.startsAt && <span style={{ color: "#c62828", fontSize: "0.75rem" }}>{formErrors.startsAt}</span>}
-                  </div>
-                  <div className="ak-form-group">
-                    <label className="ak-label">End Date *</label>
-                    <input
-                      type="datetime-local"
-                      className="ak-input"
-                      value={formData.endsAt}
-                      onChange={(e) => setFormData({ ...formData, endsAt: e.target.value })}
-                    />
-                    {formErrors.endsAt && <span style={{ color: "#c62828", fontSize: "0.75rem" }}>{formErrors.endsAt}</span>}
-                  </div>
-                  <div className="ak-form-group" style={{ display: "flex", alignItems: "center", gap: "0.5rem", paddingBottom: "8px" }}>
-                    <label className="ak-toggle">
-                      <input
-                        type="checkbox"
-                        checked={formData.isPublished}
-                        onChange={(e) => setFormData({ ...formData, isPublished: e.target.checked })}
-                      />
-                      <span className="ak-toggle__slider" />
-                    </label>
-                    <span className="ak-label" style={{ marginBottom: 0 }}>Published</span>
-                  </div>
+                    <span className="ak-toggle__slider" />
+                  </label>
                 </div>
               </div>
-              <div className="ak-modal__footer">
+              <div className="ak-modal__footer" style={{ padding: "16px 24px", borderTop: "1px solid var(--border-color-light)" }}>
                 <button type="button" className="ak-btn ak-btn--ghost" onClick={closeFormModal} disabled={submitting || uploading}>
                   Cancel
                 </button>
                 <button type="submit" className="ak-btn ak-btn--primary" disabled={submitting || uploading}>
-                  {submitting ? "Saving..." : uploading ? "Uploading..." : editingDeal ? "Update" : "Create"}
+                  {submitting ? "Saving..." : uploading ? "Uploading..." : editingDeal ? "Update Deal" : "Create Deal"}
                 </button>
               </div>
             </form>
