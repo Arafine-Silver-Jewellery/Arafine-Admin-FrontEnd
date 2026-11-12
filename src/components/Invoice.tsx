@@ -16,6 +16,17 @@ interface InvoiceItem {
   totalPrice: number;
 }
 
+interface PaymentHistoryItem {
+  id: string;
+  paymentType: "partial" | "full" | "refund";
+  amount: number;
+  runningTotal: number;
+  paymentMethod?: string | null;
+  transactionReference?: string | null;
+  notes?: string | null;
+  createdAt: string;
+}
+
 interface InvoiceOrder {
   id: string;
   orderNumber: string;
@@ -39,6 +50,7 @@ interface InvoiceOrder {
   paymentStatus: string;
   paymentMethod?: string;
   items?: InvoiceItem[];
+  payments?: PaymentHistoryItem[];
 }
 
 interface InvoiceProps {
@@ -193,6 +205,35 @@ const Invoice = forwardRef<HTMLDivElement, InvoiceProps>(({ order }, ref) => {
           })}
         </tbody>
       </table>
+
+      {/* Payment History (compact table - only show if multiple payments) */}
+      {order.payments && order.payments.length > 1 && (
+        <div className="inv__payments">
+          <span className="inv__label">PAYMENT HISTORY</span>
+          <table className="inv__payments-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Method</th>
+                <th className="inv__payments-amt">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {order.payments.map((payment) => (
+                <tr key={payment.id}>
+                  <td>{new Date(payment.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</td>
+                  <td className={payment.runningTotal >= order.total ? "inv__payments-cleared" : "inv__payments-partial"}>
+                    {payment.runningTotal >= order.total ? "Cleared" : "Partial"}
+                  </td>
+                  <td>{payment.paymentMethod?.toUpperCase() || "-"}</td>
+                  <td className="inv__payments-amt">+{formatPrice(payment.amount)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Summary */}
       <div className="inv__summary">

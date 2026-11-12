@@ -426,6 +426,54 @@
   padding-top: 40px;
 }
 
+/* ── Payment History (compact table) ─────────────────────── */
+.inv__payments {
+  margin-bottom: 16px;
+}
+
+.inv__payments .inv__label {
+  margin-bottom: 8px;
+}
+
+.inv__payments-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+}
+
+.inv__payments-table th {
+  text-align: left;
+  padding: 6px 8px;
+  font-weight: 600;
+  color: #666;
+  border-bottom: 1px solid #e5e5e5;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.inv__payments-table td {
+  padding: 6px 8px;
+  border-bottom: 1px dashed #eee;
+  color: #444;
+}
+
+.inv__payments-table .inv__payments-amt {
+  text-align: right;
+  font-weight: 500;
+  color: #16a34a;
+  font-variant-numeric: tabular-nums;
+}
+
+.inv__payments-partial {
+  color: #b45309;
+}
+
+.inv__payments-cleared {
+  color: #15803d;
+  font-weight: 500;
+}
+
 .inv__thanks {
   font-size: 10px;
   font-weight: 600;

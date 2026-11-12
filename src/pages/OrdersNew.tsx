@@ -903,7 +903,7 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
       {showInvoice && selectedOrder && (
         <div className="ak-modal-overlay" onClick={() => setShowInvoice(false)}>
           <div className="ak-modal" style={{ maxWidth: "650px", maxHeight: "95vh" }} onClick={(e) => e.stopPropagation()}>
-            <div className="ak-modal__header">
+            <div className="ak-modal__header" style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", textAlign: "left" }}>
               <h2 className="ak-modal__title">Invoice #{selectedOrder.orderNumber}</h2>
               <button type="button" className="ak-modal__close" onClick={() => setShowInvoice(false)}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
