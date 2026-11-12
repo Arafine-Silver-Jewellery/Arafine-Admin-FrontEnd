@@ -16,6 +16,31 @@ interface Category {
   name: string;
 }
 
+interface ColorImage {
+  id: string;
+  url: string;
+  altText: string | null;
+  sortOrder: number;
+}
+
+interface ProductColor {
+  id: string;
+  name: string;
+  hexCode: string;
+  price: number | null;
+  sku: string | null;
+  stockQuantity: number;
+  sortOrder: number;
+  images: ColorImage[];
+}
+
+interface ProductAttribute {
+  id: string;
+  name: string;
+  values: string[];
+  sortOrder: number;
+}
+
 interface Product {
   id: string;
   name: string;
@@ -28,6 +53,7 @@ interface Product {
   costPrice: number | null;
   stockQuantity: number;
   lowStockThreshold: number;
+  trackInventory: boolean;
   status: string;
   isVisible: boolean;
   isFeatured: boolean;
@@ -39,7 +65,22 @@ interface Product {
   metaTitle: string | null;
   metaDescription: string | null;
   metaImageUrl: string | null;
+  metaIndex: string | null;
   searchTags: string[];
+  // Additional fields
+  productType: string;
+  unit: string;
+  minOrderQty: number;
+  shippingCost: number;
+  discountAmount: number;
+  discountType: string;
+  youtubeVideoUrl: string | null;
+  hsnCode: string | null;
+  // Variations
+  hasVariations: boolean;
+  colors: ProductColor[];
+  productAttributes: ProductAttribute[];
+  // Timestamps
   createdAt: string;
   updatedAt: string;
 }
@@ -282,6 +323,10 @@ export default function ProductView() {
                   <span className="info-value">{product.name}</span>
                 </div>
                 <div className="info-row">
+                  <span className="info-label">Slug</span>
+                  <span className="info-value sku-code">{product.slug}</span>
+                </div>
+                <div className="info-row">
                   <span className="info-label">Category</span>
                   <span className="info-value category-badge">
                     {product.category?.name || "-"}
@@ -290,6 +335,26 @@ export default function ProductView() {
                 <div className="info-row">
                   <span className="info-label">SKU</span>
                   <span className="info-value sku-code">{product.sku}</span>
+                </div>
+                {product.hsnCode && (
+                  <div className="info-row">
+                    <span className="info-label">HSN Code</span>
+                    <span className="info-value sku-code">{product.hsnCode}</span>
+                  </div>
+                )}
+                <div className="info-row">
+                  <span className="info-label">Product Type</span>
+                  <span className="info-value" style={{ textTransform: "capitalize" }}>
+                    {product.productType || "Physical"}
+                  </span>
+                </div>
+                <div className="info-row">
+                  <span className="info-label">Unit</span>
+                  <span className="info-value">{product.unit || "pc"}</span>
+                </div>
+                <div className="info-row">
+                  <span className="info-label">Min. Order Qty</span>
+                  <span className="info-value">{product.minOrderQty || 1}</span>
                 </div>
                 {product.color && (
                   <div className="info-row">
@@ -340,9 +405,23 @@ export default function ProductView() {
                     <span className="info-value">{formatPrice(product.costPrice)}</span>
                   </div>
                 )}
-                {product.compareAtPrice && (
+                {product.discountAmount > 0 && (
                   <div className="info-row">
                     <span className="info-label">Discount</span>
+                    <span className="info-value discount-badge">
+                      {product.discountAmount} {product.discountType === "percent" ? "%" : "₹"} OFF
+                    </span>
+                  </div>
+                )}
+                {product.shippingCost > 0 && (
+                  <div className="info-row">
+                    <span className="info-label">Shipping Cost</span>
+                    <span className="info-value">{formatPrice(product.shippingCost)}</span>
+                  </div>
+                )}
+                {product.compareAtPrice && product.discountAmount === 0 && (
+                  <div className="info-row">
+                    <span className="info-label">Price Difference</span>
                     <span className="info-value discount-badge">
                       {Math.round(
                         ((product.compareAtPrice - product.price) /
@@ -375,6 +454,16 @@ export default function ProductView() {
                   <span className="info-value">{product.lowStockThreshold}</span>
                 </div>
                 <div className="info-row">
+                  <span className="info-label">Track Inventory</span>
+                  <span className="info-value">
+                    {product.trackInventory ? (
+                      <span className="badge-yes">Yes</span>
+                    ) : (
+                      <span className="badge-no">No</span>
+                    )}
+                  </span>
+                </div>
+                <div className="info-row">
                   <span className="info-label">Featured</span>
                   <span className="info-value">
                     {product.isFeatured ? (
@@ -397,6 +486,102 @@ export default function ProductView() {
               </div>
             </div>
           </div>
+
+          {/* Product Variations */}
+          {product.hasVariations && product.colors && product.colors.length > 0 && (
+            <div className="info-card">
+              <div className="card-header">
+                <h3>Product Variations</h3>
+              </div>
+              <div className="card-body">
+                <table className="variations-table">
+                  <thead>
+                    <tr>
+                      <th>SL</th>
+                      <th>Color</th>
+                      <th>Price (₹)</th>
+                      <th>SKU</th>
+                      <th>Stock</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {product.colors.map((color, index) => (
+                      <tr key={color.id}>
+                        <td>{index + 1}</td>
+                        <td>
+                          <span className="color-cell">
+                            <span 
+                              className="color-dot" 
+                              style={{ backgroundColor: color.hexCode }}
+                            />
+                            {color.name}
+                          </span>
+                        </td>
+                        <td>{color.price ? formatPrice(color.price) : "-"}</td>
+                        <td className="sku-code">{color.sku || "-"}</td>
+                        <td>{color.stockQuantity}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                
+                {/* Color-wise Images */}
+                {product.colors.some(c => c.images && c.images.length > 0) && (
+                  <div className="color-images-section">
+                    <h4>Color-wise Images</h4>
+                    {product.colors.map(color => (
+                      color.images && color.images.length > 0 && (
+                        <div key={color.id} className="color-images-row">
+                          <div className="color-images-label">
+                            <span 
+                              className="color-dot" 
+                              style={{ backgroundColor: color.hexCode }}
+                            />
+                            {color.name}
+                          </div>
+                          <div className="color-images-grid">
+                            {color.images.map((img, imgIndex) => (
+                              <img 
+                                key={img.id || imgIndex} 
+                                src={img.url} 
+                                alt={img.altText || `${color.name} ${imgIndex + 1}`}
+                                className="color-image-thumb"
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Product Attributes */}
+          {product.hasVariations && product.productAttributes && product.productAttributes.length > 0 && (
+            <div className="info-card">
+              <div className="card-header">
+                <h3>Product Attributes</h3>
+              </div>
+              <div className="card-body">
+                <div className="attributes-list">
+                  {product.productAttributes.map((attr) => (
+                    <div key={attr.id} className="attribute-item">
+                      <span className="attribute-name">{attr.name}</span>
+                      {attr.values && attr.values.length > 0 && (
+                        <div className="attribute-values">
+                          {attr.values.map((val, idx) => (
+                            <span key={idx} className="attribute-value-badge">{val}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Search Tags */}
           {product.searchTags && product.searchTags.length > 0 && (
@@ -435,6 +620,12 @@ export default function ProductView() {
                     {product.metaDescription || <span className="no-content">Not set</span>}
                   </span>
                 </div>
+                <div className="info-row">
+                  <span className="info-label">Meta Index</span>
+                  <span className="info-value" style={{ textTransform: "capitalize" }}>
+                    {product.metaIndex || "index"}
+                  </span>
+                </div>
                 <div className="info-row full-width">
                   <span className="info-label">Meta Image</span>
                   <div className="info-value">
@@ -457,6 +648,21 @@ export default function ProductView() {
                     )}
                   </div>
                 </div>
+                {product.youtubeVideoUrl && (
+                  <div className="info-row full-width">
+                    <span className="info-label">YouTube Video</span>
+                    <span className="info-value">
+                      <a 
+                        href={product.youtubeVideoUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="youtube-link"
+                      >
+                        {product.youtubeVideoUrl}
+                      </a>
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

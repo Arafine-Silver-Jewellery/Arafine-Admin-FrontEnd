@@ -949,6 +949,90 @@
   font-size: 0.625rem;
 }
 
+/* Variation Table */
+.anp-variation-table-wrapper {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+.anp-variation-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.anp-variation-table thead {
+  background: #f9fafb;
+}
+
+.anp-variation-table th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.anp-variation-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: middle;
+}
+
+.anp-variation-table tbody tr:hover {
+  background: #fafafa;
+}
+
+.anp-var-sl {
+  color: #3b82f6;
+  font-weight: 600;
+  width: 50px;
+}
+
+.anp-var-name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #1f2937;
+  font-weight: 500;
+}
+
+.anp-var-name .anp-color-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.anp-var-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: #374151;
+  background: #fff;
+  transition: all 0.2s;
+}
+
+.anp-var-input:focus {
+  outline: none;
+  border-color: #9a7b4f;
+  box-shadow: 0 0 0 3px rgba(154, 123, 79, 0.1);
+}
+
+.anp-var-input::placeholder {
+  color: #9ca3af;
+}
+
+.anp-var-sku {
+  color: #3b82f6;
+}
+
 /* Footer */
 .anp-footer {
   display: flex;

@@ -205,6 +205,7 @@ export default function AddNewProduct() {
   const [selectedColors, setSelectedColors] = useState<{ id: string; name: string; hex?: string }[]>([]);
   const [selectedAttributes, setSelectedAttributes] = useState<{ id: string; name: string }[]>([]);
   const [colorWiseImages, setColorWiseImages] = useState<{ colorId: string; colorName: string; images: { file: File | null; preview: string }[] }[]>([]);
+  const [colorVariationData, setColorVariationData] = useState<{ colorId: string; price: number; sku: string; stock: number }[]>([]);
   const colorImageInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   
   // Thumbnail image
@@ -344,6 +345,13 @@ export default function AddNewProduct() {
               file: null,
               preview: img.url,
             })) || [],
+          })));
+          // Load variation data (price, sku, stock) for each color
+          setColorVariationData(product.colors.map((c: any) => ({
+            colorId: c.id,
+            price: c.price || 0,
+            sku: c.sku || "",
+            stock: c.stockQuantity || 0,
           })));
         }
         
@@ -623,6 +631,8 @@ export default function AddNewProduct() {
     // `colorWiseImages` carries a row per colour, so it has to drop in step or
     // the uploads would survive for a colour that's no longer selected.
     setColorWiseImages(prev => prev.filter(c => c.colorId !== colorId));
+    // Also remove variation data for this color
+    setColorVariationData(prev => prev.filter(c => c.colorId !== colorId));
   }
 
   /** Matches on hex, not the preset id — colours loaded from an existing
@@ -639,6 +649,27 @@ export default function AddNewProduct() {
     }
     setSelectedColors(prev => [...prev, { id: preset.id, name: preset.name, hex: preset.hex }]);
     setColorWiseImages(prev => [...prev, { colorId: preset.id, colorName: preset.name, images: [] }]);
+    // Add variation data for this color with auto-generated full SKU
+    const baseSku = formData.sku || formData.name.substring(0, 3).toUpperCase() || "PRD";
+    const colorSuffix = preset.name.replace(/\s+/g, "");
+    setColorVariationData(prev => [...prev, { 
+      colorId: preset.id, 
+      price: formData.price || 0, 
+      sku: `${baseSku}-${colorSuffix}`,
+      stock: 1 
+    }]);
+  }
+
+  function updateColorVariation(colorId: string, field: "price" | "sku" | "stock", value: string | number) {
+    setColorVariationData(prev => {
+      const exists = prev.some(c => c.colorId === colorId);
+      if (exists) {
+        return prev.map(c => c.colorId === colorId ? { ...c, [field]: value } : c);
+      } else {
+        // If no entry exists for this color, create one
+        return [...prev, { colorId, price: 0, sku: "", stock: 0, [field]: value }];
+      }
+    });
   }
 
   async function handleSubmit(asDraft = false) {
@@ -778,11 +809,16 @@ export default function AddNewProduct() {
             );
             
             const colorInfo = selectedColors.find(c => c.id === colorItem.colorId);
+            const varData = colorVariationData.find(v => v.colorId === colorItem.colorId);
             return {
               name: colorItem.colorName,
               hexCode: colorInfo?.hex || "#000000",
               sortOrder: selectedColors.findIndex(c => c.id === colorItem.colorId),
               images: uploadedImages,
+              // Variation-specific pricing and inventory
+              price: varData?.price || null,
+              sku: varData?.sku || null,
+              stockQuantity: varData?.stock || 0,
             };
           })
         );
@@ -1148,6 +1184,7 @@ export default function AddNewProduct() {
                         setSelectedColors([]);
                         setSelectedAttributes([]);
                         setColorWiseImages([]);
+                        setColorVariationData([]);
                       }
                     }}
                   />
@@ -1225,6 +1262,80 @@ export default function AddNewProduct() {
                     )}
                   </div>
                 </div>
+
+                {/* Variation Table */}
+                {selectedColors.length > 0 && (
+                  <div className="anp-variation-table-wrapper">
+                    <table className="anp-variation-table">
+                      <thead>
+                        <tr>
+                          <th style={{ width: "50px" }}>SL</th>
+                          <th>Attribute Variation</th>
+                          <th>Variation Wise Price (₹)</th>
+                          <th>SKU</th>
+                          <th>Variation Wise Stock</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedColors.map((color, index) => {
+                          const varData = colorVariationData.find(v => v.colorId === color.id) || { price: 0, sku: "", stock: 1 };
+                          return (
+                            <tr key={color.id}>
+                              <td className="anp-var-sl">{index + 1}</td>
+                              <td className="anp-var-name">
+                                <span className="anp-color-dot" style={{ background: color.hex || "#ccc" }} />
+                                {color.name}
+                              </td>
+                              <td>
+                                <input
+                                  type="number"
+                                  className="anp-var-input"
+                                  value={varData.price || ""}
+                                  onChange={(e) => updateColorVariation(color.id, "price", parseInt(e.target.value || "0"))}
+                                  placeholder="0"
+                                  min="0"
+                                />
+                              </td>
+                              <td>
+                                <div className="anp-input-with-btn">
+                                  <input
+                                    type="text"
+                                    className="anp-var-input anp-var-sku"
+                                    value={varData.sku}
+                                    onChange={(e) => updateColorVariation(color.id, "sku", e.target.value.toUpperCase())}
+                                    placeholder={`${formData.sku || "SKU"}-${color.name.replace(/\s+/g, "")}`}
+                                  />
+                                  <button 
+                                    type="button" 
+                                    className="anp-btn-generate"
+                                    onClick={() => {
+                                      const prefix = formData.name.substring(0, 3).toUpperCase() || "PRD";
+                                      const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+                                      const colorSuffix = color.name.replace(/\s+/g, "").toUpperCase();
+                                      updateColorVariation(color.id, "sku", `${prefix}-${random}-${colorSuffix}`);
+                                    }}
+                                  >
+                                    Generate
+                                  </button>
+                                </div>
+                              </td>
+                              <td>
+                                <input
+                                  type="number"
+                                  className="anp-var-input"
+                                  value={varData.stock || ""}
+                                  onChange={(e) => updateColorVariation(color.id, "stock", parseInt(e.target.value || "0"))}
+                                  placeholder="1"
+                                  min="0"
+                                />
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
 
                 {/* Color-wise images */}
                 {selectedColors.length > 0 && (
