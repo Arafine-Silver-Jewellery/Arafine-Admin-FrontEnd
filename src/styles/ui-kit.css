@@ -1406,11 +1406,25 @@
 
 .ak-modal__header {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border-light, #e5e7eb);
+}
+
+.ak-modal__header--centered {
+  flex-direction: column;
+  justify-content: center;
   text-align: center;
-  padding: 1.5rem 1.5rem 1rem;
   border-bottom: none;
+  padding: 1.5rem 1.5rem 1rem;
+}
+
+.ak-modal__header--centered .ak-modal__close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
 }
 
 .ak-modal__icon {

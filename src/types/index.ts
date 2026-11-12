@@ -646,8 +646,20 @@ export interface Promotion {
   updatedAt: string;
 }
 
-export type BannerType = "Carousel" | "2 X 2 Banner" | "Custom Banner";
-export type BannerResourceType = "Custom" | "Category";
+export type BannerType = 
+  | "Main Banner"
+  | "Popup Banner"
+  | "Footer Banner"
+  | "Main Section Banner"
+  | "Header Banner"
+  | "Sidebar Banner"
+  | "Top Side Banner"
+  | "2x2 Banner"
+  | "Mobile view Banner"
+  | "Custom Banner"
+  | "Carousel";
+
+export type BannerResourceType = "Product" | "Category" | "Shop" | "Brand" | "Custom";
 
 export interface Banner {
   id: string;
@@ -656,10 +668,12 @@ export interface Banner {
   bannerType: BannerType;
   position: string;
   resourceType: BannerResourceType;
-  /** URL when resourceType is "Custom", category name when "Category" */
+  /** URL when resourceType is "Custom", name when "Category"/"Product" */
   resource: string;
   /** Set when resourceType is "Category" */
   categoryId?: string;
+  /** Set when resourceType is "Product" */
+  productId?: string;
   published: boolean;
   createdAt: string;
   updatedAt: string;
