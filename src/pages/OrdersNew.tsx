@@ -246,12 +246,57 @@ export default function OrdersNew({ statusFilter = "all" }: OrdersNewProps) {
 
   async function downloadInvoicePdf() {
     if (!invoiceRef.current || !selectedOrder) return;
-    const canvas = await html2canvas(invoiceRef.current, { scale: 2, useCORS: true });
+    
+    // Convert all images to base64 via backend proxy to bypass CORS
+    const images = invoiceRef.current.querySelectorAll("img");
+    const imagePromises = Array.from(images).map(async (img) => {
+      if (img.src && !img.src.startsWith("data:") && !img.src.startsWith("/")) {
+        try {
+          // Use backend proxy to fetch image
+          const proxyUrl = `${import.meta.env.VITE_API_URL || "http://localhost:3001/api/v1"}/admin/proxy/image?url=${encodeURIComponent(img.src)}`;
+          const response = await fetch(proxyUrl);
+          const blob = await response.blob();
+          const base64 = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(blob);
+          });
+          img.src = base64;
+        } catch {
+          // If fetch fails, keep original src
+        }
+      }
+    });
+    await Promise.all(imagePromises);
+    
+    const canvas = await html2canvas(invoiceRef.current, { 
+      scale: 2, 
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+    });
     const imgData = canvas.toDataURL("image/png");
     const pdf = new jsPDF({ orientation: "portrait", unit: "px", format: "a4" });
     const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+    const pdfPageHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = pdfWidth;
+    const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+    
+    let heightLeft = imgHeight;
+    let position = 0;
+    
+    // First page
+    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+    heightLeft -= pdfPageHeight;
+    
+    // Add more pages if needed
+    while (heightLeft > 0) {
+      position = heightLeft - imgHeight; // negative value to offset the image
+      pdf.addPage();
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pdfPageHeight;
+    }
+    
     pdf.save(`invoice_${selectedOrder.orderNumber}.pdf`);
   }
 
