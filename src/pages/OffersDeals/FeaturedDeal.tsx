@@ -509,11 +509,20 @@ export default function FeaturedDeal() {
       ),
     },
     {
-      key: "duration",
-      header: "Duration",
+      key: "startDate",
+      header: "Start Date",
       render: (deal: FeaturedDeal) => (
         <span style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>
-          {formatDate(deal.startsAt)} - {formatDate(deal.endsAt)}
+          {formatDate(deal.startsAt)}
+        </span>
+      ),
+    },
+    {
+      key: "endDate",
+      header: "End Date",
+      render: (deal: FeaturedDeal) => (
+        <span style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>
+          {formatDate(deal.endsAt)}
         </span>
       ),
     },
